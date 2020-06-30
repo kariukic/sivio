@@ -25,9 +25,9 @@ def generate_distribution(mean, sigma, size, dist):
 
 N = 1000
 
-ras = [3]#[4., 1] # generate_distribution(0., 4., N, "normal") #np.array([0,2])
-decs = [-25]#[-28, -23., ] # generate_distribution(-27., 4., N, "normal") #np.array([-27.,-24.])
-fluxes = [1]#[1, 2] # np.abs(generate_distribution(1., 3., N, "normal")) #np.array([1.,2.])
+ras = [0., 3.]#[4., 1] # generate_distribution(0., 4., N, "normal") #np.array([0,2])
+decs = [-27., -25]#[-28, -23., ] # generate_distribution(-27., 4., N, "normal") #np.array([-27.,-24.])
+fluxes = [1, 1]#[1, 2] # np.abs(generate_distribution(1., 3., N, "normal")) #np.array([1.,2.])
 rdiffs = [1000] # diffractive scales.
 
 

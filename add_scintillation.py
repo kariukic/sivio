@@ -21,7 +21,7 @@ def add_scint(data, bls, rdiff):
 
     for i in range(data.shape[0]): 
         data[i,:] *= np.exp(-0.5*db[i])
-        
+
     return(data)
 
 
@@ -32,8 +32,15 @@ def add_phase_offsets(ms):
     #freqs = mset.SPECTRAL_WINDOW.getcell('CHAN_FREQ', 0)
     antids = np.array(range(0, len(mset.ANTENNA)))
 
-    params = 0.1*np.random.randn(len(antids))
+    from tests import get_antenna_in_uvw
+    us,vs,ws = get_antenna_in_uvw(ms, mset)
 
+    ds = np.sqrt(np.abs(us**2 - vs**2))
+    #params = 0.1*np.random.randn(len(antids))
+    #params = 0.001*np.linspace(1,2,128)
+    params = 0.0003*ds
+    params[0] = 0
+    print(params)
     return params[antenna1] - params[antenna2]
 
 
