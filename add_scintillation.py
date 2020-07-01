@@ -32,15 +32,18 @@ def add_phase_offsets(ms):
     #freqs = mset.SPECTRAL_WINDOW.getcell('CHAN_FREQ', 0)
     antids = np.array(range(0, len(mset.ANTENNA)))
 
+    
     from tests import get_antenna_in_uvw
-    us,vs,ws = get_antenna_in_uvw(ms, mset)
-
-    ds = np.sqrt(np.abs(us**2 - vs**2))
-    #params = 0.1*np.random.randn(len(antids))
-    #params = 0.001*np.linspace(1,2,128)
-    params = 0.0003*ds
-    params[0] = 0
+    us, vs, ws = get_antenna_in_uvw(ms, mset)
+    #ds = np.sqrt(np.abs(us**2 + vs**2))
+    ds = vs
+    params = 0.001*ds
+    #params[0] = 0
     print(params)
+    
+    #from tests import run_all
+    #params = run_all(ms)
+
     return params[antenna1] - params[antenna2]
 
 

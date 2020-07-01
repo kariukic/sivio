@@ -7,24 +7,41 @@ import vis_sim
 import numpy as np
 from powerbox import PowerBox
 c = 299792458
+constant = 40.30819
+tecu = 1e16
+frequency = 150
+def colorbar(mappable):
+    from mpl_toolkits.axes_grid1 import make_axes_locatable
+    import matplotlib.pyplot as plt
+    last_axes = plt.gca()
+    ax = mappable.axes
+    fig = ax.figure
+    divider = make_axes_locatable(ax)
+    cax = divider.append_axes("right", size="5%", pad=0.05)
+    cbar = fig.colorbar(mappable, cax=cax)
+    plt.sca(last_axes)
+    return cbar
 
 
+def iono_phase_shift(p, frequency, scale=5, size=50000):
+    """
+    \Delta STEC [1/m^3] = \Delta\theta [rad] * \nu^2 [(MHz)^2] / k
+    k = 1/(8\pi^2) e^2/(\epsilon_0 m_e) [m^3 / s^2]
+    1 TECU = 10^16 [1/m^2]
 
-def power_box_tec_screen(p, scale=5, size=50000):
+    Hence: \Delta\theta = 40.30819/1e16 * 1/\nu^2 * STEC
+    """                                                                     
     resolution=size//scale
     pb = PowerBox(resolution, lambda k: 10*k**p, ensure_physical=True)
-    return pb.delta_x()
-
-def iono_phase_shift(channels,p):
-    """
-    -1/8*pi * e/nm_e * 1/freq**2 * tec
-    """
-    tec = power_box_tec_screen(p)
-    print(tec)
-    phase_screen = (-1/(8*np.pi)) * (np.e/(8.85418782e-12 * 9.10938356e-31)) * (1/channels**2) * tec
+    tec = pb.delta_x()
+    #correct formula.
+    #phase_screen = constant/tecu * 1/(frequency**1e6) * tec --> shouts "OverflowError: (34, 'Numerical result out of range')"
+    phase_screen = tec#tec
+    print(phase_screen.mean())
     return phase_screen
 
 def get_phase_center(tbl):
+    """Grabs the phase centre of the observationin RA and Dec"""
     ra0, dec0 = tbl.FIELD.getcell('PHASE_DIR', 0)[0]
     print('The phase center is at ra=%s, dec=%s'%(np.degrees(ra0),np.degrees(dec0)))
     return ra0, dec0
@@ -53,7 +70,7 @@ def get_antenna_in_uvw(mset, tbl):
     Convert the antennas positions into some sort of uv plane with one antenna position as the center of the field.
     """
     ra0, dec0 = get_phase_center(tbl)
-    #ra0*=-1 #because we have assumed local LST=0hrs and HA = LST-RA
+    ra0*=-1 #because we have assumed local LST=0hrs and HA = LST-RA
     xyz = get_bl_vectors(mset)
 
     us = np.sin(ra0)*xyz[:,0] + np.cos(ra0)*xyz[:,1]
@@ -105,7 +122,7 @@ def get_tec_value(tec, us, vs, zen_x, zen_y,  scale=5, h = 200000, refpos = 0):
 
     u_tec_list, v_tec_list, tec_per_ant = [], [], []
 
-    h_pix = h/scale
+    h_pix = h/scale #appling scaling to phase screen height
 
     for u, v in zip(us_scaled, vs_scaled):
         u_tec = int(u + h_pix * np.tan(np.deg2rad(zen_x)))
@@ -113,48 +130,54 @@ def get_tec_value(tec, us, vs, zen_x, zen_y,  scale=5, h = 200000, refpos = 0):
         #print(u,v, u_tec,v_tec)
         u_tec_list.append(u_tec)
         v_tec_list.append(v_tec)
-        tec_per_ant.append(tec[u_tec,v_tec])
+        tec_per_ant.append(tec[u_tec, v_tec])
 
-    return u_tec_list, v_tec_list, tec_per_ant
+    return np.array(u_tec_list), np.array(v_tec_list), np.array(tec_per_ant)
 
 def plot_antennas_on_tec_field(tec, u_tec_list, v_tec_list):
     fig = plt.figure(figsize=(7,7))
-
-    xmin, xmax =  min(u_tec_list)-100, max(u_tec_list)+100 #tec.shape[1]//2.
-    ymin, ymax =  min(v_tec_list)-100, max(v_tec_list)+100 #tec.shape[0]//2
+    xmin, xmax =  min(u_tec_list)-100, max(u_tec_list)+100
+    ymin, ymax =  min(v_tec_list)-100, max(v_tec_list)+100
     s = plt.imshow(tec, cmap='plasma', extent=[xmin, xmax, ymin, ymax ])
     #plt.plot(0, 0,'cx', label='TEC field center')
     plt.scatter(u_tec_list, v_tec_list, c='y', marker='o', s=2, label='antenna positions')
 
-    #colorbar(s)
+    colorbar(s)
     #plt.savefig('kolmogorov_tec.png')
     plt.legend()
-    plt.xlabel('Relative Longitude (km)')
-    plt.ylabel('Relative Latitude (km)')
+    plt.xlabel('Relative Longitude (m)')
+    plt.ylabel('Relative Latitude (m)')
     plt.savefig('antennas_on_tec.png')
 
-if __name__ == "__main__":
-    ras = [0,1] #generate_distribution(0., 4., N, "normal") #np.array([0,2])
-    decs = [-27,-20]
-    zen_x = [12.]
-    zen_y = [10.]
+#------------------------------------------------------------------------------------------
 
-    scale = 5
-    field_size = 50000 #5km by 5km
-    h = 200000 #200km height of tec filed in the sky above array
+def run_all(ms, plot=False):
+    """
+    A function that runs all the functions listed above to give out the phase offsets.
+    """
+    zen_x, zen_y = [12.], [10.] # zenith angle in u and v directions
+
+    scale = 5 #number of metres represented by one pixel size
+    field_size = 50000 #5km by 5km. Thus our tec array will have shape (10000,10000)
+    h = 200000 #200km height of tec field in the sky above array. 
     kolmogorov_index = -1.66667
 
-    mset = "1000sources_truevissim.ms"
-    tbl = table(mset, readonly=False)
-    
-    us, vs, ws = get_antenna_in_uvw(mset, tbl)
-    #print(max(us), min(us), 'umax....umin')
-    #print(max(vs), min(vs), 'vmax....vmin')
+    tbl = table(ms, readonly=False)
+    us, vs, ws = get_antenna_in_uvw(ms, tbl)
 
-    #plot_antennas_on_uvplane(us,vs, shift=True, alpha=0.1,  name='antennas_on_uvplane_shifted.png')
-    tec = power_box_tec_screen(kolmogorov_index)
-    
-    u_tec_list, v_tec_list, tec_per_ant = get_tec_value(tec, us, vs, zen_x, zen_y,  scale=scale, h = h,)
-    #print(u_tec_list, v_tec_list)
 
-    plot_antennas_on_tec_field(tec, u_tec_list, v_tec_list)
+  
+    phase_screen = iono_phase_shift(kolmogorov_index, frequency, scale=scale, size=field_size)
+    
+    u_tec_list, v_tec_list, tec_per_ant = get_tec_value(phase_screen, us, vs, zen_x, zen_y,  scale=scale, h=h)
+
+    if plot:
+        plot_antennas_on_tec_field(phase_screen, u_tec_list, v_tec_list)
+        #plot_antennas_on_uvplane(us,vs, shift=True, alpha=0.1,  name='antennas_on_uvplane_shifted.png')
+
+    return tec_per_ant
+
+
+if __name__ == "__main__":
+    ms = '2sources_truesimvis.ms'
+    run_all(ms, plot=False)
