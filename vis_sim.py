@@ -5,7 +5,9 @@ from add_iono_effects import add_scint, add_phase_offsets
 import mset_utils as mtls
 
 
-def simulate_vis(mset, tbl, ras, decs, A, rdiff, clean_vis=False, offset=True, scintillate=True):
+def simulate_vis(
+    mset, tbl, ras, decs, A, rdiff, clean_vis=False, offset=True, scintillate=True
+):
     """
     Compute the source visibilities and fix them in the measurement set.
     ras and decs should be lists or 1D arrays.
@@ -32,9 +34,15 @@ def simulate_vis(mset, tbl, ras, decs, A, rdiff, clean_vis=False, offset=True, s
     if clean_vis:
         for amp, l, m, n in zip(A, ls, ms, ns):
             # first compute the clean visibilities.
-            d = amp * np.exp(2j * np.pi * (
-                uvw_lmbdas[:, :, 0] * l + uvw_lmbdas[:, :, 1] * m + uvw_lmbdas[:, :, 2] * n
-            ))
+            d = amp * np.exp(
+                2j
+                * np.pi
+                * (
+                    uvw_lmbdas[:, :, 0] * l
+                    + uvw_lmbdas[:, :, 1] * m
+                    + uvw_lmbdas[:, :, 2] * n
+                )
+            )
             data[:, :, 0] += d  # feed xx data
             data[:, :, 3] += d  # feed yy data
 
@@ -42,25 +50,37 @@ def simulate_vis(mset, tbl, ras, decs, A, rdiff, clean_vis=False, offset=True, s
 
     if scintillate:
         for amp, l, m, n in zip(A, ls, ms, ns):
-            d = amp * np.exp(2j * np.pi * (
-                uvw_lmbdas[:, :, 0] * l + uvw_lmbdas[:, :, 1] * m + uvw_lmbdas[:, :, 2] * n
-            ))
+            d = amp * np.exp(
+                2j
+                * np.pi
+                * (
+                    uvw_lmbdas[:, :, 0] * l
+                    + uvw_lmbdas[:, :, 1] * m
+                    + uvw_lmbdas[:, :, 2] * n
+                )
+            )
             bls = mtls.get_bl_lens(mset)
             scintdat = add_scint(d, bls, rdiff)
             data[:, :, 0] += scintdat  # feed xx data
             data[:, :, 3] += scintdat  # feed yy data
 
-        if 'SCINT_DATA' not in tbl.colnames():
-            print('Adding SCINT_DATA column in MS with simulated visibilities... ...')
+        if "SCINT_DATA" not in tbl.colnames():
+            print("Adding SCINT_DATA column in MS with simulated visibilities... ...")
             mtls.add_col(tbl, "SCINT_DATA")
             mtls.put_col(tbl, "SCINT_DATA", data)
 
     if offset:
         data[:] = 0
         for amp, l, m, n in zip(A, ls, ms, ns):
-            phse = np.exp(2j * np.pi * (
-                uvw_lmbdas[:, :, 0] * l + uvw_lmbdas[:, :, 1] * m + uvw_lmbdas[:, :, 2] * n
-            ))
+            phse = np.exp(
+                2j
+                * np.pi
+                * (
+                    uvw_lmbdas[:, :, 0] * l
+                    + uvw_lmbdas[:, :, 1] * m
+                    + uvw_lmbdas[:, :, 2] * n
+                )
+            )
 
             # for i in range(data.shape[0]):
             #   phse[i,:] *= np.exp(2*np.pi*phasediff[i])
@@ -72,9 +92,9 @@ def simulate_vis(mset, tbl, ras, decs, A, rdiff, clean_vis=False, offset=True, s
             data[:, :, 0] += amp * phse  # feed xx data
             data[:, :, 3] += amp * phse  # feed yy data
 
-        if 'OFFSET_DATA' not in tbl.colnames():
-            print('Adding OFFSET_DATA column in MS with offset visibilities... ...')
+        if "OFFSET_DATA" not in tbl.colnames():
+            print("Adding OFFSET_DATA column in MS with offset visibilities... ...")
             mtls.add_col(tbl, "OFFSET_DATA")
             mtls.put_col(tbl, "OFFSET_DATA", data)
 
-    print('---Tumemaliza--')
+    print("---Tumemaliza--")

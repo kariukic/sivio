@@ -2,6 +2,8 @@ from casacore.tables import table
 import scint_equations as sqs
 import numpy as np
 
+from phase_screen import run_all
+
 c = 299792458
 
 
@@ -14,12 +16,12 @@ def add_scint(data, bls, rdiff):
 
     # calculate our structure function d(b).
     db = sqs.structure_fn_approx(bls, rdiff)
-    print('structure function shape: ', db.shape)
+    print("structure function shape: ", db.shape)
 
     for i in range(data.shape[0]):
-        data[i, :] *= np.exp(-0.5*db[i])
+        data[i, :] *= np.exp(-0.5 * db[i])
 
-    return(data)
+    return data
 
 
 def add_phase_offsets(ms):
@@ -30,17 +32,12 @@ def add_phase_offsets(ms):
     # Antennas runs from 1-128
     # antids = np.array(range(0, len(mset.ANTENNA)))
 
-    from phase_screen import get_antenna_in_uvw
-    us, vs, ws = get_antenna_in_uvw(ms, mset)
+    # from phase_screen import get_antenna_in_uvw
+    # us, vs, ws = get_antenna_in_uvw(ms, mset)
+    # ds = vs
+    # params = 0.0008 * ds
 
-    # ds = np.sqrt(np.abs(us**2 + vs**2))
-    ds = vs
-    params = 0.0008*ds
-    # params[0] = 0
-    # print(params)
-
-    # from phase_screen import run_all
-    # params = run_all(ms)
+    params = run_all(ms,)
     print(params[antenna1] - params[antenna2])
     return params[antenna1] - params[antenna2]
 
