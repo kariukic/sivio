@@ -15,7 +15,8 @@ MWAPOS = EarthLocation.from_geodetic(
 def get_time(metafits, pos):
     metafits = getheader(metafits)
     time = Time(metafits["DATE-OBS"], location=pos)
-    return time
+    lst = time.sidereal_time("mean")
+    return time, lst
 
 
 def radec_to_altaz(ra, dec, time, pos):

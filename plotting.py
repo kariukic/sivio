@@ -58,7 +58,7 @@ def plot_antennas_on_tec_field(tec, u_tec_list, v_tec_list):
     xmin, xmax = min(u_tec_list), max(u_tec_list)
     ymin, ymax = min(v_tec_list), max(v_tec_list)
     s = plt.imshow(tec, cmap="plasma", extent=[xmin, xmax, ymin, ymax])
-    plt.plot(u_tec_list[0], v_tec_list[0], "rx", label="TEC field center")
+    # plt.plot(u_tec_list[0], v_tec_list[0], "rx", label="TEC field center")
     plt.scatter(
         u_tec_list, v_tec_list, c="c", marker="o", s=2, label="antenna positions"
     )
@@ -67,3 +67,44 @@ def plot_antennas_on_tec_field(tec, u_tec_list, v_tec_list):
     plt.xlabel("Relative Longitude (m*5)")
     plt.ylabel("Relative Latitude (m*5)")
     plt.savefig("zenith_test_source_antennas_on_linear_tec.png")
+
+
+def ppoints_on_tec_field(tec, ppoints, params, fieldcenter):
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 12))
+    fieldcenter = int(fieldcenter)
+    # fig = plt.figure(figsize=(7, 7))
+    # yy1 = int(fieldcenter // 2)
+    # yy2 = int(fieldcenter + yy1)
+    # xx1 = 0
+    # xx2 = fieldcenter
+
+    xnymin = fieldcenter - tec.shape[0] // 2
+    xnymax = fieldcenter + tec.shape[0] // 2
+    s = ax1.imshow(tec, cmap="plasma", extent=[xnymin, xnymax, xnymin, xnymax])
+    # s = ax1.imshow(tec[xx1:xx2, yy1:yy2], cmap="plasma", extent=[xx1, xx2, yy1, yy2])
+    # ax1.plot(fieldcenter, fieldcenter, "rx", label="screen center")
+    count = 1
+    for uvlist in ppoints:
+        print("SOURCE %s ORIGIN POINT" % (count), uvlist[0, 0], uvlist[1, 0])
+        ax1.scatter(
+            uvlist[1, :],
+            uvlist[0, :],
+            # c="c",
+            marker="o",
+            s=2,
+            label="antenna positions",
+        )
+        count += 1
+    colorbar(s)
+    # ax1.legend()
+    ax1.set_xlabel("Relative Longitude (m*5)")
+    ax1.set_ylabel("Relative Latitude (m*5)")
+
+    for params_list in params:
+        ax2.plot(range(len(params_list)), params_list, marker="*", linestyle="--")
+    ax2.set_xlabel("Antenna ID")
+    ax2.set_ylabel("phase screeen/tec value")
+
+    fig.tight_layout()
+    plt.savefig("antenna_ppoints_on_kolmogorov_tec.png")
+    plt.close()
