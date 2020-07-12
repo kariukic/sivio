@@ -144,8 +144,6 @@ def scale_to_pixel_range(us, scale=5):
     Scale antenna positions into the axis range of the tec field.
     Set the scale in meters - length represented by side of a pixel.
     """
-    # refxx = int(tec.shape[1]//2.)
-    # refyy = int(tec.shape[0]//2.)
     pixel_max = max(us) / scale
     pixel_min = 0
     min_u = min(us)
