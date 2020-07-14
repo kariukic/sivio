@@ -3,9 +3,12 @@ __author__ = [
     "Kariuki Chege",
 ]
 
-from casacore.tables import table
 import numpy as np
 from powerbox import PowerBox
+import scipy.ndimage.filters as sp
+
+
+import mset_utils as mtls
 
 
 c = 299792458
@@ -14,7 +17,7 @@ tecu = 1e16
 kolmogorov_index = -1.66667
 
 
-def linear_tec(npix):
+def linear_tec(npix, sine=False):
     """Generate linear TEC plane increasing uniformly in one direction.
 
     Parameters
@@ -27,10 +30,18 @@ def linear_tec(npix):
     [numpy array]
         [2D npix by npix tec array]
     """
-    return np.tile(np.linspace(0, 100, npix), (npix, 1))
+    if sine:
+        xs = np.linspace(0, 50, npix)
+        ys = np.linspace(0, 50, npix)
+        tau, phi = np.meshgrid(xs, ys)
+        tec = np.sin(5 * (tau + phi))  # + np.random.normal(scale=1 / 60, size=npix)
+        tec = abs(tec)
+    else:
+        tec = np.tile(np.linspace(0, 100, npix), (npix, 1))
+    return tec
 
 
-def iono_phase_shift(frequency, scale=10, size=150000, kolmogorov=False):
+def iono_phase_shift(frequency, scale=10, size=150000, tec_type="l"):
     """Should convert a tec screen to a phase offset screen using the commented formula.
     Not yet doing that.
 
@@ -41,8 +52,8 @@ def iono_phase_shift(frequency, scale=10, size=150000, kolmogorov=False):
         Scaling factor. the number of metres represented by the side of a single pixel], by default 10. \n
     size : int, optional.
         Total length of each side, by default 150000.\n
-    kolmogorov : bool, optional.
-        If True, the tec used follows kolmogorov turbulence, by default False.
+    tec_type : str, optional.
+        If k, the tec used follows kolmogorov turbulence, by default l for linear.
 
     Returns
     -------
@@ -58,13 +69,20 @@ def iono_phase_shift(frequency, scale=10, size=150000, kolmogorov=False):
 
     resolution = size // scale  # the number of pixel per side of tec plane
 
-    if kolmogorov:
+    if tec_type == "k":
         pb = PowerBox(
             resolution, lambda k: 10 * k ** kolmogorov_index, ensure_physical=True
         )
         tec = pb.delta_x()
+        # Apply gaussian filter
+        sigma = [40, 40]
+        tec = sp.gaussian_filter(tec, sigma, mode="constant")
+
+    elif tec_type == "s":
+        tec = linear_tec(resolution, sine=True)
+
     else:
-        tec = linear_tec(resolution)
+        tec = linear_tec(resolution, sine=False)
 
     # ammend formula here.
     # phase_screen = constant/tecu * 1/(frequency**1e6) * tec -->
@@ -74,55 +92,28 @@ def iono_phase_shift(frequency, scale=10, size=150000, kolmogorov=False):
     return phase_screen
 
 
-def get_phase_center(tbl):
-    """Grabs the phase centre of the observation in RA and Dec"""
-    ra0, dec0 = tbl.FIELD.getcell("PHASE_DIR", 0)[0]
-    print("The phase center is at ra=%s, dec=%s" % (np.degrees(ra0), np.degrees(dec0)))
-    return ra0, dec0
-
-
-def antenna_pos(mset):
-    """Extracts the antenna positions in XYZ coordinates from the MS"""
-    t = table(mset + "/ANTENNA", ack=False)
-    pos = t.getcol("POSITION")
-    t.close()
-    return pos
-
-
-def get_bl_vectors(mset, refant=0):
-    """
-    Uses the antenna XYZ position values and recalculates them with the reference antenna as the origin.
-
-    Parameters
-    ----------
-    mset : Measurement set. \n
-    refant : int, optional
-        The reference antenna ID, by default 0. \n
-
-    Returns
-    -------
-    XYZ coordinates of each antenna with respect to the reference antenna.
-    """
-    # First get the positions of each antenna recorded in XYZ values
-    pos = antenna_pos(mset)
-    no_ants = len(pos)
-    print("The mset has %s antennas." % (no_ants))
-
-    bls = np.zeros((no_ants, 3))
-    for i in range(no_ants):  # calculate and fill bls with distances from the refant
-        pos1, pos2 = pos[i], pos[refant]
-        bls[i] = np.array([pos2 - pos1])
-    return bls
-
-
 def get_antenna_in_uvw(mset, tbl, lst):
     """
     Convert the antennas positions into some sort of uv plane with one antenna position as the center of the field.
+
+    Parameters
+    ----------
+    mset :
+        Measurement set.\n
+    tbl : casacore table.
+        The casacore mset table opened with readonly=False.\n
+    lst : Format: 00h00m00.0000s
+        Local sideral time.\n
+
+    Returns
+    -------
+    3 lists/arrays.
+        u, v and w positions of the projected antennas in metres.
     """
-    ra, dec0 = get_phase_center(tbl)
-    ra0 = lst - ra  # RA0 is the hour angle since HA = LST-RA
-    print("hour_angle: ", ra0)
-    xyz = get_bl_vectors(mset)
+    ra, dec0 = mtls.get_phase_center(tbl)
+    ra0 = lst - ra  # RA0 here is the hour angle since HA = LST-RA
+    print("hour_angle: ", ra0, type(ra0))
+    xyz = mtls.get_bl_vectors(mset)
 
     us = np.sin(ra0) * xyz[:, 0] + np.cos(ra0) * xyz[:, 1]
     vs = (
@@ -139,10 +130,21 @@ def get_antenna_in_uvw(mset, tbl, lst):
     return us, vs, ws
 
 
-def scale_to_pixel_range(us, scale=5):
+def scale_to_pixel_range(us, scale=10):
     """
     Scale antenna positions into the axis range of the tec field.
-    Set the scale in meters - length represented by side of a pixel.
+
+    Parameters
+    ----------
+    us : list/array.
+        list of distances to be scaled. \n
+    scale : int, optional.
+        the pixel to distance scaling inmetres, by default 10 \n
+
+    Returns
+    -------
+    array.
+        scaled distances.
     """
     pixel_max = max(us) / scale
     pixel_min = 0
@@ -157,8 +159,8 @@ def scale_to_pixel_range(us, scale=5):
 
 def get_tec_value(tec, us, vs, zen_angle, az, scale=10, h=200000, refant=0):
     """
-    Given a source position (zenith and azimuth angles) with reference to the reference antenna, obtain the tec phase
-    offset value at the pierce point corresponding to each antenna. \n \n
+    Given a source position (zenith and azimuth angles) with reference to the reference antenna, this function obtains
+    the tec phase offset value at the pierce point corresponding to each antenna. \n \n
 
     Function inspired by: https://stackoverflow.com/a/22778207/7905494 \n
     Plotting a point(s) of a circle laying on a plane given the origin, radius and angle(s).
@@ -168,7 +170,7 @@ def get_tec_value(tec, us, vs, zen_angle, az, scale=10, h=200000, refant=0):
     tec : 2Darray.
         The TEC/phase screen. \n
     us : arraylike.
-        x coordinates for each antenna. Named us bcause the array is projected into the uv space.\n
+        x coordinates for each antenna. Named 'us' bcause the array is projected into the uv space.\n
     vs : arraylike.
         y coordinates for each antenna. \n
     zen_angle : float.
@@ -196,8 +198,8 @@ def get_tec_value(tec, us, vs, zen_angle, az, scale=10, h=200000, refant=0):
         % (tec.shape[0] * scale / 1000, tec.shape[1] * scale / 1000, h / 1000)
     )
     # Apply scaling to the array field and tec height.
-    us_scaled = scale_to_pixel_range(us)
-    vs_scaled = scale_to_pixel_range(vs)
+    us_scaled = scale_to_pixel_range(us, scale=scale)
+    vs_scaled = scale_to_pixel_range(vs, scale=scale)
     h_pix = h / scale
     print("refant scaled u and v position", us_scaled[refant], vs_scaled[refant])
 
@@ -217,8 +219,8 @@ def get_tec_value(tec, us, vs, zen_angle, az, scale=10, h=200000, refant=0):
         # We can then obtain the u and v coordinates for the pierce point.
         # The pi rad added to azimuth angle  is to rotate the start point of the arc
         #   to the topside of the tec field.
-        pp_u = zen_angle_radius * np.sin(az + 0.5 * np.pi) + new_u0
-        pp_v = zen_angle_radius * np.cos(az + 0.5 * np.pi) + new_v0
+        pp_u = zen_angle_radius * np.sin(az + np.pi / 2.0) + new_u0
+        pp_v = zen_angle_radius * np.cos(az + np.pi / 2.0) + new_v0
         # Collect pierce points for each antenna.
         uu = pp_u + u_tec_center  # + us_scaled[refant]
         vv = pp_v + v_tec_center  # + vs_scaled[refant]

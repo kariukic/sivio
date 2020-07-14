@@ -34,10 +34,10 @@ def radec_to_altaz(ra, dec, time, pos):
 
 if __name__ == "__main__":
     metafits = "/home/kariuki/Downloads/1065880128.metafits"
-    time = get_time(metafits, MWAPOS)
+    time, lst = get_time(metafits, MWAPOS)
     alt, az = radec_to_altaz(35, -27, time, MWAPOS)
     zen_angle = np.pi / 2.0 - alt
 
-    print("Time: ", time)
+    print("Time: ", time, "LST: ", lst)
     print("Alt: ", np.rad2deg(alt), "Az: ", np.rad2deg(az))
     print("zenith angle: ", np.rad2deg(zen_angle))
