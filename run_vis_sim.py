@@ -14,13 +14,12 @@ import plotting
 
 def main():
     parser = ArgumentParser(
-        "python run_vis_sim.py", description="ionospheric effects simulations"
+        "python run_vis_sim.py", description="Ionospheric effects simulations"
     )
-    parser.add_argument("--template_ms", required=True, help="Template measurement set")
-    parser.add_argument("--ms_out", required=True, help="Output measurement set")
+    parser.add_argument("--ms_template", required=True, help="Template measurement set")
     parser.add_argument("--metafits", required=True, help="Path to the metafits file")
     parser.add_argument("--model", required=False, help="Sky model")
-    parser.add_argument("--offset_vis", action="store_true")
+    parser.add_argument("--offset_vis", "-o", action="store_true")
     parser.add_argument("--scint_vis", action="store_true")
     parser.add_argument(
         "--rdiff", type=float, default=5000, help="Diffractive scale [m]"
@@ -34,10 +33,20 @@ def main():
     parser.add_argument(
         "--height", type=int, default=200000, help="TEC plane height from ground [m]"
     )
-    parser.add_argument("--kol", action="store_true", help="use kolmogorov tec")
-    parser.add_argument("--true_vis", action="store_true")
-    parser.add_argument("--image", action="store_true")
-    parser.add_argument("--plot", action="store_true")
+    parser.add_argument(
+        "--tec_type",
+        type=str,
+        default="l",
+        help="l = use kolmogorov tec, s=tec with sine ducts,  k = use TEC with kolmogorov turbulence.",
+    )
+    parser.add_argument(
+        "--true_vis",
+        "-t",
+        action="store_true",
+        help="Simulate the true visibilities too",
+    )
+    parser.add_argument("--image", "-i", action="store_true", help="Run wsclean")
+    parser.add_argument("--plot", "-p", action="store_true", help="Make plots")
     parser.add_argument("--debug", action="store_true")
     args = parser.parse_args()
     # print(args, "args")
@@ -52,12 +61,15 @@ def main():
         ras, decs, fluxes = sky_models.ras, sky_models.decs, sky_models.fluxes
         print("ras, decs, fluxes", ras, decs, fluxes)
 
-    mset = args.ms_out
+    mset = "smoothed_4040_kolmogorov_1source_phase_center.ms"
     if mset not in os.listdir(os.path.abspath(".")):
+        print("Making the simulation measurement set..")
         os.system("mkdir %s" % (mset))
-        os.system("cp -r %s/* %s" % (args.template_ms, mset))
+        os.system("cp -r %s/* %s" % (args.ms_template, mset))
+
     tbl = table(mset, readonly=False)
     data, uvw_lmbdas, ls, ms, ns = sim_prep(tbl, ras, decs)
+    print(ls, ms, ns, "lmn values")
 
     if args.true_vis:
         logger.info("Simulating the true visibilities...")
@@ -70,7 +82,7 @@ def main():
         frequency = 150
         # TODO incorporate phase offset frequency dependence per channel
         phs_screen = iono_phase_shift(
-            frequency, scale=args.scale, size=args.size, kolmogorov=args.kol
+            frequency, scale=args.scale, size=args.size, tec_type=args.tec_type
         )
         time, lst = get_time(args.metafits, MWAPOS)
         print("time", time, "lst", lst)
@@ -107,12 +119,17 @@ def main():
     tbl.close()
 
     if args.plot:
-        tecdata = np.load("pierce_points.npz")
+        npz = mset.split(".")[0] + "_pierce_points.npz"
+        tecdata = np.load(npz)
         ppoints = tecdata["ppoints"]
         params = tecdata["params"]
         tecscreen = tecdata["tecscreen"]
         fieldcenter = (args.size / args.scale) // 2
-        plotting.ppoints_on_tec_field(tecscreen, ppoints, params, fieldcenter)
+
+        prefix = mset.split(".")[0]
+        plotting.ppoints_on_tec_field(
+            tecscreen, ppoints, params, fieldcenter, prefix, args.scale
+        )
 
     if args.image:
         imagename = mset.split(".")[0] + "_truevis"
@@ -140,7 +157,7 @@ def main():
                 % (imagename, "SCINT_DATA", mset)
             )
             os.system(command3)
-        # os.system("rm *dirty* *psf* *residual* *model*")
+        os.system("rm -r *dirty* *psf* *-residual* *-model*")
 
 
 if __name__ == "__main__":

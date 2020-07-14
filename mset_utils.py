@@ -16,6 +16,18 @@ def get_uvw(tbl):
 
 
 def get_phase_center(tbl):
+    """
+    Grabs the phase centre of the observation in RA and Dec
+
+    Parameters
+    ----------
+    tbl : casacore table.
+        The casacore mset table opened with readonly=False.\n
+    Returns
+    -------
+    float, float.
+        RA and Dec in radians.
+    """
     ra0, dec0 = tbl.FIELD.getcell("PHASE_DIR", 0)[0]
     print("The phase center is at ra=%s, dec=%s" % (np.degrees(ra0), np.degrees(dec0)))
     return ra0, dec0
@@ -87,4 +99,33 @@ def get_bl_lens(mset):
         pos1, pos2 = pos[p], pos[q]
         bls[i] = np.sqrt((pos1[0] - pos2[0]) ** 2 + (pos1[1] - pos2[1]) ** 2)
 
+    return bls
+
+
+def get_bl_vectors(mset, refant=0):
+    """
+    Gets the antenna XYZ position coordinates and recalculates them with the reference antenna as the origin.
+
+    Parameters
+    ----------
+    mset : Measurement set. \n
+    refant : int, optional
+        The reference antenna ID, by default 0. \n
+
+    Returns
+    -------
+    XYZ coordinates of each antenna with respect to the reference antenna.
+    """
+    # First get the positions of each antenna recorded in XYZ coordinates from the MS
+    t = table(mset + "/ANTENNA", ack=False)
+    pos = t.getcol("POSITION")
+    t.close()
+
+    no_ants = len(pos)
+    print("The mset has %s antennas." % (no_ants))
+
+    bls = np.zeros((no_ants, 3))
+    for i in range(no_ants):  # calculate and fill bls with distances from the refant
+        pos1, pos2 = pos[i], pos[refant]
+        bls[i] = np.array([pos2 - pos1])
     return bls
