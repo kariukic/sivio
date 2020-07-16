@@ -18,6 +18,15 @@ def main():
     )
     parser.add_argument("--ms_template", required=True, help="Template measurement set")
     parser.add_argument("--metafits", required=True, help="Path to the metafits file")
+    parser.add_argument(
+        "--yfile", required=False, help="Path to yaml file to pluck the sky model from"
+    )
+    parser.add_argument(
+        "--sim",
+        required=False,
+        action="store_true",
+        help="Says you want to do the simulation. If not, you can choose to image or plot already simulated data",
+    )
     parser.add_argument("--model", required=False, help="Sky model")
     parser.add_argument("--offset_vis", "-o", action="store_true")
     parser.add_argument("--scint_vis", action="store_true")
@@ -37,7 +46,7 @@ def main():
         "--tec_type",
         type=str,
         default="l",
-        help="l = use kolmogorov tec, s=tec with sine ducts,  k = use TEC with kolmogorov turbulence.",
+        help="l = linear tec, s = TEC modulated with sine ducts,  k = TEC with kolmogorov turbulence.",
     )
     parser.add_argument(
         "--true_vis",
@@ -57,73 +66,82 @@ def main():
     else:
         logger.setLevel("INFO")
 
-    if not args.model:
-        ras, decs, fluxes = sky_models.ras, sky_models.decs, sky_models.fluxes
-        print("ras, decs, fluxes", ras, decs, fluxes)
+    mset = "sim_1065880128_klmgv_tec.ms"
+    if args.sim:
+        if args.yfile is not None:
+            ras, decs, fluxes = sky_models.loadfile(args.yfile, model_only=True)
+        else:
+            ras, decs, fluxes = sky_models.random_model(
+                10, filename="random_10source_model.txt"
+            )
+        assert len(ras) == len(decs) == len(fluxes)
+        print("The sky model has %s sources" % (len(ras)))
 
-    mset = "smoothed_4040_kolmogorov_1source_phase_center.ms"
-    if mset not in os.listdir(os.path.abspath(".")):
-        print("Making the simulation measurement set..")
-        os.system("mkdir %s" % (mset))
-        os.system("cp -r %s/* %s" % (args.ms_template, mset))
+        if mset not in os.listdir(os.path.abspath(".")):
+            print("Making the simulation measurement set..")
+            os.system("mkdir %s" % (mset))
+            os.system("cp -r %s/* %s" % (args.ms_template, mset))
 
-    tbl = table(mset, readonly=False)
-    data, uvw_lmbdas, ls, ms, ns = sim_prep(tbl, ras, decs)
-    print(ls, ms, ns, "lmn values")
+        tbl = table(mset, readonly=False)
+        data, uvw_lmbdas, ls, ms, ns = sim_prep(tbl, ras, decs)
 
-    if args.true_vis:
-        logger.info("Simulating the true visibilities...")
-        true_data = true_vis(data, uvw_lmbdas, fluxes, ls, ms, ns)
-        mtls.put_col(tbl, "DATA", true_data)
+        if args.true_vis:
+            logger.info("Simulating the true visibilities...")
+            true_data = true_vis(data, uvw_lmbdas, fluxes, ls, ms, ns)
+            mtls.put_col(tbl, "DATA", true_data)
 
-    if args.offset_vis:
-        logger.info("Simulating offset visibilities...")
-        "Get the phase screen"
-        frequency = 150
-        # TODO incorporate phase offset frequency dependence per channel
-        phs_screen = iono_phase_shift(
-            frequency, scale=args.scale, size=args.size, tec_type=args.tec_type
-        )
-        time, lst = get_time(args.metafits, MWAPOS)
-        print("time", time, "lst", lst)
-        us, vs, ws = get_antenna_in_uvw(mset, tbl, lst)
-        offset_data = offset_vis(
-            mset,
-            data,
-            uvw_lmbdas,
-            fluxes,
-            ls,
-            ms,
-            ns,
-            ras,
-            decs,
-            phs_screen,
-            time,
-            us,
-            vs,
-            args.scale,
-            args.height,
-        )
+        if args.offset_vis:
+            logger.info("Simulating offset visibilities...")
+            "Get the phase screen"
+            frequency = 150
+            # TODO incorporate phase offset frequency dependence per channel
+            phs_screen = iono_phase_shift(
+                frequency, scale=args.scale, size=args.size, tec_type=args.tec_type
+            )
+            time, lst = get_time(args.metafits, MWAPOS)
+            print("time", time, "lst", lst)
+            us, vs, ws = get_antenna_in_uvw(mset, tbl, lst)
+            offset_data = offset_vis(
+                mset,
+                data,
+                uvw_lmbdas,
+                fluxes,
+                ls,
+                ms,
+                ns,
+                ras,
+                decs,
+                phs_screen,
+                time,
+                us,
+                vs,
+                args.scale,
+                args.height,
+            )
 
-        if "OFFSET_DATA" not in tbl.colnames():
-            print("Adding OFFSET_DATA column in MS with offset visibilities...")
-            mtls.add_col(tbl, "OFFSET_DATA")
-        mtls.put_col(tbl, "OFFSET_DATA", offset_data)
+            if "OFFSET_DATA" not in tbl.colnames():
+                print("Adding OFFSET_DATA column in MS with offset visibilities...")
+                mtls.add_col(tbl, "OFFSET_DATA")
+            mtls.put_col(tbl, "OFFSET_DATA", offset_data)
 
-    if args.scint_vis:
-        scint_data = scint_vis(mset, data, uvw_lmbdas, fluxes, ls, ms, ns, args.rdiff)
-        if "SCINT_DATA" not in tbl.colnames():
-            print("Adding SCINT_DATA column in MS with simulated visibilities... ...")
-            mtls.add_col(tbl, "SCINT_DATA")
-        mtls.put_col(tbl, "SCINT_DATA", scint_data)
-    tbl.close()
+        if args.scint_vis:
+            scint_data = scint_vis(
+                mset, data, uvw_lmbdas, fluxes, ls, ms, ns, args.rdiff
+            )
+            if "SCINT_DATA" not in tbl.colnames():
+                print(
+                    "Adding SCINT_DATA column in MS with simulated visibilities... ..."
+                )
+                mtls.add_col(tbl, "SCINT_DATA")
+            mtls.put_col(tbl, "SCINT_DATA", scint_data)
+        tbl.close()
 
     if args.plot:
         npz = mset.split(".")[0] + "_pierce_points.npz"
         tecdata = np.load(npz)
         ppoints = tecdata["ppoints"]
-        params = tecdata["params"]
-        tecscreen = tecdata["tecscreen"]
+        params = np.rad2deg(tecdata["params"])
+        tecscreen = np.rad2deg(tecdata["tecscreen"])
         fieldcenter = (args.size / args.scale) // 2
 
         prefix = mset.split(".")[0]

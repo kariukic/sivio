@@ -12,9 +12,24 @@ import mset_utils as mtls
 
 
 c = 299792458
-constant = 40.30819
+# 1/(8*np.pi**2)*k.elementary_charge**2/(k.epsilon_0*k.electron_mass)
+# k=scipy.constants
+constant = 40.30819300005713
 tecu = 1e16
 kolmogorov_index = -1.66667
+
+
+def convert_to_tecu(frequency, phscreen):
+    frequency *= 1e6
+    stec = 1 / constant * phscreen * frequency ** 2
+    stec /= 1e16
+    return stec  # slant TEC
+
+
+def scale_to_pi_range(phscreen):
+    return (
+        (phscreen - np.min(phscreen)) / (np.max(phscreen) - np.min(phscreen))
+    ) * 2 * np.pi - np.pi
 
 
 def linear_tec(npix, sine=False):
@@ -31,13 +46,14 @@ def linear_tec(npix, sine=False):
         [2D npix by npix tec array]
     """
     if sine:
-        xs = np.linspace(0, 50, npix)
-        ys = np.linspace(0, 50, npix)
+        xs = np.linspace(0, np.pi, npix)
+        ys = np.linspace(0, np.pi, npix)
         tau, phi = np.meshgrid(xs, ys)
-        tec = np.sin(5 * (tau + phi))  # + np.random.normal(scale=1 / 60, size=npix)
+        # + np.random.normal(scale=1 / 60, size=npix)
+        tec = np.sin(30 * (tau + phi))
         tec = abs(tec)
     else:
-        tec = np.tile(np.linspace(0, 100, npix), (npix, 1))
+        tec = np.tile(np.linspace(0, np.pi, npix), (npix, 1))
     return tec
 
 
@@ -76,20 +92,20 @@ def iono_phase_shift(frequency, scale=10, size=150000, tec_type="l"):
         tec = pb.delta_x()
         # Apply gaussian filter
         sigma = [40, 40]
-        tec = sp.gaussian_filter(tec, sigma, mode="constant")
+        phsscreen = sp.gaussian_filter(tec, sigma, mode="constant")
 
     elif tec_type == "s":
-        tec = linear_tec(resolution, sine=True)
+        phsscreen = linear_tec(resolution, sine=True)
 
     else:
-        tec = linear_tec(resolution, sine=False)
+        phsscreen = linear_tec(resolution, sine=False)
 
     # ammend formula here.
     # phase_screen = constant/tecu * 1/(frequency**1e6) * tec -->
     # shouts "OverflowError: (34, 'Numerical result out of range')"
-    phase_screen = tec
+    phsscreen = scale_to_pi_range(phsscreen)
 
-    return phase_screen
+    return phsscreen
 
 
 def get_antenna_in_uvw(mset, tbl, lst):
@@ -148,12 +164,11 @@ def scale_to_pixel_range(us, scale=10):
     """
     pixel_max = max(us) / scale
     pixel_min = 0
-    min_u = min(us)
-    max_u = max(us)
-    scaled = [
-        ((u - min_u) / (max_u - min_u)) * (pixel_max - pixel_min) + pixel_min
-        for u in us
-    ]
+
+    scaled = ((us - np.min(us)) / (np.max(us) - np.min(us))) * (
+        pixel_max - pixel_min
+    ) + pixel_min
+
     return np.array(scaled)
 
 
@@ -214,7 +229,8 @@ def get_tec_value(tec, us, vs, zen_angle, az, scale=10, h=200000, refant=0):
         new_v0 = v - vs_scaled[refant]
         # For each antenna, the zenith angle projects a circle onto the tec screen.
         # the radius of the circle is given by:
-        zen_angle_radius = h_pix * np.tan(zen_angle)  # zen_angle should be in radians
+        # zen_angle should be in radians
+        zen_angle_radius = h_pix * np.tan(zen_angle)
         # The azimuth angle gives us the arc on this circle from some starting point
         # We can then obtain the u and v coordinates for the pierce point.
         # The pi rad added to azimuth angle  is to rotate the start point of the arc

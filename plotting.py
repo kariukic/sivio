@@ -108,7 +108,8 @@ def ppoints_on_tec_field(tec, ppoints, params, fieldcenter, prefix, scale):
             label="antenna positions",
         )
         count += 1
-    colorbar(s)
+    cbar = colorbar(s)
+    cbar.ax.set_ylabel("phase [deg]", rotation=270)
     # ax1.legend()
     ax1.indicate_inset_zoom(axins)
     ax1.set_xlabel("Relative Longitude (scale=1:%sm)" % (scale))
@@ -117,7 +118,7 @@ def ppoints_on_tec_field(tec, ppoints, params, fieldcenter, prefix, scale):
     for params_list in params:
         ax2.plot(range(len(params_list)), params_list, marker="*", linestyle="--")
     ax2.set_xlabel("Antenna ID")
-    ax2.set_ylabel("phase screeen/tec value")
+    ax2.set_ylabel("phase [deg]")
 
     fig.tight_layout()
     plt.savefig("%s_antenna_ppoints_on_tec.png" % (prefix))
