@@ -25,7 +25,7 @@ def radec_to_altaz(ra, dec, time, pos):
     ra and dec should be in degrees.
     """
     print("RA: ", ra, "Dec: ", dec)
-    ra, dec = np.deg2rad(ra), np.deg2rad(dec)
+    # ra, dec = np.deg2rad(ra), np.deg2rad(dec)
     coord = SkyCoord(ra, dec, unit=(u.radian, u.radian))
     coord.time = time + pos.lon.hourangle
     coord = coord.transform_to(AltAz(obstime=time, location=pos))
@@ -35,7 +35,7 @@ def radec_to_altaz(ra, dec, time, pos):
 if __name__ == "__main__":
     metafits = "/home/kariuki/Downloads/1065880128.metafits"
     time, lst = get_time(metafits, MWAPOS)
-    alt, az = radec_to_altaz(35, -27, time, MWAPOS)
+    alt, az = radec_to_altaz(np.radians(35), np.radians(-27), time, MWAPOS)
     zen_angle = np.pi / 2.0 - alt
 
     print("Time: ", time, "LST: ", lst)

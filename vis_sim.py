@@ -121,13 +121,18 @@ def offset_vis(
     us,
     vs,
     scale,
-    h,
+    h_pix,
+    pp_u_offset,
+    pp_v_offset,
 ):
     """Offset visibilities"""
     data[:] = 0
     source_ppoints = []
     source_params = []
+
+    source_count = 1
     for amp, l, m, n, ra, dec in zip(A, ls, ms, ns, ras, decs):
+        print("Source: ", source_count)
         phse = np.exp(
             2j
             * np.pi
@@ -144,6 +149,7 @@ def offset_vis(
         # phasediff = np.ones(uvw_lmbdas.shape[0])*1j*2
 
         alt, azimuth = radec_to_altaz(ra, dec, time, MWAPOS)
+
         # Added -0.1890022463989236 radians factor to center my sky because at ms phase center the
         # zenith angle is off by that fatctor. Investigate!!
         zen_angle = np.pi / 2.0 - alt  # - 0.1890022463989236
@@ -152,7 +158,15 @@ def offset_vis(
         print("Azimuth angle: ", np.rad2deg(azimuth), "deg  OR", azimuth, "rad")
 
         u_tec_list, v_tec_list, tec_per_ant = get_tec_value(
-            phs_screen, us, vs, zen_angle, azimuth, scale=scale, h=h,
+            phs_screen,
+            us,
+            vs,
+            zen_angle,
+            azimuth,
+            scale,
+            h_pix,
+            pp_u_offset,
+            pp_v_offset,
         )
         params = tec_per_ant  # * 10 128 phasescreen values one for each pierce point
         phasediff = add_phase_offsets(mset, params)
@@ -163,6 +177,8 @@ def offset_vis(
         phse = phse * np.exp(2j * np.pi * phasediff)[:, None]
         data[:, :, 0] += amp * phse  # feed xx data
         data[:, :, 3] += amp * phse  # feed yy data
+
+        source_count += 1
 
     # Lets save the x and y coordinates, the tec params and phasediffs
     npz = mset.split(".")[0] + "_pierce_points.npz"

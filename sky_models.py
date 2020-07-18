@@ -76,7 +76,13 @@ def generate_distribution(mean, sigma, size, dist, type="ra"):
         raise ValueError("Unrecognised distribution ({}).".format(dist))
 
 
-def random_model(N, filename="model.txt"):
+def random_model(N, simple=False, filename="model.txt"):
+    if simple:
+        return (
+            [0.0],
+            [-27.0],
+            [1],
+        )  # [0.0, 7.5, 349.5], [-27.0, -19.6, -35.1], [1, 1, 1]
     ras = generate_distribution(0.0, 4.0, N, "normal", type="ra")
     decs = generate_distribution(-27.0, 4.0, N, "normal", type="dec")
     fluxes = list(np.ones(N))  # np.abs(generate_distribution(1., 3., N, "normal"))

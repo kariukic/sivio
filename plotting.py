@@ -2,6 +2,8 @@ import matplotlib.pyplot as plt
 from mset_utils import get_uvw
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
+import numpy as np
+
 
 def colorbar(mappable):
     last_axes = plt.gca()
@@ -67,7 +69,7 @@ def plot_antennas_on_tec_field(tec, u_tec_list, v_tec_list):
     plt.savefig("zenith_test_source_antennas_on_linear_tec.png")
 
 
-def ppoints_on_tec_field(tec, ppoints, params, fieldcenter, prefix, scale):
+def ppoints_on_tec_field(tec, ppoints, params, fieldcenter, prefix, max_bl, scale):
     fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(8, 10))
     fieldcenter = int(fieldcenter)
     # fig = plt.figure(figsize=(7, 7))
@@ -76,35 +78,36 @@ def ppoints_on_tec_field(tec, ppoints, params, fieldcenter, prefix, scale):
     # xx1 = 0
     # xx2 = fieldcenter
 
-    xnymin = fieldcenter - tec.shape[0] // 2
-    xnymax = fieldcenter + tec.shape[0] // 2
-    extent = (xnymin, xnymax, xnymin, xnymax)
-    s = ax1.imshow(tec, cmap="plasma", origin="lower", extent=extent)
+    # xnymin = fieldcenter - tec.shape[0] // 2
+    # xnymax = fieldcenter + tec.shape[0] // 2
+    # print(xnymin, xnymax)
+    # extent = (xnymin, xnymax, xnymin, xnymax)
+    s = ax1.imshow(tec, cmap="plasma", origin="lower")  # , extent=extent)
     # s = ax1.imshow(tec[xx1:xx2, yy1:yy2], cmap="plasma", extent=[xx1, xx2, yy1, yy2])
     # ax1.plot(fieldcenter, fieldcenter, "rx", label="screen center")
-    axins = ax1.inset_axes([0.5, 0.5, 0.5, 0.5])
+    axins = ax1.inset_axes([0.75, 0.75, 0.25, 0.25])
 
-    axins.imshow(tec, cmap="plasma", extent=extent, origin="lower")
-    x1, x2, y1, y2 = (
-        ppoints[0, 1, 0] - 100,
-        ppoints[0, 1, 0] + 100,
-        ppoints[0, 0, 0] - 100,
-        ppoints[0, 0, 0] + 100,
+    axins.imshow(tec, cmap="plasma", origin="lower")
+    # just trying to get a proper size for te inset plot
+    w = max_bl / 2 * np.sin(np.radians(45)) / scale
+    x1, x2 = (
+        fieldcenter - w,
+        fieldcenter + w,
     )
     axins.set_xlim(x1, x2)
-    axins.set_ylim(y1, y2)
-    axins.scatter(ppoints[0, 1, :], ppoints[0, 0, :], marker="o", s=2, c="c")
+    axins.set_ylim(x1, x2)
+    axins.scatter(ppoints[0, 0, :], ppoints[0, 1, :], marker="o", s=1, c="c")
     axins.tick_params(labelbottom=False, labelleft=False)
 
     count = 1
     for uvlist in ppoints:
         print("SOURCE %s ORIGIN POINT" % (count), uvlist[0, 0], uvlist[1, 0])
         ax1.scatter(
-            uvlist[1, :],
             uvlist[0, :],
+            uvlist[1, :],
             c="c",
             marker="o",
-            s=2,
+            s=1,
             label="antenna positions",
         )
         count += 1
@@ -115,6 +118,9 @@ def ppoints_on_tec_field(tec, ppoints, params, fieldcenter, prefix, scale):
     ax1.set_xlabel("Relative Longitude (scale=1:%sm)" % (scale))
     ax1.set_ylabel("Relative Latitude (scale=1:%sm)" % (scale))
 
+    # Plot phase offsets per antenna for just 10 sources to avoid conjestion
+    if len(params) > 10:
+        params = params[0:15]
     for params_list in params:
         ax2.plot(range(len(params_list)), params_list, marker="*", linestyle="--")
     ax2.set_xlabel("Antenna ID")

@@ -60,7 +60,7 @@ def add_col(tbl, colnme):
     )
 
 
-def get_lmns(tbl, ras, decs):
+def get_lmns(tbl, ra_rad, dec_rad):
     """
     Calculating l, m, n values from ras,decs and phase centre.
     𝑙 = cos 𝛿 * sin Δ𝛼
@@ -69,8 +69,6 @@ def get_lmns(tbl, ras, decs):
     """
     ra0, dec0 = get_phase_center(tbl)
 
-    ra_rad = np.radians(ras)
-    dec_rad = np.radians(decs)
     ra_delta = ra_rad - ra0
     ls = np.cos(dec_rad) * np.sin(ra_delta)
     ms = np.sin(dec_rad) * np.cos(dec0) - np.cos(dec_rad) * np.sin(dec0) * np.cos(

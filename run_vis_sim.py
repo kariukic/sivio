@@ -7,7 +7,7 @@ from casacore.tables import table
 import mset_utils as mtls
 from vis_sim import sim_prep, true_vis, offset_vis, scint_vis
 import sky_models
-from phase_screen import get_antenna_in_uvw, iono_phase_shift
+from phase_screen import get_antenna_in_uvw, iono_phase_shift, phase_center_offset
 from coordinates import get_time, MWAPOS
 import plotting
 
@@ -27,17 +27,14 @@ def main():
         action="store_true",
         help="Says you want to do the simulation. If not, you can choose to image or plot already simulated data",
     )
-    parser.add_argument("--model", required=False, help="Sky model")
     parser.add_argument("--offset_vis", "-o", action="store_true")
     parser.add_argument("--scint_vis", action="store_true")
+    parser.add_argument("--rdiff", type=float, default=5, help="Diffractive scale [m]")
     parser.add_argument(
-        "--rdiff", type=float, default=5000, help="Diffractive scale [m]"
+        "--size", type=int, default=60000, help="TEC field size per side [m]"
     )
     parser.add_argument(
-        "--size", type=int, default=150000, help="TEC field size per side [m]"
-    )
-    parser.add_argument(
-        "--scale", type=int, default=10, help="pixel to distance scaling [m]"
+        "--scale", type=int, default=3, help="pixel to distance scaling [m]"
     )
     parser.add_argument(
         "--height", type=int, default=200000, help="TEC plane height from ground [m]"
@@ -66,15 +63,17 @@ def main():
     else:
         logger.setLevel("INFO")
 
-    mset = "sim_1065880128_klmgv_tec.ms"
+    mset = "sim_1065880128_klmgv6060_tec.ms"
     if args.sim:
         if args.yfile is not None:
             ras, decs, fluxes = sky_models.loadfile(args.yfile, model_only=True)
         else:
             ras, decs, fluxes = sky_models.random_model(
-                10, filename="random_10source_model.txt"
+                1, simple=True, filename="simple_sky.txt"
             )
         assert len(ras) == len(decs) == len(fluxes)
+        ras = np.radians(ras)
+        decs = np.radians(decs)
         print("The sky model has %s sources" % (len(ras)))
 
         if mset not in os.listdir(os.path.abspath(".")):
@@ -83,6 +82,7 @@ def main():
             os.system("cp -r %s/* %s" % (args.ms_template, mset))
 
         tbl = table(mset, readonly=False)
+        ra0, dec0 = mtls.get_phase_center(tbl)
         data, uvw_lmbdas, ls, ms, ns = sim_prep(tbl, ras, decs)
 
         if args.true_vis:
@@ -93,14 +93,18 @@ def main():
         if args.offset_vis:
             logger.info("Simulating offset visibilities...")
             "Get the phase screen"
-            frequency = 150
             # TODO incorporate phase offset frequency dependence per channel
             phs_screen = iono_phase_shift(
-                frequency, scale=args.scale, size=args.size, tec_type=args.tec_type
+                scale=args.scale, size=args.size, tec_type=args.tec_type
             )
             time, lst = get_time(args.metafits, MWAPOS)
-            print("time", time, "lst", lst)
+
             us, vs, ws = get_antenna_in_uvw(mset, tbl, lst)
+            h_pix = args.height / args.scale
+            # first lets calculate the offset of the ref antenna from phase screen center.
+            pp_u_offset, pp_v_offset = phase_center_offset(ra0, dec0, h_pix, time)
+            print("pp_u_offset,pp_v_offset", pp_u_offset, pp_v_offset)
+
             offset_data = offset_vis(
                 mset,
                 data,
@@ -116,7 +120,9 @@ def main():
                 us,
                 vs,
                 args.scale,
-                args.height,
+                h_pix,
+                pp_u_offset,
+                pp_v_offset,
             )
 
             if "OFFSET_DATA" not in tbl.colnames():
@@ -144,9 +150,10 @@ def main():
         tecscreen = np.rad2deg(tecdata["tecscreen"])
         fieldcenter = (args.size / args.scale) // 2
 
+        max_bl = mtls.get_bl_lens(mset).max()
         prefix = mset.split(".")[0]
         plotting.ppoints_on_tec_field(
-            tecscreen, ppoints, params, fieldcenter, prefix, args.scale
+            tecscreen, ppoints, params, fieldcenter, prefix, max_bl, args.scale
         )
 
     if args.image:

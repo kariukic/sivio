@@ -9,6 +9,7 @@ import scipy.ndimage.filters as sp
 
 
 import mset_utils as mtls
+from coordinates import radec_to_altaz, MWAPOS
 
 
 c = 299792458
@@ -27,6 +28,18 @@ def convert_to_tecu(frequency, phscreen):
 
 
 def scale_to_pi_range(phscreen):
+    """Scaling our produced phase screen to between [-180,180] degrees
+
+    Parameters
+    ----------
+    phscreen : array.
+        The phase screen to be scaled.
+
+    Returns
+    -------
+    array.
+        Scaled array.
+    """
     return (
         (phscreen - np.min(phscreen)) / (np.max(phscreen) - np.min(phscreen))
     ) * 2 * np.pi - np.pi
@@ -42,28 +55,27 @@ def linear_tec(npix, sine=False):
 
     Returns
     -------
-    [numpy array]
-        [2D npix by npix tec array]
+    array.
+        2D npix by npix tec array.
     """
     if sine:
         xs = np.linspace(0, np.pi, npix)
         ys = np.linspace(0, np.pi, npix)
         tau, phi = np.meshgrid(xs, ys)
         # + np.random.normal(scale=1 / 60, size=npix)
-        tec = np.sin(30 * (tau + phi))
+        tec = np.sin(20 * (tau + phi))
         tec = abs(tec)
     else:
         tec = np.tile(np.linspace(0, np.pi, npix), (npix, 1))
     return tec
 
 
-def iono_phase_shift(frequency, scale=10, size=150000, tec_type="l"):
-    """Should convert a tec screen to a phase offset screen using the commented formula.
-    Not yet doing that.
+def iono_phase_shift(scale=10, size=150000, tec_type="l"):
+    """
+    produces a phase offset screen.
 
     Parameters
     ----------
-    frequency : float.\n
     scale : int, optional.
         Scaling factor. the number of metres represented by the side of a single pixel], by default 10. \n
     size : int, optional.
@@ -91,7 +103,7 @@ def iono_phase_shift(frequency, scale=10, size=150000, tec_type="l"):
         )
         tec = pb.delta_x()
         # Apply gaussian filter
-        sigma = [40, 40]
+        sigma = [60, 60]
         phsscreen = sp.gaussian_filter(tec, sigma, mode="constant")
 
     elif tec_type == "s":
@@ -100,9 +112,6 @@ def iono_phase_shift(frequency, scale=10, size=150000, tec_type="l"):
     else:
         phsscreen = linear_tec(resolution, sine=False)
 
-    # ammend formula here.
-    # phase_screen = constant/tecu * 1/(frequency**1e6) * tec -->
-    # shouts "OverflowError: (34, 'Numerical result out of range')"
     phsscreen = scale_to_pi_range(phsscreen)
 
     return phsscreen
@@ -128,7 +137,7 @@ def get_antenna_in_uvw(mset, tbl, lst):
     """
     ra, dec0 = mtls.get_phase_center(tbl)
     ra0 = lst - ra  # RA0 here is the hour angle since HA = LST-RA
-    print("hour_angle: ", ra0, type(ra0))
+
     xyz = mtls.get_bl_vectors(mset)
 
     us = np.sin(ra0) * xyz[:, 0] + np.cos(ra0) * xyz[:, 1]
@@ -172,7 +181,39 @@ def scale_to_pixel_range(us, scale=10):
     return np.array(scaled)
 
 
-def get_tec_value(tec, us, vs, zen_angle, az, scale=10, h=200000, refant=0):
+def phase_center_offset(ra0, dec0, h_pix, time):
+    """
+    Calculate the pixel coordinates for the phase center position.
+    This is the offset used to aligh the phase center to the center of the phase screen
+
+    Parameters
+    ----------
+    tbl : casacore MS table.
+        The MS table to get the phase center from.\n
+    h_pix : int/float
+        The scaled height of the phase screen.\n
+    time : astropy time object.
+        The time of observation.
+
+    Returns
+    -------
+    float.
+        The pixel coordinates of the phase center on the phase screen.
+    """
+    new_u0 = 0
+    new_v0 = 0
+    altt, azz = radec_to_altaz(ra0, dec0, time, MWAPOS)
+    zen_angle = np.pi / 2.0 - altt
+    zen_angle_radius = h_pix * np.tan(zen_angle)
+
+    pp_u_off = zen_angle_radius * np.sin(azz) + new_u0
+    pp_v_off = zen_angle_radius * np.cos(azz) + new_v0
+    return pp_u_off, pp_v_off
+
+
+def get_tec_value(
+    tec, us, vs, zen_angle, az, scale, h_pix, pp_u_offset, pp_v_offset, refant=0
+):
     """
     Given a source position (zenith and azimuth angles) with reference to the reference antenna, this function obtains
     the tec phase offset value at the pierce point corresponding to each antenna. \n \n
@@ -209,14 +250,16 @@ def get_tec_value(tec, us, vs, zen_angle, az, scale=10, h=200000, refant=0):
         The TEC/phase offset value at the piercepoint of each antenna.
     """
     print(
-        "tecscreen is size %s by %s km and at height %s km."
-        % (tec.shape[0] * scale / 1000, tec.shape[1] * scale / 1000, h / 1000)
+        "tecscreen size:  %s by %s km. Height:  %s km."
+        % (
+            tec.shape[0] * scale / 1000,
+            tec.shape[1] * scale / 1000,
+            h_pix * scale / 1000,
+        )
     )
     # Apply scaling to the array field and tec height.
     us_scaled = scale_to_pixel_range(us, scale=scale)
     vs_scaled = scale_to_pixel_range(vs, scale=scale)
-    h_pix = h / scale
-    print("refant scaled u and v position", us_scaled[refant], vs_scaled[refant])
 
     u_tec_center = tec.shape[0] // 2  # + us_scaled[refant]
     v_tec_center = tec.shape[1] // 2  # + us_scaled[refant]
@@ -233,17 +276,15 @@ def get_tec_value(tec, us, vs, zen_angle, az, scale=10, h=200000, refant=0):
         zen_angle_radius = h_pix * np.tan(zen_angle)
         # The azimuth angle gives us the arc on this circle from some starting point
         # We can then obtain the u and v coordinates for the pierce point.
-        # The pi rad added to azimuth angle  is to rotate the start point of the arc
-        #   to the topside of the tec field.
-        pp_u = zen_angle_radius * np.sin(az + np.pi / 2.0) + new_u0
-        pp_v = zen_angle_radius * np.cos(az + np.pi / 2.0) + new_v0
-        # Collect pierce points for each antenna.
-        uu = pp_u + u_tec_center  # + us_scaled[refant]
-        vv = pp_v + v_tec_center  # + vs_scaled[refant]
+        pp_u = zen_angle_radius * np.sin(az) + new_u0
+        pp_v = zen_angle_radius * np.cos(az) + new_v0
 
+        # Collect pierce points for each antenna.
+        uu = pp_u - pp_u_offset + u_tec_center
+        vv = pp_v - pp_v_offset + v_tec_center
         u_tec_list.append(uu)
         v_tec_list.append(vv)
-
+        # phase offset value per pierce point.
         tec_per_ant.append(tec[int(round(uu)), int(round(vv))])
-    print(tec_per_ant[0], "First/middle value")
+
     return np.array(u_tec_list), np.array(v_tec_list), np.array(tec_per_ant)
