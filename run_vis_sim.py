@@ -27,14 +27,17 @@ def main():
         action="store_true",
         help="Says you want to do the simulation. If not, you can choose to image or plot already simulated data",
     )
+    parser.add_argument(
+        "--n_sources", "-n", type=int, default=10, help="Number of sources to simulate"
+    )
     parser.add_argument("--offset_vis", "-o", action="store_true")
     parser.add_argument("--scint_vis", action="store_true")
     parser.add_argument("--rdiff", type=float, default=5, help="Diffractive scale [m]")
     parser.add_argument(
-        "--size", type=int, default=60000, help="TEC field size per side [m]"
+        "--size", type=int, default=90000, help="TEC field size per side [m]"
     )
     parser.add_argument(
-        "--scale", type=int, default=3, help="pixel to distance scaling [m]"
+        "--scale", type=int, default=5, help="pixel to distance scaling [m]"
     )
     parser.add_argument(
         "--height", type=int, default=200000, help="TEC plane height from ground [m]"
@@ -63,10 +66,12 @@ def main():
     else:
         logger.setLevel("INFO")
 
-    mset = "sim_1065880128_klmgv6060_tec.ms"
+    mset = "sim%s_1065880128_%s_tec.ms" % (args.n_sources, args.tec_type)
     if args.sim:
         if args.yfile is not None:
-            ras, decs, fluxes = sky_models.loadfile(args.yfile, model_only=True)
+            ras, decs, fluxes = sky_models.loadfile(
+                args.yfile, args.n_sources, model_only=True
+            )
         else:
             ras, decs, fluxes = sky_models.random_model(
                 1, simple=True, filename="simple_sky.txt"
@@ -83,7 +88,7 @@ def main():
 
         tbl = table(mset, readonly=False)
         ra0, dec0 = mtls.get_phase_center(tbl)
-        data, uvw_lmbdas, ls, ms, ns = sim_prep(tbl, ras, decs)
+        data, lmbdas, uvw_lmbdas, ls, ms, ns = sim_prep(tbl, ras, decs)
 
         if args.true_vis:
             logger.info("Simulating the true visibilities...")
@@ -108,6 +113,7 @@ def main():
             offset_data = offset_vis(
                 mset,
                 data,
+                lmbdas,
                 uvw_lmbdas,
                 fluxes,
                 ls,
@@ -149,6 +155,7 @@ def main():
         params = np.rad2deg(tecdata["params"])
         tecscreen = np.rad2deg(tecdata["tecscreen"])
         fieldcenter = (args.size / args.scale) // 2
+        print(fieldcenter, tecscreen.shape)
 
         max_bl = mtls.get_bl_lens(mset).max()
         prefix = mset.split(".")[0]
@@ -159,7 +166,7 @@ def main():
     if args.image:
         imagename = mset.split(".")[0] + "_truevis"
         command = (
-            "wsclean -name %s -abs-mem 40 -size 2048 2048 -scale 25asec -niter 1000000 -auto-threshold 3 \
+            "wsclean -name %s -abs-mem 40 -size 2048 2048 -scale 30asec -niter 1000000 -auto-threshold 3 \
                     -data-column %s %s"
             % (imagename, "DATA", mset)
         )
@@ -168,7 +175,7 @@ def main():
         if args.offset_vis:
             imagename = mset.split(".")[0] + "_offsetvis"
             command2 = (
-                "wsclean -name %s -abs-mem 40 -size 2048 2048 -scale 25asec -niter 1000000 -auto-threshold 3 \
+                "wsclean -name %s -abs-mem 40 -size 2048 2048 -scale 30asec -niter 1000000 -auto-threshold 3 \
                         -data-column %s %s"
                 % (imagename, "OFFSET_DATA", mset)
             )
@@ -177,7 +184,7 @@ def main():
         if args.scint_vis:
             imagename = mset.split(".")[0] + "_%srd_scint" % (int(args.rdiff / 1000))
             command3 = (
-                "wsclean -name %s -abs-mem 40 -size 2048 2048 -scale 25asec -niter 1000000 -auto-threshold 3 \
+                "wsclean -name %s -abs-mem 40 -size 2048 2048 -scale 30asec -niter 1000000 -auto-threshold 3 \
                             -data-column %s %s"
                 % (imagename, "SCINT_DATA", mset)
             )

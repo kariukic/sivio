@@ -17,7 +17,7 @@ c = 299792458
 # k=scipy.constants
 constant = 40.30819300005713
 tecu = 1e16
-kolmogorov_index = -1.66667
+kolmogorov_index = -11 / 3  # -1.66667
 
 
 def convert_to_tecu(frequency, phscreen):
@@ -70,7 +70,7 @@ def linear_tec(npix, sine=False):
     return tec
 
 
-def iono_phase_shift(scale=10, size=150000, tec_type="l"):
+def iono_phase_shift(scale=3, size=60000, tec_type="l"):
     """
     produces a phase offset screen.
 
@@ -98,23 +98,26 @@ def iono_phase_shift(scale=10, size=150000, tec_type="l"):
     resolution = size // scale  # the number of pixel per side of tec plane
 
     if tec_type == "k":
+        apply_filter = True
         pb = PowerBox(
             resolution, lambda k: 10 * k ** kolmogorov_index, ensure_physical=True
         )
-        tec = pb.delta_x()
-        # Apply gaussian filter
-        sigma = [60, 60]
-        phsscreen = sp.gaussian_filter(tec, sigma, mode="constant")
+        phs_screen = pb.delta_x()
 
     elif tec_type == "s":
-        phsscreen = linear_tec(resolution, sine=True)
+        apply_filter = False
+        phs_screen = linear_tec(resolution, sine=True)
 
     else:
-        phsscreen = linear_tec(resolution, sine=False)
+        apply_filter = True
+        phs_screen = linear_tec(resolution, sine=False)
 
-    phsscreen = scale_to_pi_range(phsscreen)
+    phs_screen = scale_to_pi_range(phs_screen)
+    if apply_filter:
+        sigma = [80, 80]
+        phs_screen = sp.gaussian_filter(phs_screen, sigma, mode="constant")
 
-    return phsscreen
+    return phs_screen
 
 
 def get_antenna_in_uvw(mset, tbl, lst):
@@ -280,7 +283,7 @@ def get_tec_value(
         pp_v = zen_angle_radius * np.cos(az) + new_v0
 
         # Collect pierce points for each antenna.
-        uu = pp_u - pp_u_offset + u_tec_center
+        uu = tec.shape[0] - (pp_u - pp_u_offset + u_tec_center)
         vv = pp_v - pp_v_offset + v_tec_center
         u_tec_list.append(uu)
         v_tec_list.append(vv)

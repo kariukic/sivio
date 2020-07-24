@@ -78,27 +78,31 @@ def ppoints_on_tec_field(tec, ppoints, params, fieldcenter, prefix, max_bl, scal
     # xx1 = 0
     # xx2 = fieldcenter
 
-    # xnymin = fieldcenter - tec.shape[0] // 2
-    # xnymax = fieldcenter + tec.shape[0] // 2
+    xnymin = fieldcenter - tec.shape[0] // 2
+    xnymax = fieldcenter + tec.shape[0] // 2
     # print(xnymin, xnymax)
-    # extent = (xnymin, xnymax, xnymin, xnymax)
-    s = ax1.imshow(tec, cmap="plasma", origin="lower")  # , extent=extent)
+    extent = (xnymin, xnymax, xnymin, xnymax)
+    s = ax1.imshow(tec, cmap="plasma", origin="lower", extent=extent)
     # s = ax1.imshow(tec[xx1:xx2, yy1:yy2], cmap="plasma", extent=[xx1, xx2, yy1, yy2])
     # ax1.plot(fieldcenter, fieldcenter, "rx", label="screen center")
-    axins = ax1.inset_axes([0.75, 0.75, 0.25, 0.25])
+    """
+    axins = ax1.inset_axes([0.6, 0.75, 0.25, 0.25])
 
     axins.imshow(tec, cmap="plasma", origin="lower")
-    # just trying to get a proper size for te inset plot
-    w = max_bl / 2 * np.sin(np.radians(45)) / scale
-    x1, x2 = (
-        fieldcenter - w,
-        fieldcenter + w,
+    # just trying to get a proper size for the inset plot.
+    w = 600  # max_bl / 2 * np.sin(np.radians(45)) / scale
+    x1, x2, y1, y2 = (
+        ppoints[0, 0, 0] - w,
+        ppoints[0, 0, 0] + w,
+        ppoints[0, 1, 0] - w,
+        ppoints[0, 1, 0] + w,
     )
     axins.set_xlim(x1, x2)
-    axins.set_ylim(x1, x2)
+    axins.set_ylim(y1, y2)
     axins.scatter(ppoints[0, 0, :], ppoints[0, 1, :], marker="o", s=1, c="c")
     axins.tick_params(labelbottom=False, labelleft=False)
-
+    ax1.indicate_inset_zoom(axins)
+    """
     count = 1
     for uvlist in ppoints:
         print("SOURCE %s ORIGIN POINT" % (count), uvlist[0, 0], uvlist[1, 0])
@@ -114,13 +118,13 @@ def ppoints_on_tec_field(tec, ppoints, params, fieldcenter, prefix, max_bl, scal
     cbar = colorbar(s)
     cbar.ax.set_ylabel("phase [deg]", rotation=270)
     # ax1.legend()
-    ax1.indicate_inset_zoom(axins)
+
     ax1.set_xlabel("Relative Longitude (scale=1:%sm)" % (scale))
     ax1.set_ylabel("Relative Latitude (scale=1:%sm)" % (scale))
 
     # Plot phase offsets per antenna for just 10 sources to avoid conjestion
     if len(params) > 10:
-        params = params[0:15]
+        params = params[0:10]
     for params_list in params:
         ax2.plot(range(len(params_list)), params_list, marker="*", linestyle="--")
     ax2.set_xlabel("Antenna ID")

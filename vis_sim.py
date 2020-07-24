@@ -27,7 +27,7 @@ def sim_prep(tbl, ras, decs):
     ls, ms, ns = mtls.get_lmns(tbl, ras, decs)
     # assert len(list(A)) == len(list(ls))
 
-    return data, uvw_lmbdas, ls, ms, ns
+    return data, lmbdas, uvw_lmbdas, ls, ms, ns
 
 
 def add_phase_offsets(mset, params):
@@ -109,6 +109,7 @@ def true_vis(data, uvw_lmbdas, A, ls, ms, ns):
 def offset_vis(
     mset,
     data,
+    lmbdas,
     uvw_lmbdas,
     A,
     ls,
@@ -170,11 +171,14 @@ def offset_vis(
         )
         params = tec_per_ant  # * 10 128 phasescreen values one for each pierce point
         phasediff = add_phase_offsets(mset, params)
+        phasediff = phasediff[:, np.newaxis] * lmbdas ** 2
+
+        print(phasediff.shape, "********phasediff shape********")
 
         source_ppoints.append(np.stack((u_tec_list, v_tec_list)))
         source_params.append(np.stack(params))
 
-        phse = phse * np.exp(2j * np.pi * phasediff)[:, None]
+        phse = phse * np.exp(2j * np.pi * phasediff)  # [:, None]
         data[:, :, 0] += amp * phse  # feed xx data
         data[:, :, 3] += amp * phse  # feed yy data
 

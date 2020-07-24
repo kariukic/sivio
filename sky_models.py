@@ -9,7 +9,7 @@ from yaml import SafeLoader as SafeLoader
 # print("done importing")
 
 
-def loadfile(data_file, model_only=True):
+def loadfile(data_file, n_sources, model_only=True):
     with open(data_file, "r") as f:
         unpacked = yaml.load(f, Loader=SafeLoader)
 
@@ -34,8 +34,10 @@ def loadfile(data_file, model_only=True):
     )
     df2 = df.dropna(axis=0)
 
-    df3 = df2[(df2.ra < 7.57) & (df2.ra > -7.3) & (df2.dec > -33.8) & (df2.dec < -20)]
-    print(df3.ra.max(), df3.ra.min())
+    df3 = df2[(df2.ra < 9) & (df2.ra > -9) & (df2.dec > -35.1) & (df2.dec < -18.1)]
+    print(df3.shape, df3.ra.max(), df3.ra.min(), df3.dec.max(), df3.dec.min())
+    df3 = df3.nlargest(n_sources, "flux", keep="all")
+    print("min/maximum flux", df3.flux.min(), df3.flux.max())
 
     filename = data_file.split(".")[0] + "_rts_data_products.csv"
     if filename not in os.listdir(os.path.abspath(".")):
