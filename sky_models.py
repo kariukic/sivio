@@ -1,12 +1,9 @@
 import os
+import random
 import numpy as np
 import yaml
 import pandas as pd
 from yaml import SafeLoader as SafeLoader
-
-
-# path = "/home/chege/Desktop/curtin_work/jack_yamls/"
-# print("done importing")
 
 
 def loadfile(data_file, n_sources, model_only=True):
@@ -69,13 +66,32 @@ def generate_distribution(mean, sigma, size, dist, type="ra"):
         d = np.random.normal(loc=mean, scale=sigma, size=size)
         if type == "ra":
             d[0] = 0.0
+            print("RAs range", d.min(), d.max())
             d = np.where(d < 0, d + 360, d)
         elif type == "dec":
+            print("Decs range", d.min(), d.max())
             d[0] = -27.0
+        else:
+            d = np.random.normal(loc=mean, scale=sigma, size=size)
         return d
 
     else:
         raise ValueError("Unrecognised distribution ({}).".format(dist))
+
+
+def sample_floats(low, high, size=1):
+    """ Return a k-length list of unique random floats
+        in the range of low <= x <= high
+    """
+    result = []
+    seen = set()
+    for i in range(size):
+        x = random.uniform(low, high)
+        while x in seen:
+            x = random.uniform(low, high)
+        seen.add(x)
+        result.append(x)
+    return result
 
 
 def random_model(N, simple=False, filename="model.txt"):
@@ -85,10 +101,24 @@ def random_model(N, simple=False, filename="model.txt"):
             [-27.0],
             [1],
         )  # [0.0, 7.5, 349.5], [-27.0, -19.6, -35.1], [1, 1, 1]
-    ras = generate_distribution(0.0, 4.0, N, "normal", type="ra")
-    decs = generate_distribution(-27.0, 4.0, N, "normal", type="dec")
-    fluxes = list(np.ones(N))  # np.abs(generate_distribution(1., 3., N, "normal"))
+    ras = sample_floats(
+        -9, 9, size=N
+    )  # generate_distribution(0.0, 4.0, N, "normal", type="ra")
+    decs = sample_floats(
+        -35.1, -18.1, size=N
+    )  # -1 * generate_distribution(27.0, 4.0, N, "normal", type="dec")
+    fluxes = sample_floats(
+        0.5, 15, size=N
+    )  # np.abs(generate_distribution(1.0, 4.0, N, "normal", type="f"))
 
+    ras = np.array(ras)
+    ras = np.where(ras < 0, ras + 360, ras)
+    decs = np.array(decs)
+    fluxes = np.array(fluxes)
+
+    print("RAs range", ras.min(), ras.max())
+    print("Decs range", decs.min(), decs.max())
+    print("Fluxes range", fluxes.min(), fluxes.max())
     with open("%s" % (filename), "w") as f:
         for (ra, dec, flux) in zip(ras, decs, fluxes):
             f.write("{0},{1},{2}\n".format(ra, dec, flux))

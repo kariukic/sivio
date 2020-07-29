@@ -2,8 +2,6 @@ import matplotlib.pyplot as plt
 from mset_utils import get_uvw
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
-import numpy as np
-
 
 def colorbar(mappable):
     last_axes = plt.gca()
@@ -28,20 +26,7 @@ def plotuv(tbl):
     plt.savefig("uuvv.png")
 
 
-def plot_antennas_on_uvplane(
-    us, vs, shift=True, alpha=0.1, name="antennas_on_uvplane.png"
-):
-    if shift:
-        uss = us + alpha * (us[:] - us[0])
-        vss = vs + alpha * (vs[:] - vs[0])
-        plt.scatter(
-            uss,
-            vss,
-            c="r",
-            marker="x",
-            linestyle="None",
-            label="shifted antenna positions, alpha=%s" % (alpha),
-        )
+def plot_antennas_on_uvplane(us, vs, name="antennas_on_uvplane.png"):
     plt.scatter(
         us, vs, c="b", marker="x", linestyle="None", label="True antenna positions"
     )

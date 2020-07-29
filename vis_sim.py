@@ -10,7 +10,6 @@ from coordinates import radec_to_altaz, MWAPOS
 
 def sim_prep(tbl, ras, decs):
     """Preparing the requiremnts before simulating"""
-
     # grab uvw values from the ms and divide them with the wavelengths for each channel
     uvw = mtls.get_uvw(tbl)
     lmbdas = mtls.get_channels(tbl, ls=True)
@@ -150,11 +149,8 @@ def offset_vis(
         # phasediff = np.ones(uvw_lmbdas.shape[0])*1j*2
 
         alt, azimuth = radec_to_altaz(ra, dec, time, MWAPOS)
+        zen_angle = np.pi / 2.0 - alt
 
-        # Added -0.1890022463989236 radians factor to center my sky because at ms phase center the
-        # zenith angle is off by that fatctor. Investigate!!
-        zen_angle = np.pi / 2.0 - alt  # - 0.1890022463989236
-        # azimuth -= 1.611163115052922  # applying same correction factor for azimuth
         print("Zenith angle: ", np.rad2deg(zen_angle), "deg  OR", zen_angle, "rad")
         print("Azimuth angle: ", np.rad2deg(azimuth), "deg  OR", azimuth, "rad")
 

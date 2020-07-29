@@ -5,7 +5,7 @@ from argparse import ArgumentParser
 from casacore.tables import table
 
 import mset_utils as mtls
-from vis_sim import sim_prep, true_vis, offset_vis, scint_vis
+from vis_sim import sim_prep, true_vis, offset_vis  # , scint_vis
 import sky_models
 from phase_screen import get_antenna_in_uvw, iono_phase_shift, phase_center_offset
 from coordinates import get_time, MWAPOS
@@ -31,8 +31,14 @@ def main():
         "--n_sources", "-n", type=int, default=10, help="Number of sources to simulate"
     )
     parser.add_argument("--offset_vis", "-o", action="store_true")
-    parser.add_argument("--scint_vis", action="store_true")
-    parser.add_argument("--rdiff", type=float, default=5, help="Diffractive scale [m]")
+    # parser.add_argument("--scint_vis", action="store_true")
+    # parser.add_argument("--rdiff", type=float, default=5, help="Diffractive scale [m]")
+    parser.add_argument(
+        "--true_vis",
+        "-t",
+        action="store_true",
+        help="Simulate the true visibilities too",
+    )
     parser.add_argument(
         "--size", type=int, default=90000, help="TEC field size per side [m]"
     )
@@ -47,12 +53,6 @@ def main():
         type=str,
         default="l",
         help="l = linear tec, s = TEC modulated with sine ducts,  k = TEC with kolmogorov turbulence.",
-    )
-    parser.add_argument(
-        "--true_vis",
-        "-t",
-        action="store_true",
-        help="Simulate the true visibilities too",
     )
     parser.add_argument("--image", "-i", action="store_true", help="Run wsclean")
     parser.add_argument("--plot", "-p", action="store_true", help="Make plots")
@@ -74,7 +74,7 @@ def main():
             )
         else:
             ras, decs, fluxes = sky_models.random_model(
-                1, simple=True, filename="simple_sky.txt"
+                args.n_sources, simple=False, filename="sim1200_sky.txt"
             )
         assert len(ras) == len(decs) == len(fluxes)
         ras = np.radians(ras)
@@ -135,7 +135,7 @@ def main():
                 print("Adding OFFSET_DATA column in MS with offset visibilities...")
                 mtls.add_col(tbl, "OFFSET_DATA")
             mtls.put_col(tbl, "OFFSET_DATA", offset_data)
-
+        """
         if args.scint_vis:
             scint_data = scint_vis(
                 mset, data, uvw_lmbdas, fluxes, ls, ms, ns, args.rdiff
@@ -147,7 +147,7 @@ def main():
                 mtls.add_col(tbl, "SCINT_DATA")
             mtls.put_col(tbl, "SCINT_DATA", scint_data)
         tbl.close()
-
+        """
     if args.plot:
         npz = mset.split(".")[0] + "_pierce_points.npz"
         tecdata = np.load(npz)
@@ -180,7 +180,7 @@ def main():
                 % (imagename, "OFFSET_DATA", mset)
             )
             os.system(command2)
-
+        """
         if args.scint_vis:
             imagename = mset.split(".")[0] + "_%srd_scint" % (int(args.rdiff / 1000))
             command3 = (
@@ -189,6 +189,7 @@ def main():
                 % (imagename, "SCINT_DATA", mset)
             )
             os.system(command3)
+        """
         os.system("rm -r *dirty* *psf* *-residual* *-model*")
 
 

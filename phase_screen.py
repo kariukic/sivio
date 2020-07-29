@@ -138,24 +138,36 @@ def get_antenna_in_uvw(mset, tbl, lst):
     3 lists/arrays.
         u, v and w positions of the projected antennas in metres.
     """
-    ra, dec0 = mtls.get_phase_center(tbl)
-    ra0 = lst - ra  # RA0 here is the hour angle since HA = LST-RA
+    """
+    from astropy.coordinates import Angle
+    from astropy import units as unit
+    ra0, dec0 = mtls.get_phase_center(tbl)
+    # ra0 = np.deg2rad(0)
+    print("lst", lst)
+    ra0 = Angle(ra0, unit.radian)
+    print("ra0", ra0)
+    ha = Angle(lst) - ra0  # HA = LST-RA
+    print("Hour angle", ra0)
 
     xyz = mtls.get_bl_vectors(mset)
 
-    us = np.sin(ra0) * xyz[:, 0] + np.cos(ra0) * xyz[:, 1]
+    us = np.sin(ha) * xyz[:, 0] + np.cos(ha) * xyz[:, 1]
+
     vs = (
-        -np.sin(dec0) * np.cos(ra0) * xyz[:, 0]
-        + np.sin(dec0) * np.sin(ra0) * xyz[:, 1]
+        -np.sin(dec0) * np.cos(ha) * xyz[:, 0]
+        + np.sin(dec0) * np.sin(ha) * xyz[:, 1]
         + np.cos(dec0) * xyz[:, 2]
     )
     ws = (
-        np.cos(dec0) * np.cos(ra0) * xyz[:, 0]
-        + -np.cos(dec0) * np.sin(ra0) * xyz[:, 1]
+        np.cos(dec0) * np.cos(ha) * xyz[:, 0]
+        + -np.cos(dec0) * np.sin(ha) * xyz[:, 1]
         + np.sin(dec0) * xyz[:, 2]
     )
 
     return us, vs, ws
+    """
+    xyz = mtls.get_bl_vectors(mset)
+    return xyz[:, 0], xyz[:, 1], xyz[:, 2]
 
 
 def scale_to_pixel_range(us, scale=10):
