@@ -29,7 +29,6 @@ def get_phase_center(tbl):
         RA and Dec in radians.
     """
     ra0, dec0 = tbl.FIELD.getcell("PHASE_DIR", 0)[0]
-    print("The phase center is at ra=%s, dec=%s" % (np.degrees(ra0), np.degrees(dec0)))
     return ra0, dec0
 
 

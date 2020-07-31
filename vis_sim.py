@@ -132,7 +132,7 @@ def offset_vis(
 
     source_count = 1
     for amp, l, m, n, ra, dec in zip(A, ls, ms, ns, ras, decs):
-        print("Source: ", source_count)
+        print("Source: ", source_count, "...")
         phse = np.exp(
             2j
             * np.pi
@@ -151,8 +151,8 @@ def offset_vis(
         alt, azimuth = radec_to_altaz(ra, dec, time, MWAPOS)
         zen_angle = np.pi / 2.0 - alt
 
-        print("Zenith angle: ", np.rad2deg(zen_angle), "deg  OR", zen_angle, "rad")
-        print("Azimuth angle: ", np.rad2deg(azimuth), "deg  OR", azimuth, "rad")
+        # print("Zenith angle: ", np.rad2deg(zen_angle), "deg  OR", zen_angle, "rad")
+        # print("Azimuth angle: ", np.rad2deg(azimuth), "deg  OR", azimuth, "rad")
 
         u_tec_list, v_tec_list, tec_per_ant = get_tec_value(
             phs_screen,
@@ -169,7 +169,7 @@ def offset_vis(
         phasediff = add_phase_offsets(mset, params)
         phasediff = phasediff[:, np.newaxis] * lmbdas ** 2
 
-        print(phasediff.shape, "********phasediff shape********")
+        # print(phasediff.shape, "********phasediff shape********")
 
         source_ppoints.append(np.stack((u_tec_list, v_tec_list)))
         source_params.append(np.stack(params))
@@ -182,7 +182,7 @@ def offset_vis(
 
     # Lets save the x and y coordinates, the tec params and phasediffs
     npz = mset.split(".")[0] + "_pierce_points.npz"
-    np.savez(npz, ppoints=source_ppoints, params=source_params, tecscreen=phs_screen)
+    np.savez(npz, ppoints=source_ppoints, params=source_params)
 
     return data
 

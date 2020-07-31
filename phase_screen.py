@@ -63,8 +63,9 @@ def linear_tec(npix, sine=False):
         ys = np.linspace(0, np.pi, npix)
         tau, phi = np.meshgrid(xs, ys)
         # + np.random.normal(scale=1 / 60, size=npix)
-        tec = np.sin(20 * (tau + phi))
-        tec = abs(tec)
+        tec = np.random.normal(loc=1e-6, scale=0.1, size=(npix, npix)) + np.sin(
+            3 * (0.9 * tau + 0.8 * phi)
+        )
     else:
         tec = np.tile(np.linspace(0, np.pi, npix), (npix, 1))
     return tec
@@ -264,14 +265,14 @@ def get_tec_value(
     3: array.
         The TEC/phase offset value at the piercepoint of each antenna.
     """
-    print(
-        "tecscreen size:  %s by %s km. Height:  %s km."
-        % (
-            tec.shape[0] * scale / 1000,
-            tec.shape[1] * scale / 1000,
-            h_pix * scale / 1000,
-        )
-    )
+    # print(
+    #    "tecscreen size:  %s by %s km. Height:  %s km."
+    #    % (
+    #        tec.shape[0] * scale / 1000,
+    #        tec.shape[1] * scale / 1000,
+    #        h_pix * scale / 1000,
+    #    )
+    # )
     # Apply scaling to the array field and tec height.
     us_scaled = scale_to_pixel_range(us, scale=scale)
     vs_scaled = scale_to_pixel_range(vs, scale=scale)

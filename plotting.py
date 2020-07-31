@@ -1,6 +1,10 @@
 import matplotlib.pyplot as plt
 from mset_utils import get_uvw
 from mpl_toolkits.axes_grid1 import make_axes_locatable
+from cthulhu.plot_tools import setup_subplot, plot_vector_arrows
+import numpy as np
+
+f = 15
 
 
 def colorbar(mappable):
@@ -90,7 +94,7 @@ def ppoints_on_tec_field(tec, ppoints, params, fieldcenter, prefix, max_bl, scal
     """
     count = 1
     for uvlist in ppoints:
-        print("SOURCE %s ORIGIN POINT" % (count), uvlist[0, 0], uvlist[1, 0])
+        # print("SOURCE %s ORIGIN POINT" % (count), uvlist[0, 0], uvlist[1, 0])
         ax1.scatter(
             uvlist[0, :],
             uvlist[1, :],
@@ -118,3 +122,66 @@ def ppoints_on_tec_field(tec, ppoints, params, fieldcenter, prefix, max_bl, scal
     fig.tight_layout()
     plt.savefig("%s_antenna_ppoints_on_tec.png" % (prefix))
     plt.close()
+
+
+def ppoints_on_tec_field_v2(tec, ppoints, fieldcenter, scale):
+    fieldcenter = int(fieldcenter)
+
+    xnymin = fieldcenter - tec.shape[0] // 2
+    xnymax = fieldcenter + tec.shape[0] // 2
+    extent = (xnymin, xnymax, xnymin, xnymax)
+    s = plt.imshow(tec, cmap="plasma", origin="lower", extent=extent)
+
+    count = 1
+    for uvlist in ppoints:
+        # print("SOURCE %s ORIGIN POINT" % (count), uvlist[0, 0], uvlist[1, 0])
+        plt.scatter(
+            uvlist[0, :],
+            uvlist[1, :],
+            c="c",
+            marker="o",
+            s=1,
+            label="antenna positions",
+        )
+        count += 1
+    print(count)
+    cbar = colorbar(s)
+    cbar.ax.set_ylabel("phase [deg]", rotation=270)
+    # ax1.legend()
+
+    plt.xlabel("Relative Longitude (scale=1:%sm)" % (scale))
+    plt.ylabel("Relative Latitude (scale=1:%sm)" % (scale))
+
+
+def cthulhu_plots(
+    o, tecscreen, ppoints, fieldcenter, plotname="tec_reconstruction.png"
+):
+    extent = [-9, 9, -35, -18]
+
+    fig = plt.figure(figsize=(15, 12))
+    ax1 = fig.add_subplot(224)
+    j = ax1.imshow(
+        np.flipud(np.rot90(np.fliplr(o.tec), k=3)), cmap="plasma", extent=extent
+    )  # ,vmin=0,vmax=1)
+    colorbar(j)
+
+    ax2 = fig.add_subplot(221)
+    k = ax2.imshow(
+        np.flipud(tecscreen[2400:14000, 2000:140000]), cmap="plasma", extent=extent
+    )  # ,vmin=0, vmax=1)
+    colorbar(k)
+
+    fig.add_subplot(222)
+    ppoints_on_tec_field_v2(tecscreen[2400:14000, 2000:140000], ppoints, fieldcenter, 5)
+
+    ax4 = fig.add_subplot(223)
+    setup_subplot(axis=ax4)
+    plot_vector_arrows(axis=ax4, obsid=o, scale=25)
+    plot_title = "QA Metric: %s " % (round(o.metric))
+    ax4.set_title(plot_title, fontsize=f)
+    ax4.set_xlabel("RA (deg)", fontsize=f)
+    ax4.set_ylabel("Dec (deg)", fontsize=f)
+
+    fig.tight_layout()
+    plt.savefig(plotname)
+    plt.show()

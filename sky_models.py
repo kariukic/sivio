@@ -6,7 +6,7 @@ import pandas as pd
 from yaml import SafeLoader as SafeLoader
 
 
-def loadfile(data_file, n_sources, model_only=True):
+def loadfile(data_file, n_sources, ra0, dec0, filename="sky_model.csv"):
     with open(data_file, "r") as f:
         unpacked = yaml.load(f, Loader=SafeLoader)
 
@@ -31,25 +31,30 @@ def loadfile(data_file, n_sources, model_only=True):
     )
     df2 = df.dropna(axis=0)
 
-    df3 = df2[(df2.ra < 9) & (df2.ra > -9) & (df2.dec > -35.1) & (df2.dec < -18.1)]
+    ra0 = np.rad2deg(ra0)
+    dec0 = np.rad2deg(dec0)
+    df3 = df2[
+        (df2.ra < ra0 + 9)
+        & (df2.ra > ra0 - 9)
+        & (df2.dec > dec0 - 8.1)
+        & (df2.dec < dec0 + 8.9)
+    ]
     print(df3.shape, df3.ra.max(), df3.ra.min(), df3.dec.max(), df3.dec.min())
     df3 = df3.nlargest(n_sources, "flux", keep="all")
-    print("min/maximum flux", df3.flux.min(), df3.flux.max())
 
-    filename = data_file.split(".")[0] + "_rts_data_products.csv"
     if filename not in os.listdir(os.path.abspath(".")):
         print('saving model"s RTS data products to csv file..')
         df3.to_csv("%s" % (filename))
 
-    if model_only:
         print(df3.shape)
         ras = np.array(df3.ra)
         decs = np.array(df3.dec)
         fluxes = np.array(df3.flux)
-        print(ras.max(), ras.min(), decs.max(), decs.min())
+
+        print("RAs range", ras.min(), ras.max())
+        print("Decs range", decs.min(), decs.max())
+        print("Fluxes range", fluxes.min(), fluxes.max())
         return ras, decs, fluxes
-    else:
-        return df3
 
 
 def generate_distribution(mean, sigma, size, dist, type="ra"):
@@ -65,12 +70,10 @@ def generate_distribution(mean, sigma, size, dist, type="ra"):
     if dist == "normal":
         d = np.random.normal(loc=mean, scale=sigma, size=size)
         if type == "ra":
-            d[0] = 0.0
             print("RAs range", d.min(), d.max())
             d = np.where(d < 0, d + 360, d)
         elif type == "dec":
             print("Decs range", d.min(), d.max())
-            d[0] = -27.0
         else:
             d = np.random.normal(loc=mean, scale=sigma, size=size)
         return d
@@ -94,18 +97,12 @@ def sample_floats(low, high, size=1):
     return result
 
 
-def random_model(N, simple=False, filename="model.txt"):
-    if simple:
-        return (
-            [0.0],
-            [-27.0],
-            [1],
-        )  # [0.0, 7.5, 349.5], [-27.0, -19.6, -35.1], [1, 1, 1]
+def random_model(N, ra0, dec0, filename="sky_model.csv"):
     ras = sample_floats(
-        -9, 9, size=N
+        ra0 - 9, ra0 + 9, size=N
     )  # generate_distribution(0.0, 4.0, N, "normal", type="ra")
     decs = sample_floats(
-        -35.1, -18.1, size=N
+        dec0 - 8.1, dec0 + 8.1, size=N
     )  # -1 * generate_distribution(27.0, 4.0, N, "normal", type="dec")
     fluxes = sample_floats(
         0.5, 15, size=N
@@ -119,7 +116,9 @@ def random_model(N, simple=False, filename="model.txt"):
     print("RAs range", ras.min(), ras.max())
     print("Decs range", decs.min(), decs.max())
     print("Fluxes range", fluxes.min(), fluxes.max())
-    with open("%s" % (filename), "w") as f:
-        for (ra, dec, flux) in zip(ras, decs, fluxes):
-            f.write("{0},{1},{2}\n".format(ra, dec, flux))
-        return ras, decs, fluxes
+
+    df = pd.DataFrame(
+        list(zip(list(ras), list(decs), list(fluxes))), columns=["ra", "dec", "flux"],
+    )
+    df.to_csv("%s" % (filename))
+    return ras, decs, fluxes
