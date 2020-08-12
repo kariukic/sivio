@@ -33,10 +33,14 @@ def radec_to_altaz(ra, dec, time, pos):
 
 
 if __name__ == "__main__":
-    metafits = "/home/kariuki/Downloads/1065880128.metafits"
+    metafits = "/home/kariuki/scint_sims/1068395232.metafits"
+    # metafits = "/home/kariuki/scint_sims/1065880128.metafits"
     time, lst = get_time(metafits, MWAPOS)
-    alt, az = radec_to_altaz(np.radians(35), np.radians(-27), time, MWAPOS)
+    alt, az = radec_to_altaz(np.radians(60), np.radians(-30), time, MWAPOS)
     zen_angle = np.pi / 2.0 - alt
+
+    c = SkyCoord(ra=60 * u.degree, dec=-30 * u.degree)
+    print(c.to_string("hmsdms"))
 
     print("Time: ", time, "LST: ", lst)
     print("Alt: ", np.rad2deg(alt), "Az: ", np.rad2deg(az))

@@ -93,11 +93,11 @@ def ppoints_on_tec_field(tec, ppoints, params, fieldcenter, prefix, max_bl, scal
     ax1.indicate_inset_zoom(axins)
     """
     count = 1
-    for uvlist in ppoints:
+    for source in range(ppoints.shape[1]):
         # print("SOURCE %s ORIGIN POINT" % (count), uvlist[0, 0], uvlist[1, 0])
         ax1.scatter(
-            uvlist[0, :],
-            uvlist[1, :],
+            ppoints[0, source, :],
+            ppoints[1, source, :],
             c="c",
             marker="o",
             s=1,
@@ -133,11 +133,11 @@ def ppoints_on_tec_field_v2(tec, ppoints, fieldcenter, scale):
     s = plt.imshow(tec, cmap="plasma", origin="lower", extent=extent)
 
     count = 1
-    for uvlist in ppoints:
+    for source in range(ppoints.shape[1]):
         # print("SOURCE %s ORIGIN POINT" % (count), uvlist[0, 0], uvlist[1, 0])
         plt.scatter(
-            uvlist[0, :],
-            uvlist[1, :],
+            ppoints[0, source, :],
+            ppoints[1, source, :],
             c="c",
             marker="o",
             s=1,
@@ -154,25 +154,27 @@ def ppoints_on_tec_field_v2(tec, ppoints, fieldcenter, scale):
 
 
 def cthulhu_plots(
-    o, tecscreen, ppoints, fieldcenter, plotname="tec_reconstruction.png"
+    o, tecscreen, ppoints, fieldcenter, scale, plotname="tec_reconstruction.png"
 ):
-    extent = [-9, 9, -35, -18]
+    # extent = [-9, 9, -35, -18]
 
     fig = plt.figure(figsize=(15, 12))
     ax1 = fig.add_subplot(224)
     j = ax1.imshow(
-        np.flipud(np.rot90(np.fliplr(o.tec), k=3)), cmap="plasma", extent=extent
-    )  # ,vmin=0,vmax=1)
+        np.flipud(np.rot90(np.fliplr(o.tec), k=3)), cmap="plasma"
+    )  # , extent=extent)  # ,vmin=0,vmax=1)
     colorbar(j)
 
     ax2 = fig.add_subplot(221)
     k = ax2.imshow(
-        np.flipud(tecscreen[2400:14000, 2000:140000]), cmap="plasma", extent=extent
-    )  # ,vmin=0, vmax=1)
+        np.flipud(tecscreen[2400:14000, 2000:14000]), cmap="plasma"
+    )  # , extent=extent)  # ,vmin=0, vmax=1)
     colorbar(k)
 
     fig.add_subplot(222)
-    ppoints_on_tec_field_v2(tecscreen[2400:14000, 2000:140000], ppoints, fieldcenter, 5)
+    ppoints_on_tec_field_v2(
+        tecscreen[2400:14000, 2000:14000], ppoints, fieldcenter, scale
+    )
 
     ax4 = fig.add_subplot(223)
     setup_subplot(axis=ax4)

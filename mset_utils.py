@@ -40,6 +40,13 @@ def get_channels(tbl, ls=True):
     return chans
 
 
+def get_ant12(mset):
+    ms = table(mset, readonly=False, ack=False)
+    antenna1 = ms.getcol("ANTENNA1")
+    antenna2 = ms.getcol("ANTENNA2")
+    return antenna1, antenna2
+
+
 def put_col(tbl, col, dat):
     """add data 'dat' to the column 'col'"""
     tbl.putcol(col, dat)

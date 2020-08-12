@@ -8,6 +8,7 @@ def cthulhu_analyse(sorted_true_cat, sorted_offset_cat):
     offset_sky = pd.read_csv(sorted_offset_cat)
     ra = true_sky.ra
     dec = true_sky.dec
+    assert len(ra) == len(dec) > 0
     ra = np.where(ra > 300, ra - 360, ra)
     ra_shifts = offset_sky.ra - true_sky.ra
     dec_shifts = offset_sky.dec - true_sky.dec
