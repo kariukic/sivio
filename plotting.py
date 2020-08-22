@@ -59,7 +59,7 @@ def plot_antennas_on_tec_field(tec, u_tec_list, v_tec_list):
 
 
 def ppoints_on_tec_field(tec, ppoints, params, fieldcenter, prefix, max_bl, scale):
-    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(8, 10))
+    fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(10, 12))
     fieldcenter = int(fieldcenter)
     # fig = plt.figure(figsize=(7, 7))
     # yy1 = int(fieldcenter // 2)
@@ -71,7 +71,7 @@ def ppoints_on_tec_field(tec, ppoints, params, fieldcenter, prefix, max_bl, scal
     xnymax = fieldcenter + tec.shape[0] // 2
     # print(xnymin, xnymax)
     extent = (xnymin, xnymax, xnymin, xnymax)
-    s = ax1.imshow(tec, cmap="plasma", origin="lower", extent=extent)
+    s = ax1.imshow(np.rot90(tec), cmap="plasma", origin="upper", extent=extent)
     # s = ax1.imshow(tec[xx1:xx2, yy1:yy2], cmap="plasma", extent=[xx1, xx2, yy1, yy2])
     # ax1.plot(fieldcenter, fieldcenter, "rx", label="screen center")
     """
@@ -112,12 +112,21 @@ def ppoints_on_tec_field(tec, ppoints, params, fieldcenter, prefix, max_bl, scal
     ax1.set_ylabel("Relative Latitude (scale=1:%sm)" % (scale))
 
     # Plot phase offsets per antenna for just 10 sources to avoid conjestion
-    if len(params) > 10:
-        params = params[0:10]
-    for params_list in params:
+    print(params.shape, "paras shape")
+    if len(params[0]) > 10:
+        params0 = params[0, 0:10, :]
+        params1 = params[1, 0:10, :]
+    else:
+        params0 = params[0, :, :]
+        params1 = params[1, :, :]
+    for params_list in params0:
         ax2.plot(range(len(params_list)), params_list, marker="*", linestyle="--")
-    ax2.set_xlabel("Antenna ID")
-    ax2.set_ylabel("phase [deg]")
+    for params_list in params1:
+        ax3.plot(range(len(params_list)), params_list, marker="*", linestyle="--")
+    # ax2.set_xlabel("Antenna ID")
+    ax2.set_ylabel("x phase [deg]")
+    ax3.set_xlabel("Antenna ID")
+    ax3.set_ylabel("y phase [deg]")
 
     fig.tight_layout()
     plt.savefig("%s_antenna_ppoints_on_tec.png" % (prefix))
@@ -130,7 +139,7 @@ def ppoints_on_tec_field_v2(tec, ppoints, fieldcenter, scale):
     xnymin = fieldcenter - tec.shape[0] // 2
     xnymax = fieldcenter + tec.shape[0] // 2
     extent = (xnymin, xnymax, xnymin, xnymax)
-    s = plt.imshow(tec, cmap="plasma", origin="lower", extent=extent)
+    s = plt.imshow(tec, cmap="plasma", extent=extent)
 
     count = 1
     for source in range(ppoints.shape[1]):
@@ -161,20 +170,18 @@ def cthulhu_plots(
     fig = plt.figure(figsize=(15, 12))
     ax1 = fig.add_subplot(224)
     j = ax1.imshow(
-        np.flipud(np.rot90(np.fliplr(o.tec), k=3)), cmap="plasma"
+        np.flipud(o.tec), cmap="plasma"
     )  # , extent=extent)  # ,vmin=0,vmax=1)
     colorbar(j)
 
     ax2 = fig.add_subplot(221)
     k = ax2.imshow(
-        np.flipud(tecscreen[2400:14000, 2000:14000]), cmap="plasma"
+        np.rot90(tecscreen), cmap="plasma"
     )  # , extent=extent)  # ,vmin=0, vmax=1)
     colorbar(k)
 
     fig.add_subplot(222)
-    ppoints_on_tec_field_v2(
-        tecscreen[2400:14000, 2000:14000], ppoints, fieldcenter, scale
-    )
+    ppoints_on_tec_field_v2(np.rot90(tecscreen), ppoints, fieldcenter, scale)
 
     ax4 = fig.add_subplot(223)
     setup_subplot(axis=ax4)

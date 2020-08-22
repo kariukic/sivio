@@ -12,13 +12,13 @@ import time as tm
 from vis_sim import (
     sim_prep,
     true_vis,
-    offset_vis,
-    add_phase_offsets,
+    offset_vis2,
+    add_phase_offsets2,
 )  # , scint_vis
 import sky_models
 from phase_screen import (
     get_antenna_in_uvw,
-    get_tec_value,
+    get_tec_value2,
     iono_phase_shift,
     phase_center_offset,
 )
@@ -62,10 +62,10 @@ def main():
         help="Simulate the true visibilities too",
     )
     parser.add_argument(
-        "--size", type=int, default=90000, help="TEC field size per side [m]"
+        "--size", type=int, default=80000, help="TEC field size per side [m]"
     )
     parser.add_argument(
-        "--scale", type=int, default=5, help="pixel to distance scaling [m]"
+        "--scale", type=int, default=4, help="pixel to distance scaling [m]"
     )
     parser.add_argument(
         "--height", type=int, default=200000, help="TEC plane height from ground [m]"
@@ -77,6 +77,11 @@ def main():
         help="l = linear tec, s = TEC modulated with sine ducts,  k = TEC with kolmogorov turbulence.",
     )
     parser.add_argument("--match", "-m", action="store_true", help="match sources")
+    parser.add_argument(
+        "--match_done",
+        action="store_true",
+        help="already have matched catalogues go to cthulhu plotting",
+    )
     parser.add_argument("--image", "-i", action="store_true", help="Run wsclean")
     parser.add_argument("--plot", "-p", action="store_true", help="Make plots")
     parser.add_argument("--mp", action="store_true", help="run multiprocessing")
@@ -178,8 +183,9 @@ def main():
             h_pix = args.height / args.scale
             # first lets calculate the offset of the ref antenna from phase screen center.
             pp_u_offset, pp_v_offset = phase_center_offset(ra0, dec0, h_pix, time)
-            # print("pp_u_offset,pp_v_offset", pp_u_offset, pp_v_offset)
+            print("pp_u_offset,pp_v_offset", pp_u_offset, pp_v_offset)
 
+            """
             u_per_source, v_per_source, params = get_tec_value(
                 phs_screen,
                 us,
@@ -210,6 +216,36 @@ def main():
             )
             print("sim offset_vis elapsed: %g", tm.time() - start)
             set_num_threads(8)
+            """
+            # here----------------------------------------------------------------
+            u_per_source, v_per_source, u_vec_params, v_vec_params = get_tec_value2(
+                phs_screen,
+                us,
+                vs,
+                zen_angles,
+                azimuths,
+                args.scale,
+                h_pix,
+                pp_u_offset,
+                pp_v_offset,
+            )
+            source_ppoints = np.stack((u_per_source, v_per_source))
+            source_params = np.stack((u_vec_params, v_vec_params))
+            # Lets save the x and y coordinates, the tec params and phasediffs
+            npz = mset.split(".")[0] + "_pierce_points.npz"
+            np.savez(npz, ppoints=source_ppoints, params=source_params)
+
+            ant1, ant2 = mtls.get_ant12(mset)
+            u_phasediffs, v_phasediffs = add_phase_offsets2(
+                ant1, ant2, u_vec_params, v_vec_params
+            )
+            start = tm.time()
+            offset_data = offset_vis2(
+                data, lmbdas, uvw_lmbdas, fluxes, ls, ms, ns, u_phasediffs, v_phasediffs
+            )
+            print("sim offset_vis elapsed: %g", tm.time() - start)
+            set_num_threads(8)
+            # to here------------------------------------------------------------
 
             if "OFFSET_DATA" not in tbl.colnames():
                 print("Adding OFFSET_DATA column in MS with offset visibilities...")
@@ -264,11 +300,15 @@ def main():
         sorted_df_true_sky, sorted_df_offset_sky = main_match(true_image, offset_image)
 
     if args.plot:
+        if args.offset_vis:
+            phs_screen = np.rad2deg(phs_screen)
+        elif args.tecpath:
+            phscrn = np.load(args.tecpath)
+            phs_screen = np.rad2deg(phscrn["tecscreen"])
         npz = prefix + "_pierce_points.npz"
         tecdata = np.load(npz)
         ppoints = tecdata["ppoints"]
         params = np.rad2deg(tecdata["params"])
-        phs_screen = np.rad2deg(phs_screen)
         fieldcenter = (args.size / args.scale) // 2
         print(fieldcenter, phs_screen.shape)
 
@@ -281,6 +321,18 @@ def main():
             try:
                 pname = prefix + "_cthulhu_plots.png"
                 obj = cthulhu_analyse(sorted_df_true_sky, sorted_df_offset_sky)
+                plotting.cthulhu_plots(
+                    obj, phs_screen, ppoints, fieldcenter, args.scale, plotname=pname
+                )
+            except AssertionError:
+                print("No matching sources in both catalogs.")
+
+        elif args.match_done:
+            try:
+                pname = prefix + "_cthulhu_plots.png"
+                sorted_true_sky_cat = "sorted_" + prefix + "_truevis-image.csv"
+                sorted_offset_sky_cat = "sorted_" + prefix + "_offsetvis-image.csv"
+                obj = cthulhu_analyse(sorted_true_sky_cat, sorted_offset_sky_cat)
                 plotting.cthulhu_plots(
                     obj, phs_screen, ppoints, fieldcenter, args.scale, plotname=pname
                 )

@@ -87,6 +87,32 @@ def add_phase_offsets(antenna1, antenna2, params):
     return phasediffs
 
 
+def add_phase_offsets2(antenna1, antenna2, u_params, v_params):
+    """Compute the phase differences for each baseline.
+
+    Parameters
+    ----------
+    mset :  Measurement set.\n
+    params : 1D array of len(no. of antennas.)
+        The phase offset value for each antenna.
+
+    Returns
+    -------
+    array.
+        The phase difference per baseline.
+    """
+    u_phasediffs, v_phasediffs = [], []
+    for uparam in u_params:
+        diff_u = uparam[antenna1] - uparam[antenna2]
+        u_phasediffs.append(diff_u)
+
+    for vparam in v_params:
+        diff_v = vparam[antenna1] - vparam[antenna2]
+        v_phasediffs.append(diff_v)
+
+    return np.array(u_phasediffs), np.array(v_phasediffs)
+
+
 # Before introducing numba.
 """
 @njit(
@@ -106,6 +132,7 @@ def add_phase_offsets(antenna1, antenna2, params):
 
 
 def true_vis(data, uvw_lmbdas, A, ls, ms, ns):
+    data[:] = 0
     source_count = 1
     for amp, l, m, n in zip(A, ls, ms, ns):
         print("True Source: ", source_count, "...")
@@ -186,6 +213,7 @@ def offset_vis(
     data, lmbdas, uvw_lmbdas, A, ls, ms, ns, phasediffs,
 ):
     """Offset visibilities"""
+    data[:] = 0
     source_count = 1
     for amp, l, m, n in zip(A, ls, ms, ns):
         print("Offset Source: ", source_count, "...")
@@ -215,6 +243,61 @@ def offset_vis(
         # print(phasediff.shape, "********phasediff shape********")
 
         phse = phse * np.exp(2j * np.pi * phasediff)  # [:, None]
+        data[:, :, 0] += amp * phse  # feed xx data
+        data[:, :, 3] += amp * phse  # feed yy data
+
+        source_count += 1
+
+    return data
+
+
+def offset_vis2(
+    data, lmbdas, uvw_lmbdas, A, ls, ms, ns, u_phasediffs, v_phasediffs,
+):
+    """Offset visibilities"""
+    data[:] = 0
+    source_count = 1
+    for amp, l, m, n in zip(A, ls, ms, ns):
+        print("Offset Source: ", source_count, "...")
+
+        u_phasediff = 100 * u_phasediffs[source_count - 1][:, np.newaxis] * lmbdas ** 2
+        v_phasediff = 100 * v_phasediffs[source_count - 1][:, np.newaxis] * lmbdas ** 2
+        print(u_phasediff[10000, 0], "u_phasediff shape")
+        print(v_phasediff[10000, 0], "v_phasediff shape")
+        vvvv = uvw_lmbdas[:, :, 0] * l
+        print(vvvv.shape, "uvw_la", vvvv[10000, 0])
+
+        phse = np.exp(
+            2j
+            * np.pi
+            * (
+                (uvw_lmbdas[:, :, 0] * l + u_phasediff)
+                + (uvw_lmbdas[:, :, 1] * m + v_phasediff)
+                + uvw_lmbdas[:, :, 2] * n
+            )
+        )
+        # for i in range(data.shape[0]):
+        #   phse[i,:] *= np.exp(2*np.pi*phasediff[i])
+        #   phse[i,:] = phse[i,:] * np.exp(phasediff[i])
+        # phasediff = add_phase_offsets(mset)
+        # phasediff = np.ones(uvw_lmbdas.shape[0])*1j*2
+
+        # print("Zenith angle: ", np.rad2deg(zen_angle), "deg  OR", zen_angle, "rad")
+        # print("Azimuth angle: ", np.rad2deg(azimuth), "deg  OR", azimuth, "rad")
+
+        # u_tec_list, v_tec_list, tec_per_ant = get_tec_value(
+        #    phs_screen, us, vs, zen, az, scale, h_pix, pp_u_offset, pp_v_offset,
+        # )
+
+        # print(phasediff.shape, "********phasediff shape********")
+
+        # phse = phse * np.exp(2j * np.pi * phasediff)  # [:, None]
+        # phse = phse * np.exp(
+        #    2j
+        #    * np.pi
+        #   * (uvw_lmbdas[:, :, 0] * u_phasediff + uvw_lmbdas[:, :, 1] * v_phasediff)
+        # )
+
         data[:, :, 0] += amp * phse  # feed xx data
         data[:, :, 3] += amp * phse  # feed yy data
 

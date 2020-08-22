@@ -12,10 +12,10 @@ def extract_sources(true_image, offset_image):
     off_catalog = "%s_offset_sources.csv" % (pref)
 
     os.system(
-        "aegean --autoload %s --seedclip 5 --table %s" % (true_image, true_catalog)
+        "aegean --autoload %s --seedclip 4 --table %s" % (true_image, true_catalog)
     )
     os.system(
-        "aegean --autoload %s --seedclip 5 --table %s" % (offset_image, off_catalog)
+        "aegean --autoload %s --seedclip 4 --table %s" % (offset_image, off_catalog)
     )
     return true_catalog, off_catalog
 
