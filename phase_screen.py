@@ -65,7 +65,7 @@ def linear_tec(npix, sine=False):
         ys = np.linspace(0, np.pi, npix)
         tau, phi = np.meshgrid(xs, ys)
 
-        tec = np.sin(7 * (-0.1 * tau + 0.3 * phi))
+        tec = np.sin(7 * (-0.1 * tau + 0.8 * phi))
         # np.fliplr(tec)[np.triu_indices(npix, npix / 3.5)] = np.pi * 1e-6
         tec[np.triu_indices(npix, npix / 4)] = np.pi * 1e-6
         # np.rot90(tec)[np.triu_indices(npix, npix / 2)] = np.pi * 1e-6
@@ -133,7 +133,7 @@ def iono_phase_shift(scale=3, size=60000, tec_type="l"):
 
     phs_screen = scale_to_pi_range(phs_screen)
     if apply_filter:
-        sigma = [80, 80]
+        sigma = [10, 10]
         phs_screen = sp.gaussian_filter(phs_screen, sigma, mode="constant")
 
     return phs_screen

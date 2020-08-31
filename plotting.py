@@ -106,7 +106,6 @@ def ppoints_on_tec_field(tec, ppoints, params, fieldcenter, prefix, max_bl, scal
         count += 1
     cbar = colorbar(s)
     cbar.ax.set_ylabel("phase [deg]", rotation=270)
-    # ax1.legend()
 
     ax1.set_xlabel("Relative Longitude (scale=1:%sm)" % (scale))
     ax1.set_ylabel("Relative Latitude (scale=1:%sm)" % (scale))

@@ -260,8 +260,8 @@ def offset_vis2(
     for amp, l, m, n in zip(A, ls, ms, ns):
         print("Offset Source: ", source_count, "...")
 
-        u_phasediff = 100 * u_phasediffs[source_count - 1][:, np.newaxis] * lmbdas ** 2
-        v_phasediff = 100 * v_phasediffs[source_count - 1][:, np.newaxis] * lmbdas ** 2
+        u_phasediff = 100*u_phasediffs[source_count - 1][:, np.newaxis] * lmbdas ** 2
+        v_phasediff = 100*v_phasediffs[source_count - 1][:, np.newaxis] * lmbdas ** 2
         print(u_phasediff[10000, 0], "u_phasediff shape")
         print(v_phasediff[10000, 0], "v_phasediff shape")
         vvvv = uvw_lmbdas[:, :, 0] * l
