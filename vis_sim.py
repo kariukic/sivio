@@ -1,7 +1,7 @@
 # Simulate visibilities and feed them into an MWA MS
 import numpy as np
 
-# from numba import njit, float64, complex64, prange
+from numba import njit, float64, complex64, prange
 
 from scint_equations import add_scint
 import mset_utils as mtls
@@ -113,8 +113,6 @@ def add_phase_offsets2(antenna1, antenna2, u_params, v_params):
     return np.array(u_phasediffs), np.array(v_phasediffs)
 
 
-# Before introducing numba.
-"""
 @njit(
     [
         complex64[:, :, :](
@@ -128,94 +126,31 @@ def add_phase_offsets2(antenna1, antenna2, u_params, v_params):
     ],
     parallel=True,
 )
-"""
-
-
-def true_vis(data, uvw_lmbdas, A, ls, ms, ns):
-    data[:] = 0
-    source_count = 1
-    for amp, l, m, n in zip(A, ls, ms, ns):
-        print("True Source: ", source_count, "...")
-        # first compute the clean visibilities.
-        d = amp * np.exp(
-            2j
-            * np.pi
-            * (
-                uvw_lmbdas[:, :, 0] * l
-                + uvw_lmbdas[:, :, 1] * m
-                + uvw_lmbdas[:, :, 2] * n
-            )
-        )
-        data[:, :, 0] += d  # feed xx data
-        data[:, :, 3] += d  # feed yy data
-        source_count += 1
-    return data
-
-
-"""
-@njit(
-    [
-        complex64[:, :, :](
-            complex64[:, :, :],
-            float64[:, :, :],
-            float64[:],
-            float64[:],
-            float64[:],
-            float64[:],
-        )
-    ],
-    parallel=True,
-)
-def true_vis(data, uvw_lmbdas, A, ls, ms, ns):
+def true_vis_numba(data, uvw_lmbdas, fluxes, ls, ms, ns):
     data[:] = 0
     u = uvw_lmbdas[:, :, 0]
     v = uvw_lmbdas[:, :, 1]
     w = uvw_lmbdas[:, :, 2]
-    xx = data[:, :, 0]
-    yy = data[:, :, 3]
     source_count = 1
-    for source in prange(len(A)):
+    for source in prange(len(fluxes)):
         print("True Source: ", source_count, "...")
-        # first compute the clean visibilities.
-        d = A[source] * np.exp(
+        source_visibilities = fluxes[source] * np.exp(
             2j * np.pi * (u * ls[source] + v * ms[source] + w * ns[source])
         )
-        xx += d  # feed xx data
-        yy += d  # feed yy data
+        data[:, :, 0] += source_visibilities  # feed xx data
+        data[:, :, 3] += source_visibilities  # feed yy data
         source_count += 1
-    data[:, :, 0] += xx
-    data[:, :, 3] += yy
+
     return data
 
 
-
-
-
-@njit(
-    [
-        complex64[:, :, :](
-            complex64[:, :, :],
-            float64[:],
-            float64[:, :, :],
-            float64[:],
-            float64[:],
-            float64[:],
-            float64[:],
-            float64[:, :, :],
-        )
-    ],
-    parallel=True,
-)
-"""
-
-
-def offset_vis(
-    data, lmbdas, uvw_lmbdas, A, ls, ms, ns, phasediffs,
+def offset_vis_old(
+    data, lmbdas, uvw_lmbdas, fluxes, ls, ms, ns, phasediffs,
 ):
     """Offset visibilities"""
     data[:] = 0
     source_count = 1
-    for amp, l, m, n in zip(A, ls, ms, ns):
+    for amp, l, m, n in zip(fluxes, ls, ms, ns):
         print("Offset Source: ", source_count, "...")
         phse = np.exp(
             2j
@@ -251,7 +186,7 @@ def offset_vis(
     return data
 
 
-def offset_vis2(
+def offset_vis_slow(
     data, lmbdas, uvw_lmbdas, A, ls, ms, ns, u_phasediffs, v_phasediffs,
 ):
     """Offset visibilities"""
@@ -260,12 +195,8 @@ def offset_vis2(
     for amp, l, m, n in zip(A, ls, ms, ns):
         print("Offset Source: ", source_count, "...")
 
-        u_phasediff = 100*u_phasediffs[source_count - 1][:, np.newaxis] * lmbdas ** 2
-        v_phasediff = 100*v_phasediffs[source_count - 1][:, np.newaxis] * lmbdas ** 2
-        print(u_phasediff[10000, 0], "u_phasediff shape")
-        print(v_phasediff[10000, 0], "v_phasediff shape")
-        vvvv = uvw_lmbdas[:, :, 0] * l
-        print(vvvv.shape, "uvw_la", vvvv[10000, 0])
+        u_phasediff = 100 * u_phasediffs[source_count - 1][:, np.newaxis] * lmbdas ** 2
+        v_phasediff = 100 * v_phasediffs[source_count - 1][:, np.newaxis] * lmbdas ** 2
 
         phse = np.exp(
             2j
@@ -306,67 +237,47 @@ def offset_vis2(
     return data
 
 
-'''
-@njit(
-    [
-        complex64[:, :, :](
-            complex64[:, :, :],
-            float64[:],
-            float64[:, :, :],
-            float64[:],
-            float64[:],
-            float64[:],
-            float64[:],
-            float64[:, :],
-        )
-    ],
-    parallel=True,
-)
-
-
-
-def offset_vis2(
-    data, lmbdas, uvw_lmbdas, A, ls, ms, ns, phasediffs,
+@njit(parallel=True,)
+def offset_vis_numba(
+    data, lmbdas, uvw_lmbdas, A, ls, ms, ns, u_phasediffs, v_phasediffs,
 ):
     """Offset visibilities"""
     data[:] = 0
     u = uvw_lmbdas[:, :, 0]
     v = uvw_lmbdas[:, :, 1]
     w = uvw_lmbdas[:, :, 2]
-    xx = data[:, :, 0]
-    yy = data[:, :, 3]
     source_count = 1
-    for source in range(len(A)):
+    lmbdas = np.expand_dims(lmbdas, axis=-1)
+    print(lmbdas.shape)
+    for source in prange(len(A)):
         print("Offset Source: ", source_count, "...")
-        phse = np.exp(2j * np.pi * (u * ls[source] + v * ms[source] + w * ns[source]))
-        # for i in range(data.shape[0]):
-        #   phse[i,:] *= np.exp(2*np.pi*phasediff[i])
-        #   phse[i,:] = phse[i,:] * np.exp(phasediff[i])
-        # phasediff = add_phase_offsets(mset)
-        # phasediff = np.ones(uvw_lmbdas.shape[0])*1j*2
+        print(np.expand_dims(u_phasediffs[source], axis=-1).shape)
+        u_phasediff = 100 * np.expand_dims(u_phasediffs[source], axis=-1) * lmbdas ** 2
+        v_phasediff = 100 * np.expand_dims(v_phasediffs[source], axis=-1) * lmbdas ** 2
 
-        # print("Zenith angle: ", np.rad2deg(zen_angle), "deg  OR", zen_angle, "rad")
-        # print("Azimuth angle: ", np.rad2deg(azimuth), "deg  OR", azimuth, "rad")
+        # u_phasediff = 100 * u_phasediffs[source][:, np.newaxis] * lmbdas ** 2
+        # v_phasediff = 100 * v_phasediffs[source][:, np.newaxis] * lmbdas ** 2
 
-        # u_tec_list, v_tec_list, tec_per_ant = get_tec_value(
-        #    phs_screen, us, vs, zen, az, scale, h_pix, pp_u_offset, pp_v_offset,
-        # )
-        phasediff = phasediffs[source][:, np.newaxis] * lmbdas ** 2
+        phse = np.exp(
+            -2j
+            * np.pi
+            * (
+                (u * ls[source] + u_phasediff)
+                + (v * ms[source] + v_phasediff)
+                + w * ns[source]
+            )
+        )
+        xx = A[source] * phse  # feed xx data
+        yy = A[source] * phse  # feed yy data
 
-        # print(phasediff.shape, "********phasediff shape********")
-
-        phse = phse * np.exp(2j * np.pi * phasediff)  # [:, None]
-        xx += A[source] * phse  # feed xx data
-        yy += A[source] * phse  # feed yy data
-
+        data[:, :, 0] += xx
+        data[:, :, 3] += yy
         source_count += 1
-    data[:, :, 0] += xx
-    data[:, :, 3] += yy
 
     return data
 
 
-
+"""
 @njit(
     [
         complex64[:, :, :](
@@ -385,7 +296,7 @@ def offset_vis2(
 def offset_vis3(
     data, lmbdas, uvw_lmbdas, A, ls, ms, ns, phasediffs,
 ):
-    """Offset visibilities"""
+    '''Offset visibilities'''
     data[:] = 0
     u = uvw_lmbdas[:, :, 0]
     v = uvw_lmbdas[:, :, 1]
@@ -419,8 +330,7 @@ def offset_vis3(
         source_count += 1
 
     return data
-
-'''
+"""
 
 
 def scint_vis(mset, data, uvw_lmbdas, A, ls, ms, ns, rdiff):

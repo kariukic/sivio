@@ -133,7 +133,7 @@ def iono_phase_shift(scale=3, size=60000, tec_type="l"):
 
     phs_screen = scale_to_pi_range(phs_screen)
     if apply_filter:
-        sigma = [10, 10]
+        sigma = [60, 60]
         phs_screen = sp.gaussian_filter(phs_screen, sigma, mode="constant")
 
     return phs_screen

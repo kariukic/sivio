@@ -11,8 +11,8 @@ import mset_utils as mtls
 import time as tm
 from vis_sim import (
     sim_prep,
-    true_vis,
-    offset_vis2,
+    true_vis_numba,
+    offset_vis_slow,
     add_phase_offsets2,
 )  # , scint_vis
 import sky_models
@@ -95,8 +95,8 @@ def main():
     else:
         logger.setLevel("INFO")
 
-    obsid = args.ms_template.split(".")[0]
-    mset = "sim%s_%s_%s_tec.ms" % (args.n_sources, obsid, args.tec_type,)
+    obsid = args.ms_template.split("/")[1].split(".")[0]
+    mset = "%s_sources_%s_%stec.ms" % (args.n_sources, obsid, args.tec_type,)
     prefix = mset.split(".")[0]
     if args.sim:
         if mset not in os.listdir(os.path.abspath(".")):
@@ -148,7 +148,7 @@ def main():
         if args.true_vis:
             set_num_threads(5)
             start = tm.time()
-            true_data = true_vis(data, uvw_lmbdas, fluxes, ls, ms, ns)
+            true_data = true_vis_numba(data, uvw_lmbdas, fluxes, ls, ms, ns)
             print("sim true_vis elapsed: %g", tm.time() - start)
 
             """
@@ -240,7 +240,7 @@ def main():
                 ant1, ant2, u_vec_params, v_vec_params
             )
             start = tm.time()
-            offset_data = offset_vis2(
+            offset_data = offset_vis_slow(
                 data, lmbdas, uvw_lmbdas, fluxes, ls, ms, ns, u_phasediffs, v_phasediffs
             )
             print("sim offset_vis elapsed: %g", tm.time() - start)
@@ -339,9 +339,10 @@ def main():
             except AssertionError:
                 print("No matching sources in both catalogs.")
 
-    sim_dir = "output_" + prefix
-    os.system("mkdir %s" % (sim_dir))
-    os.system("mv sim%s* sorted_sim%s* %s" % (args.n_sources, args.n_sources, sim_dir))
+    output_dir = "simulation_output/" + prefix
+    if not os.path.exists(output_dir):
+        os.system("mkdir %s" % (output_dir))
+    os.system("mv %s* sorted_%s* %s" % (args.n_sources, args.n_sources, output_dir))
 
 
 if __name__ == "__main__":
