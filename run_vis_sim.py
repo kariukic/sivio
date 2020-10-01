@@ -14,6 +14,7 @@ from vis_sim import (
     true_vis_numba,
     offset_vis_slow,
     add_phase_offsets2,
+    add_thermal_noise,
 )  # , scint_vis
 import sky_models
 from phase_screen import (
@@ -23,9 +24,9 @@ from phase_screen import (
     phase_center_offset,
 )
 from coordinates import get_time, MWAPOS, radec_to_altaz
-import plotting
 from match_catalogs import main_match
 from cthulhu_analysis import cthulhu_analyse
+import plotting
 
 
 def main():
@@ -35,37 +36,52 @@ def main():
     parser.add_argument("--ms_template", required=True, help="Template measurement set")
     parser.add_argument("--metafits", required=True, help="Path to the metafits file")
     parser.add_argument(
-        "--yfile", required=False, help="Path to yaml file to pluck the sky model from"
+        "--yfile", required=False, help="Path to yaml file to obtain the sky model from"
     )
     parser.add_argument(
-        "--tecpath", required=False, help="path to ready made tecscreen"
+        "--tecpath",
+        required=False,
+        help="path to a .npz saved ready made tecscreen array",
     )
     parser.add_argument(
-        "--modelpath", required=False, help="path to ready made csv file sky model",
+        "--modelpath",
+        required=False,
+        help="path to a ready made csv file sky model. \
+            Just ra, dec and flux rows for now. Flat spectrum point sources.",
     )
     parser.add_argument(
         "--sim",
         required=False,
         action="store_true",
-        help="Says you want to do the simulation. If not, you can choose to image or plot already simulated data",
+        help="States you want to run the simulation. If not, \
+            you can just opt to image or plot already simulated data",
     )
     parser.add_argument(
-        "--n_sources", "-n", type=int, default=10, help="Number of sources to simulate"
+        "--n_sources",
+        "-n",
+        type=int,
+        default=10,
+        help="Number of point sources to simulate",
     )
-    parser.add_argument("--offset_vis", "-o", action="store_true")
+    parser.add_argument(
+        "--offset_vis",
+        "-o",
+        action="store_true",
+        help="corrupt the visibilities with ionospheric activity",
+    )
     # parser.add_argument("--scint_vis", action="store_true")
     # parser.add_argument("--rdiff", type=float, default=5, help="Diffractive scale [m]")
     parser.add_argument(
         "--true_vis",
         "-t",
         action="store_true",
-        help="Simulate the true visibilities too",
+        help="Simulate the true (un-corrupted) visibilities too",
     )
     parser.add_argument(
         "--size", type=int, default=80000, help="TEC field size per side [m]"
     )
     parser.add_argument(
-        "--scale", type=int, default=4, help="pixel to distance scaling [m]"
+        "--scale", type=int, default=100, help="pixel to distance scaling [m]"
     )
     parser.add_argument(
         "--height", type=int, default=200000, help="TEC plane height from ground [m]"
@@ -74,20 +90,35 @@ def main():
         "--tec_type",
         type=str,
         default="l",
-        help="l = linear tec, s = TEC modulated with sine ducts,  k = TEC with kolmogorov turbulence.",
+        help="l = linear TEC, s = TEC modulated with sine ducts,\
+              k = TEC with kolmogorov turbulence.",
     )
-    parser.add_argument("--match", "-m", action="store_true", help="match sources")
+    parser.add_argument(
+        "--match",
+        "-m",
+        action="store_true",
+        help="match sources from both clean and corrupt images",
+    )
     parser.add_argument(
         "--match_done",
         action="store_true",
-        help="already have matched catalogues go to cthulhu plotting",
+        help="States you already have matched catalogues, go straight to cthulhu plotting",
     )
-    parser.add_argument("--image", "-i", action="store_true", help="Run wsclean")
+    parser.add_argument(
+        "--image",
+        "-i",
+        action="store_true",
+        help="Run wsclean. Default settings are: \
+            '-abs-mem 40 -size 2048 2048 -scale 30asec -niter 1000000 -auto-threshold 3'",
+    )
     parser.add_argument("--plot", "-p", action="store_true", help="Make plots")
-    parser.add_argument("--mp", action="store_true", help="run multiprocessing")
-    parser.add_argument("--debug", action="store_true")
+    parser.add_argument(
+        "--mp",
+        action="store_true",
+        help="run multiprocessing. not yet fully implemented",
+    )
+    parser.add_argument("--debug", action="store_true", help="Run in debug mode")
     args = parser.parse_args()
-    # print(args, "args")
 
     logger = logging.getLogger(__name__)
     if args.debug:
@@ -95,9 +126,14 @@ def main():
     else:
         logger.setLevel("INFO")
 
-    obsid = args.ms_template.split("/")[1].split(".")[0]
+    if "/" in args.ms_template:
+        obsid = args.ms_template.split("/")[-1].split(".")[0]
+    else:
+        obsid = args.ms_template.split(".")[0]
+    print("obsid:", obsid)
     mset = "%s_sources_%s_%stec.ms" % (args.n_sources, obsid, args.tec_type,)
     prefix = mset.split(".")[0]
+
     if args.sim:
         if mset not in os.listdir(os.path.abspath(".")):
             print("Making the simulation measurement set..")
@@ -143,23 +179,17 @@ def main():
         assert len(ras) == len(decs) == len(fluxes)
         print("The sky model has %s sources" % (len(ras)))
 
-        data, lmbdas, uvw_lmbdas, ls, ms, ns = sim_prep(tbl, ras, decs)
+        data, lmbdas, uvw_lmbdas, dnu, ls, ms, ns = sim_prep(tbl, ras, decs)
 
         if args.true_vis:
+            # logger.info("Simulating the true visibilities...")
             set_num_threads(5)
             start = tm.time()
             true_data = true_vis_numba(data, uvw_lmbdas, fluxes, ls, ms, ns)
+            print("Adding thermal noise to true visibilities...")
+            # true_data = add_thermal_noise(true_data, dnu)
             print("sim true_vis elapsed: %g", tm.time() - start)
 
-            """
-            logger.info("Simulating the true visibilities...")
-            if args.mp:
-                from mp_vis_sim import merge_true_vis
-
-                true_data = merge_true_vis(data, uvw_lmbdas, fluxes, ls, ms, ns)
-            else:
-                true_data = true_vis(data, uvw_lmbdas, fluxes, ls, ms, ns)
-            """
             mtls.put_col(tbl, "DATA", true_data)
 
         if args.offset_vis:
@@ -243,6 +273,8 @@ def main():
             offset_data = offset_vis_slow(
                 data, lmbdas, uvw_lmbdas, fluxes, ls, ms, ns, u_phasediffs, v_phasediffs
             )
+            print("Adding thermal noise to offset visibilities...")
+            offset_data = add_thermal_noise(offset_data, dnu)
             print("sim offset_vis elapsed: %g", tm.time() - start)
             set_num_threads(8)
             # to here------------------------------------------------------------
@@ -339,9 +371,11 @@ def main():
             except AssertionError:
                 print("No matching sources in both catalogs.")
 
+    print("Wrapping up")
     output_dir = "simulation_output/" + prefix
-    if not os.path.exists(output_dir):
-        os.system("mkdir %s" % (output_dir))
+    if os.path.exists(output_dir):
+        output_dir += "_run2"
+    os.system("mkdir %s" % (output_dir))
     os.system("mv %s* sorted_%s* %s" % (args.n_sources, args.n_sources, output_dir))
 
 

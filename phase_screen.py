@@ -13,8 +13,8 @@ import scipy.ndimage.filters as sp
 import mset_utils as mtls
 from coordinates import radec_to_altaz, MWAPOS
 
+# from scipy.constants import c
 
-c = 299792458
 # 1/(8*np.pi**2)*k.elementary_charge**2/(k.epsilon_0*k.electron_mass)
 # k=scipy.constants
 constant = 40.30819300005713

@@ -1,5 +1,6 @@
 # Simulate visibilities and feed them into an MWA MS
 import numpy as np
+from scipy import constants
 
 from numba import njit, float64, complex64, prange
 
@@ -12,6 +13,8 @@ def sim_prep(tbl, ras, decs):
     # grab uvw values from the ms and divide them with the wavelengths for each channel
     uvw = mtls.get_uvw(tbl)
     lmbdas = mtls.get_channels(tbl, ls=True)
+    frequencies = mtls.get_channels(tbl, ls=False)
+    dnu = frequencies[1] - frequencies[0]
     uvw_lmbdas = uvw[:, None, :] / lmbdas[None, :, None]
 
     # Now lets grab the data from the ms table
@@ -22,10 +25,10 @@ def sim_prep(tbl, ras, decs):
     data[:] = 0
 
     # grab our lmns
-    ls, ms, ns = mtls.get_lmns(tbl, ras, decs)
+    ls, ms, ns = mtls.get_lmns(tbl, ras, decs, phase_center_shift=0)
     # assert len(list(A)) == len(list(ls))
-
-    return data, lmbdas, uvw_lmbdas, ls, ms, ns
+    print("dnu", dnu)
+    return data, lmbdas, uvw_lmbdas, dnu, ls, ms, ns
 
 
 def add_phase_offsets(antenna1, antenna2, params):
@@ -195,8 +198,10 @@ def offset_vis_slow(
     for amp, l, m, n in zip(A, ls, ms, ns):
         print("Offset Source: ", source_count, "...")
 
-        u_phasediff = 100 * u_phasediffs[source_count - 1][:, np.newaxis] * lmbdas ** 2
-        v_phasediff = 100 * v_phasediffs[source_count - 1][:, np.newaxis] * lmbdas ** 2
+        # u_phasediff = 100 * u_phasediffs[source_count - 1][:, np.newaxis] * lmbdas ** 2
+        # v_phasediff = 100 * v_phasediffs[source_count - 1][:, np.newaxis] * lmbdas ** 2
+        u_phasediff = u_phasediffs[source_count - 1][:, np.newaxis] * lmbdas ** 2
+        v_phasediff = v_phasediffs[source_count - 1][:, np.newaxis] * lmbdas ** 2
 
         phse = np.exp(
             2j
@@ -331,6 +336,112 @@ def offset_vis3(
 
     return data
 """
+
+
+# Adopted from Bella's code
+def thermal_variance_baseline(
+    dnu=40000.0000000298, Tsys=240, timestamps=1, effective_collecting_area=21
+):
+    """
+        The thermal variance of each baseline (assumed constant across baselines/times/frequencies.
+        Equation comes from Trott 2016 (from Morales 2005)
+        """
+    # dnu = frequencies[1] - frequencies[0]
+    integration_time = timestamps * 8
+
+    sigma = (
+        2
+        * 1e26
+        * constants.k
+        * Tsys
+        / effective_collecting_area
+        / np.sqrt(dnu * integration_time)
+    )
+    return sigma ** 2
+
+
+def add_thermal_noise(visibilities, dnu):
+    """
+    Add thermal noise to each visibility.
+    Parameters
+    ----------
+    visibilities : (n_baseline, n_freq)-array
+        The visibilities at each baseline and frequency.
+    frequencies : (n_freq)-array
+        The frequencies of the observation.
+    beam_area : float
+        The area of the beam (in sr).
+    delta_t : float, optional
+        The integration time.
+    Returns
+    -------
+    visibilities : array
+        The visibilities at each baseline and frequency with the thermal noise from the sky.
+    """
+
+    print("Adding thermal noise...")
+    rl_im = np.random.normal(0, 1, (2,) + visibilities.shape)
+
+    # NOTE: we divide the variance by two here, because the variance of the absolute value of the
+    #       visibility should be equal to thermal_variance_baseline, which is true if the variance of both
+    #       the real and imaginary components are divided by two.
+    return visibilities + np.sqrt(thermal_variance_baseline(dnu) / 2) * (
+        rl_im[0, :] + rl_im[1, :] * 1j
+    )
+
+
+def sigma_b(frequencies, tile_diameter=4.0):
+    "The Gaussian beam width at each frequency"
+    epsilon = 0.42  # scaling from airy disk to Gaussian
+    return (epsilon * constants.c) / (frequencies / tile_diameter)
+
+
+def beam_area(frequencies):
+    """
+    The integrated beam area. Assumes a frequency-dependent Gaussian beam (in lm-space, as this class implements).
+    Parameters
+    ----------
+    frequencies : array-like
+        Frequencies at which to compute the area.
+    Returns
+    -------
+    beam_area: (nfreq)-array
+        The beam area of the sky, in lm.
+    """
+    sig = sigma_b(frequencies)
+    return np.pi * sig ** 2
+
+
+def beam(frequencies, sky_coords, n_cells=1028, min_attenuation=1e-7):
+    """
+    Generate a frequency-dependent Gaussian beam attenuation across the sky per frequency.
+    Parameters
+    ----------
+    ncells : int
+        Number of cells in the sky grid.
+    sky_size : float
+        The extent of the sky in lm.
+    Returns
+    -------
+    attenuation : (ncells, ncells, nfrequencies)-array
+        The beam attenuation (maximum unity) over the sky.
+    
+    beam_area : (nfrequencies)-array
+        The beam area of the sky (in sr).
+    """
+
+    # Create a meshgrid for the beam attenuation on sky array
+    L, M = np.meshgrid(np.sin(sky_coords), np.sin(sky_coords), indexing="ij")
+
+    attenuation = np.exp(
+        np.outer(-(L ** 2 + M ** 2), 1.0 / (2 * sigma_b(frequencies) ** 2)).reshape(
+            (n_cells, n_cells, len(frequencies))
+        )
+    )
+
+    attenuation[attenuation < min_attenuation] = 0
+
+    return attenuation
 
 
 def scint_vis(mset, data, uvw_lmbdas, A, ls, ms, ns, rdiff):

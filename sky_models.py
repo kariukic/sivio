@@ -4,6 +4,28 @@ import numpy as np
 import yaml
 import pandas as pd
 from yaml import SafeLoader as SafeLoader
+from astropy.io import fits
+
+
+from mwa_pb import primary_beam
+from coordinates import radec_to_altaz, get_time, MWAPOS
+
+print("Done importing")
+
+
+def precess_to_j2000(ra, deg):
+    from astropy.time import Time
+    import astropy.units as u
+    from astropy.coordinates import SkyCoord
+    from astropy.coordinates import FK5
+
+    fk5c = SkyCoord(ra * u.degree, deg * u.degree, frame=FK5(equinox=Time("J2013")))
+    fk5_2000 = FK5(equinox=Time(2000, format="jyear"))
+    ra, dec = (
+        fk5c.transform_to(fk5_2000).ra.value,
+        fk5c.transform_to(fk5_2000).dec.value,
+    )
+    return ra, dec
 
 
 def loadfile(data_file, n_sources, ra0, dec0, filename="sky_model.csv"):
@@ -122,3 +144,59 @@ def random_model(N, ra0, dec0, filename="sky_model.csv"):
     )
     df.to_csv("%s" % (filename))
     return ras, decs, fluxes
+
+
+def compute_mwa_beam_attenuation(
+    ras, decs, metafits, pos, freq=150e6, zenith_pointing=True
+):
+    """Compute the beam attenuation
+
+    Parameters
+    ----------
+    ras : float/array
+        source RA
+    decs : float/array
+        source dec
+    metafits : str
+        path to observation
+    pos : str
+        Array longitude and latitude
+    freq : float/int, optional
+        frequency, by default 150e6
+    zenith_pointing : bool, optional
+        True if observation is zenith pointing, by default True
+
+    Returns
+    -------
+    float/array, float/array
+        XX, YY beam attenuation for the input direction and frequency.
+    """
+    # for a zenith pointing all delays are zero, and,
+    # you need delays for both XX and YY so need to give it 2 sets of 16 delays
+    if zenith_pointing:
+        delays = np.zeros((2, 16))
+    else:
+        with fits.open(metafits) as hdu:
+            print("getting delays from metafits")
+            delays = list(map(int, hdu[0].header["DELAYS"].split(",")))
+            delays = [delays, delays]
+    print(f"delays: {delays}")
+
+    time, _ = get_time(metafits, pos)
+    alt, az = radec_to_altaz(np.deg2rad(ras), np.deg2rad(decs), time, pos)
+    za = np.pi / 2.0 - alt
+
+    print(f"zenith angle: {za} azimuth: {az}")
+    XX, YY = primary_beam.MWA_Tile_full_EE(
+        za, az, freq=freq, delays=delays, zenithnorm=True, power=True, interp=False,
+    )
+    return XX, YY
+
+
+if __name__ == "__main__":
+    metafits = "/home/kariuki/scint_sims/mset_data/1098108248.metafits"
+    print(
+        compute_mwa_beam_attenuation(
+            0.0, -27.0, metafits, MWAPOS, zenith_pointing=False
+        )
+    )
