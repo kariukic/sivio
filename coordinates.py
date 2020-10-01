@@ -22,7 +22,7 @@ def get_time(metafits, pos):
 def radec_to_altaz(ra, dec, time, pos):
     """
     Convert RA and Dec to altitude and azimuth (Equatorial to Horizontal coordinates).
-    ra and dec should be in degrees.
+    ra and dec should be in radians.
     """
     # print("RA: ", ra, "Dec: ", dec)
     # ra, dec = np.deg2rad(ra), np.deg2rad(dec)
