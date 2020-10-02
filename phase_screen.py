@@ -9,7 +9,6 @@ import scipy.ndimage.filters as sp
 
 # from numba import njit
 
-
 import mset_utils as mtls
 from coordinates import radec_to_altaz, MWAPOS
 
@@ -70,7 +69,8 @@ def linear_tec(npix, sine=False):
         tec[np.triu_indices(npix, npix / 4)] = np.pi * 1e-6
         # np.rot90(tec)[np.triu_indices(npix, npix / 2)] = np.pi * 1e-6
         tec[np.tril_indices(0, npix / 4)] = np.pi * 1e-6
-        tec += np.random.normal(loc=1e-6, scale=0.1, size=(npix, npix))  # noise
+        tec += np.random.normal(loc=1e-6, scale=0.1,
+                                size=(npix, npix))  # noise
         # for once lets change ridge orientation to along minor diagonal.
         # tec = np.fliplr(tec)
         """
@@ -114,7 +114,8 @@ def iono_phase_shift(scale=3, size=60000, tec_type="l"):
 
     # Hence: $\Delta\theta = 40.30819/1e16 * 1/\nu^2 * STEC
 
-    resolution = int(size // scale)  # the number of pixel per side of tec plane
+    # the number of pixel per side of tec plane
+    resolution = int(size // scale)
 
     if tec_type == "k":
         apply_filter = True

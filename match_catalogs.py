@@ -12,10 +12,12 @@ def extract_sources(true_image, offset_image):
     off_catalog = "%s_offset_sources.csv" % (pref)
 
     os.system(
-        "aegean --autoload %s --seedclip 6 --table %s" % (true_image, true_catalog)
+        "aegean --autoload %s --seedclip 6 --table %s" % (
+            true_image, true_catalog)
     )
     os.system(
-        "aegean --autoload %s --seedclip 6 --table %s" % (offset_image, off_catalog)
+        "aegean --autoload %s --seedclip 6 --table %s" % (
+            offset_image, off_catalog)
     )
     return true_catalog, off_catalog
 
@@ -102,18 +104,23 @@ def match_dem(df_true_sky, df_offset_sky, dra, ddec, dflux):
             if j not in matched_islands_o:
                 # try:
                 # print("island", j)
-                rx = float(df_true_sky.loc[df_true_sky["island"] == i]["ra"].values)
-                ry = float(df_offset_sky.loc[df_offset_sky["island"] == j]["ra"].values)
+                rx = float(
+                    df_true_sky.loc[df_true_sky["island"] == i]["ra"].values)
+                ry = float(
+                    df_offset_sky.loc[df_offset_sky["island"] == j]["ra"].values)
                 d_ra = rx - ry
                 # print("type d_ra", type(d_ra), d_ra)
 
                 dx = float(df_true_sky.loc[df_true_sky["island"] == i]["dec"])
-                dy = float(df_offset_sky.loc[df_offset_sky["island"] == j]["dec"])
+                dy = float(
+                    df_offset_sky.loc[df_offset_sky["island"] == j]["dec"])
                 d_dec = dx - dy
                 # print("type d_dec", type(d_dec), d_dec)
 
-                fx = float(df_true_sky.loc[df_true_sky["island"] == i]["int_flux"])
-                fy = float(df_offset_sky.loc[df_offset_sky["island"] == j]["int_flux"])
+                fx = float(
+                    df_true_sky.loc[df_true_sky["island"] == i]["int_flux"])
+                fy = float(
+                    df_offset_sky.loc[df_offset_sky["island"] == j]["int_flux"])
 
                 d_flux = abs(1 - (fy / fx))
                 # print("type d_flux", type(d_flux), d_flux)
@@ -158,8 +165,10 @@ def match_dem(df_true_sky, df_offset_sky, dra, ddec, dflux):
         if isl not in matched_islands_o:
             unmatched_islands_o.append(isl)
 
-    print("true cat unmatched sources: ", len(unmatched_islands_t), unmatched_islands_t)
-    print("off cat unmatched sources: ", len(unmatched_islands_o), unmatched_islands_o)
+    print("true cat unmatched sources: ", len(
+        unmatched_islands_t), unmatched_islands_t)
+    print("off cat unmatched sources: ", len(
+        unmatched_islands_o), unmatched_islands_o)
 
     return unmatched_islands_t, unmatched_islands_o, data_true, data_offset
 
@@ -169,8 +178,10 @@ def repeat_match(
 ):
     print(df_true_sky.shape)
     print(df_offset_sky.shape)
-    df_true_sky = df_true_sky.loc[df_true_sky["island"].isin(unmatched_islands_t)]
-    df_offset_sky = df_offset_sky.loc[df_offset_sky["island"].isin(unmatched_islands_o)]
+    df_true_sky = df_true_sky.loc[df_true_sky["island"].isin(
+        unmatched_islands_t)]
+    df_offset_sky = df_offset_sky.loc[df_offset_sky["island"].isin(
+        unmatched_islands_o)]
     (
         r_unmatched_islands_t,
         r_unmatched_islands_o,
@@ -186,7 +197,8 @@ def final_match(
     print(df_true_sky.shape)
     print(df_offset_sky.shape)
     f_data_true, f_data_offset = [], []
-    df_true_sky = df_true_sky.loc[df_true_sky["island"].isin(r_unmatched_islands_t)]
+    df_true_sky = df_true_sky.loc[df_true_sky["island"].isin(
+        r_unmatched_islands_t)]
     df_offset_sky = df_offset_sky.loc[
         df_offset_sky["island"].isin(r_unmatched_islands_o)
     ]

@@ -200,8 +200,10 @@ def offset_vis_slow(
 
         # u_phasediff = 100 * u_phasediffs[source_count - 1][:, np.newaxis] * lmbdas ** 2
         # v_phasediff = 100 * v_phasediffs[source_count - 1][:, np.newaxis] * lmbdas ** 2
-        u_phasediff = u_phasediffs[source_count - 1][:, np.newaxis] * lmbdas ** 2
-        v_phasediff = v_phasediffs[source_count - 1][:, np.newaxis] * lmbdas ** 2
+        u_phasediff = 20 * u_phasediffs[source_count -
+                                        1][:, np.newaxis] * lmbdas ** 2
+        v_phasediff = 20 * v_phasediffs[source_count -
+                                        1][:, np.newaxis] * lmbdas ** 2
 
         phse = np.exp(
             2j
@@ -257,8 +259,10 @@ def offset_vis_numba(
     for source in prange(len(A)):
         print("Offset Source: ", source_count, "...")
         print(np.expand_dims(u_phasediffs[source], axis=-1).shape)
-        u_phasediff = 100 * np.expand_dims(u_phasediffs[source], axis=-1) * lmbdas ** 2
-        v_phasediff = 100 * np.expand_dims(v_phasediffs[source], axis=-1) * lmbdas ** 2
+        u_phasediff = 100 * \
+            np.expand_dims(u_phasediffs[source], axis=-1) * lmbdas ** 2
+        v_phasediff = 100 * \
+            np.expand_dims(v_phasediffs[source], axis=-1) * lmbdas ** 2
 
         # u_phasediff = 100 * u_phasediffs[source][:, np.newaxis] * lmbdas ** 2
         # v_phasediff = 100 * v_phasediffs[source][:, np.newaxis] * lmbdas ** 2
@@ -425,7 +429,7 @@ def beam(frequencies, sky_coords, n_cells=1028, min_attenuation=1e-7):
     -------
     attenuation : (ncells, ncells, nfrequencies)-array
         The beam attenuation (maximum unity) over the sky.
-    
+
     beam_area : (nfrequencies)-array
         The beam area of the sky (in sr).
     """
