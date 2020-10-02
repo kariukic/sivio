@@ -25,11 +25,7 @@ def sim_prep(tbl, ras, decs):
     data[:] = 0
 
     # grab our lmns
-<<<<<<< HEAD
-    ls, ms, ns = mtls.get_lmns(tbl, ras, decs)
-=======
     ls, ms, ns = mtls.get_lmns(tbl, ras, decs, phase_center_shift=0)
->>>>>>> 8a1d7cea8f4573227d5d5d90db629ac9d0763540
     # assert len(list(A)) == len(list(ls))
     print("dnu", dnu)
     return data, lmbdas, uvw_lmbdas, dnu, ls, ms, ns
@@ -202,15 +198,12 @@ def offset_vis_slow(
     for amp, l, m, n in zip(A, ls, ms, ns):
         print("Offset Source: ", source_count, "...")
 
-<<<<<<< HEAD
-        u_phasediff = 100 * u_phasediffs[source_count - 1][:, np.newaxis] * lmbdas ** 2
-        v_phasediff = 100 * v_phasediffs[source_count - 1][:, np.newaxis] * lmbdas ** 2
-=======
         # u_phasediff = 100 * u_phasediffs[source_count - 1][:, np.newaxis] * lmbdas ** 2
         # v_phasediff = 100 * v_phasediffs[source_count - 1][:, np.newaxis] * lmbdas ** 2
-        u_phasediff = u_phasediffs[source_count - 1][:, np.newaxis] * lmbdas ** 2
-        v_phasediff = v_phasediffs[source_count - 1][:, np.newaxis] * lmbdas ** 2
->>>>>>> 8a1d7cea8f4573227d5d5d90db629ac9d0763540
+        u_phasediff = 20 * u_phasediffs[source_count -
+                                        1][:, np.newaxis] * lmbdas ** 2
+        v_phasediff = 20 * v_phasediffs[source_count -
+                                        1][:, np.newaxis] * lmbdas ** 2
 
         phse = np.exp(
             2j
@@ -266,8 +259,10 @@ def offset_vis_numba(
     for source in prange(len(A)):
         print("Offset Source: ", source_count, "...")
         print(np.expand_dims(u_phasediffs[source], axis=-1).shape)
-        u_phasediff = 100 * np.expand_dims(u_phasediffs[source], axis=-1) * lmbdas ** 2
-        v_phasediff = 100 * np.expand_dims(v_phasediffs[source], axis=-1) * lmbdas ** 2
+        u_phasediff = 100 * \
+            np.expand_dims(u_phasediffs[source], axis=-1) * lmbdas ** 2
+        v_phasediff = 100 * \
+            np.expand_dims(v_phasediffs[source], axis=-1) * lmbdas ** 2
 
         # u_phasediff = 100 * u_phasediffs[source][:, np.newaxis] * lmbdas ** 2
         # v_phasediff = 100 * v_phasediffs[source][:, np.newaxis] * lmbdas ** 2
@@ -349,11 +344,7 @@ def offset_vis3(
 
 # Adopted from Bella's code
 def thermal_variance_baseline(
-<<<<<<< HEAD
-    dnu=40000.0000000298, Tsys=240, timestamps=14, effective_collecting_area=21
-=======
     dnu=40000.0000000298, Tsys=240, timestamps=1, effective_collecting_area=21
->>>>>>> 8a1d7cea8f4573227d5d5d90db629ac9d0763540
 ):
     """
         The thermal variance of each baseline (assumed constant across baselines/times/frequencies.
@@ -403,11 +394,7 @@ def add_thermal_noise(visibilities, dnu):
     )
 
 
-<<<<<<< HEAD
-def sigma(frequencies, tile_diameter=4.0):
-=======
 def sigma_b(frequencies, tile_diameter=4.0):
->>>>>>> 8a1d7cea8f4573227d5d5d90db629ac9d0763540
     "The Gaussian beam width at each frequency"
     epsilon = 0.42  # scaling from airy disk to Gaussian
     return (epsilon * constants.c) / (frequencies / tile_diameter)
@@ -425,11 +412,7 @@ def beam_area(frequencies):
     beam_area: (nfreq)-array
         The beam area of the sky, in lm.
     """
-<<<<<<< HEAD
-    sig = sigma(frequencies)
-=======
     sig = sigma_b(frequencies)
->>>>>>> 8a1d7cea8f4573227d5d5d90db629ac9d0763540
     return np.pi * sig ** 2
 
 
@@ -446,7 +429,7 @@ def beam(frequencies, sky_coords, n_cells=1028, min_attenuation=1e-7):
     -------
     attenuation : (ncells, ncells, nfrequencies)-array
         The beam attenuation (maximum unity) over the sky.
-    
+
     beam_area : (nfrequencies)-array
         The beam area of the sky (in sr).
     """
@@ -455,11 +438,7 @@ def beam(frequencies, sky_coords, n_cells=1028, min_attenuation=1e-7):
     L, M = np.meshgrid(np.sin(sky_coords), np.sin(sky_coords), indexing="ij")
 
     attenuation = np.exp(
-<<<<<<< HEAD
-        np.outer(-(L ** 2 + M ** 2), 1.0 / (2 * sigma(frequencies) ** 2)).reshape(
-=======
         np.outer(-(L ** 2 + M ** 2), 1.0 / (2 * sigma_b(frequencies) ** 2)).reshape(
->>>>>>> 8a1d7cea8f4573227d5d5d90db629ac9d0763540
             (n_cells, n_cells, len(frequencies))
         )
     )
