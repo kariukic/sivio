@@ -59,18 +59,15 @@ def add_col(tbl, colnme):
     shape = tbl.getcell("DATA", 0).shape
     tbl.addcols(
         maketabdesc(
-            makearrcoldesc(colnme, 0.0 + 0.0j, valuetype="complex", shape=shape)
+            makearrcoldesc(colnme, 0.0 + 0.0j,
+                           valuetype="complex", shape=shape)
         ),
         col_dmi,
         addtoparent=True,
     )
 
 
-<<<<<<< HEAD
-def get_lmns(tbl, ra_rad, dec_rad):
-=======
 def get_lmns(tbl, ra_rad, dec_rad, phase_center_shift=0):
->>>>>>> 8a1d7cea8f4573227d5d5d90db629ac9d0763540
     """
     Calculating l, m, n values from ras,decs and phase centre.
     𝑙 = cos 𝛿 * sin Δ𝛼
@@ -79,8 +76,6 @@ def get_lmns(tbl, ra_rad, dec_rad, phase_center_shift=0):
     """
     ra0, dec0 = get_phase_center(tbl)
 
-<<<<<<< HEAD
-=======
     if phase_center_shift != 0:
         print(
             f"shifting pahse center from {np.rad2deg(ra0)},{np.rad2deg(dec0)} \
@@ -90,7 +85,6 @@ def get_lmns(tbl, ra_rad, dec_rad, phase_center_shift=0):
         ra0 += np.deg2rad(phase_center_shift)
         dec0 += np.deg2rad(phase_center_shift)
 
->>>>>>> 8a1d7cea8f4573227d5d5d90db629ac9d0763540
     ra_delta = ra_rad - ra0
     ls = np.cos(dec_rad) * np.sin(ra_delta)
     ms = np.sin(dec_rad) * np.cos(dec0) - np.cos(dec_rad) * np.sin(dec0) * np.cos(

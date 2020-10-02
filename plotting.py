@@ -1,10 +1,11 @@
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 from mset_utils import get_uvw
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from cthulhu.plot_tools import setup_subplot, plot_vector_arrows
 import numpy as np
 
-f = 15
+f = mpl.rcParams["font.size"] + 4
 
 
 def colorbar(mappable):
@@ -119,9 +120,11 @@ def ppoints_on_tec_field(tec, ppoints, params, fieldcenter, prefix, max_bl, scal
         params0 = params[0, :, :]
         params1 = params[1, :, :]
     for params_list in params0:
-        ax2.plot(range(len(params_list)), params_list, marker="*", linestyle="--")
+        ax2.plot(range(len(params_list)), params_list,
+                 marker="*", linestyle="--")
     for params_list in params1:
-        ax3.plot(range(len(params_list)), params_list, marker="*", linestyle="--")
+        ax3.plot(range(len(params_list)), params_list,
+                 marker="*", linestyle="--")
     # ax2.set_xlabel("Antenna ID")
     ax2.set_ylabel("x phase [deg]")
     ax3.set_xlabel("Antenna ID")
@@ -154,11 +157,12 @@ def ppoints_on_tec_field_v2(tec, ppoints, fieldcenter, scale):
         count += 1
     print(count)
     cbar = colorbar(s)
-    cbar.ax.set_ylabel("phase [deg]", rotation=270)
+    cbar.ax.set_ylabel("phase [deg]", rotation=270, fontsize=f)
     # ax1.legend()
 
-    plt.xlabel("Relative Longitude (scale=1:%sm)" % (scale))
-    plt.ylabel("Relative Latitude (scale=1:%sm)" % (scale))
+    plt.xlabel("Relative Longitude (scale=1:%sm)" % (scale), fontsize=f)
+    plt.ylabel("Relative Latitude (scale=1:%sm)" % (scale), fontsize=f)
+    plt.title("Pierce points coverage", fontsize=f)
 
 
 def cthulhu_plots(
@@ -166,29 +170,35 @@ def cthulhu_plots(
 ):
     # extent = [-9, 9, -35, -18]
 
-    fig = plt.figure(figsize=(15, 12))
+    fig = plt.figure(figsize=(12, 9))
+    plt.subplots_adjust(hspace=0.25, left=0.05,
+                        right=0.95, top=0.95, bottom=0.07)
     ax1 = fig.add_subplot(224)
     j = ax1.imshow(
-        np.flipud(o.tec), cmap="plasma"
+        np.flipud(o.tec), cmap="plasma", vmin=0, vmax=0.22
     )  # , extent=extent)  # ,vmin=0,vmax=1)
-    colorbar(j)
+    cbar4 = colorbar(j)
+    cbar4.ax.set_ylabel("TEC [TECU]", rotation=270)
+    ax1.set_title("Reconstructed TEC field", fontsize=f)
 
     ax2 = fig.add_subplot(221)
     k = ax2.imshow(
         np.rot90(tecscreen), cmap="plasma"
     )  # , extent=extent)  # ,vmin=0, vmax=1)
-    colorbar(k)
+    cbar1 = colorbar(k)
+    cbar1.ax.set_ylabel("phase [deg]", rotation=270, fontsize=f)
+    ax2.set_title("Full phase screen", fontsize=f)
 
     fig.add_subplot(222)
     ppoints_on_tec_field_v2(np.rot90(tecscreen), ppoints, fieldcenter, scale)
 
     ax4 = fig.add_subplot(223)
     setup_subplot(axis=ax4)
-    plot_vector_arrows(axis=ax4, obsid=o, scale=25)
-    plot_title = "QA Metric: %s " % (round(o.metric))
+    plot_vector_arrows(axis=ax4, obsid=o, scale=60)
+    plot_title = f"Median offsets: {round(o.metrics[0][0], 4)}, PCA eigenvalue: {round(o.metrics[1][0], 4)} \n Metric: {round(o.metric, 4)}"
     ax4.set_title(plot_title, fontsize=f)
-    ax4.set_xlabel("RA (deg)", fontsize=f)
-    ax4.set_ylabel("Dec (deg)", fontsize=f)
+    ax4.set_xlabel("RA [deg]", fontsize=f)
+    ax4.set_ylabel("Dec [deg]", fontsize=f)
 
     fig.tight_layout()
     plt.savefig(plotname)
