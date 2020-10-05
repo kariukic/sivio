@@ -67,6 +67,12 @@ def main():
         help="Number of point sources to simulate",
     )
     parser.add_argument(
+        "--spar",
+        type=int,
+        default=20,
+        help="Number of point sources to simulate",
+    )
+    parser.add_argument(
         "--offset_vis",
         "-o",
         action="store_true",
@@ -277,7 +283,7 @@ def main():
             )
             start = tm.time()
             offset_data = offset_vis_slow(
-                data, lmbdas, uvw_lmbdas, fluxes, ls, ms, ns, u_phasediffs, v_phasediffs
+                data, lmbdas, uvw_lmbdas, fluxes, ls, ms, ns, u_phasediffs, v_phasediffs, args.spar
             )
             print("Adding thermal noise to offset visibilities...")
             offset_data = add_thermal_noise(offset_data, dnu)
@@ -386,7 +392,7 @@ def main():
                 print("No matching sources in both catalogs.")
 
     print("Wrapping up")
-    output_dir = "simulation_output/" + prefix
+    output_dir = "simulation_output/" + prefix + "_spar"+str(args.spar)
     print(output_dir)
     if os.path.exists(output_dir):
         output_dir += "_run2"

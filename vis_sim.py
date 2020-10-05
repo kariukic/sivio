@@ -190,7 +190,7 @@ def offset_vis_old(
 
 
 def offset_vis_slow(
-    data, lmbdas, uvw_lmbdas, A, ls, ms, ns, u_phasediffs, v_phasediffs,
+    data, lmbdas, uvw_lmbdas, A, ls, ms, ns, u_phasediffs, v_phasediffs, spar
 ):
     """Offset visibilities"""
     data[:] = 0
@@ -200,9 +200,9 @@ def offset_vis_slow(
 
         # u_phasediff = 100 * u_phasediffs[source_count - 1][:, np.newaxis] * lmbdas ** 2
         # v_phasediff = 100 * v_phasediffs[source_count - 1][:, np.newaxis] * lmbdas ** 2
-        u_phasediff = 20 * u_phasediffs[source_count -
+        u_phasediff = float(spar) * u_phasediffs[source_count -
                                         1][:, np.newaxis] * lmbdas ** 2
-        v_phasediff = 20 * v_phasediffs[source_count -
+        v_phasediff = float(spar) * v_phasediffs[source_count -
                                         1][:, np.newaxis] * lmbdas ** 2
 
         phse = np.exp(
