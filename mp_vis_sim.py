@@ -184,25 +184,25 @@ def mp_offset_vis(data, uvw_lmbdas, lmbdas, u_phasediffs, v_phasediffs, spar, A,
     v_phasediffs_id = ray.put(v_phasediffs)
 
     source_indices = np.arange(len(A))
-    result_ids = []  # np.zeros_like(data[:, :, 0])
-    for source_pars in zip(A, ls, ms, ns, source_indices):
-        result_ids.append(single_offset_vis.remote(
-            uvw_lmbdas_id, lmbdas_id, u_phasediffs_id, v_phasediffs_id, spar, source_pars))
-
+    #result_ids = []  #
+    result_ids = np.zeros_like(data[:, :, 0])
     # for source_pars in zip(A, ls, ms, ns, source_indices):
-    #     result_ids += np.array(ray.get(single_offset_vis.remote(uvw_lmbdas_id, lmbdas_id,
-    #                                                             u_phasediffs_id, v_phasediffs_id, spar, source_pars)))
+    #     result_ids.append(single_offset_vis.remote(
+    #         uvw_lmbdas_id, lmbdas_id, u_phasediffs_id, v_phasediffs_id, spar, source_pars))
 
-    while len(result_ids):
-        print("adding a done offset source visibilities to data")
-        done_ids, result_ids = ray.wait(result_ids)
-        data = data_incremental(data, np.array(ray.get(done_ids[0])))
-        del done_ids[0]
-    # offset_data = sum(ray.get(result_ids))
-    # offset_data = result_ids
+    for source_pars in zip(A, ls, ms, ns, source_indices):
+        result_ids += np.array(ray.get(single_offset_vis.remote(uvw_lmbdas_id, lmbdas_id,
+                                                                u_phasediffs_id, v_phasediffs_id, spar, source_pars)))
 
-    # data[:, :, 0] += ray.get(done_offset_data)  # feed xx data
-    # data[:, :, 3] += done_offset_data  # feed yy data
+    # while len(result_ids):
+    #     print("adding a done offset source visibilities to data")
+    #     done_ids, result_ids = ray.wait(result_ids)
+    #     data = data_incremental(data, np.array(ray.get(done_ids[0])))
+    #     del done_ids[0]
+    offset_data = result_ids
+
+    data[:, :, 0] += offset_data  # feed xx data
+    data[:, :, 3] += offset_data  # feed yy data
 
     return data
 
@@ -260,6 +260,8 @@ def merge_true_vis(data, uvw_lmbdas, A, ls, ms, ns):
 # Adopted from Bella's code
 def thermal_variance_baseline(
     dnu=40000.0000000298, Tsys=240, timestamps=1, effective_collecting_area=21
+
+
 ):
     """
         The thermal variance of each baseline (assumed constant across baselines/times/frequencies.
