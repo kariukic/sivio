@@ -8,7 +8,7 @@ import ray
 
 import mset_utils as mtls
 
-ray.init()
+ray.init(num_cpus=4)
 
 # from casacore.tables import table
 # ctypes.c
