@@ -10,13 +10,21 @@ from numba import set_num_threads
 
 import mset_utils as mtls
 import time as tm
-from vis_sim import (
+# from vis_sim import (
+#     sim_prep,
+#     true_vis_numba,
+#     offset_vis_slow,
+#     add_phase_offsets2,
+#     add_thermal_noise,
+# )  # , scint_vis
+from mp_vis_sim import (
     sim_prep,
     true_vis_numba,
-    offset_vis_slow,
+    mp_offset_vis,
     add_phase_offsets2,
     add_thermal_noise,
 )  # , scint_vis
+
 import sky_models
 from phase_screen import (
     get_antenna_in_uvw,
@@ -282,8 +290,8 @@ def main():
                 ant1, ant2, u_vec_params, v_vec_params
             )
             start = tm.time()
-            offset_data = offset_vis_slow(
-                data, lmbdas, uvw_lmbdas, fluxes, ls, ms, ns, u_phasediffs, v_phasediffs, args.spar
+            offset_data = mp_offset_vis(
+                data,  uvw_lmbdas, lmbdas, u_phasediffs, v_phasediffs, args.spar, fluxes, ls, ms, ns,
             )
             print("Adding thermal noise to offset visibilities...")
             offset_data = add_thermal_noise(offset_data, dnu)
