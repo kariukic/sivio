@@ -177,12 +177,17 @@ def mp_offset_vis(data, uvw_lmbdas, lmbdas, u_phasediffs, v_phasediffs, spar, A,
     v_phasediffs_id = ray.put(v_phasediffs)
 
     source_indices = np.arange(len(A))
-    result_ids = []
-    for source_pars in zip(A, ls, ms, ns, source_indices):
-        result_ids.append(single_offset_vis.remote(uvw_lmbdas_id, lmbdas_id,
-                                                   u_phasediffs_id, v_phasediffs_id, spar, source_pars))
+    result_ids = np.zeros(data[:, :, 0])
+    # for source_pars in zip(A, ls, ms, ns, source_indices):
+    #     result_ids.append(single_offset_vis.remote(uvw_lmbdas_id, lmbdas_id,
+    #                                                u_phasediffs_id, v_phasediffs_id, spar, source_pars))
 
-    offset_data = sum(ray.get(result_ids))
+    for source_pars in zip(A, ls, ms, ns, source_indices):
+        result_ids += np.array(ray.get(single_offset_vis.remote(uvw_lmbdas_id, lmbdas_id,
+                                                                u_phasediffs_id, v_phasediffs_id, spar, source_pars)))
+
+    #offset_data = sum(ray.get(result_ids))
+    offset_data = result_ids
 
     data[:, :, 0] += offset_data  # feed xx data
     data[:, :, 3] += offset_data  # feed yy data
