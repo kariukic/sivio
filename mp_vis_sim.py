@@ -1,5 +1,5 @@
 import numpy as np
-#import multiprocessing as mp
+# import multiprocessing as mp
 import ctypes
 from numba import njit, float64, complex64, prange
 import time
@@ -170,6 +170,12 @@ def single_offset_vis(uvw_lmbdas, lmbdas, u_phasediffs, v_phasediffs, spar, sour
     return amp * phse
 
 
+def data_incremental(data, source_offset_vis):
+    data[:, :, 0] += source_offset_vis
+    data[:, :, 3] += source_offset_vis
+    return data
+
+
 def mp_offset_vis(data, uvw_lmbdas, lmbdas, u_phasediffs, v_phasediffs, spar, A, ls, ms, ns):
     uvw_lmbdas_id = ray.put(uvw_lmbdas)
     lmbdas_id = ray.put(lmbdas)
@@ -177,20 +183,25 @@ def mp_offset_vis(data, uvw_lmbdas, lmbdas, u_phasediffs, v_phasediffs, spar, A,
     v_phasediffs_id = ray.put(v_phasediffs)
 
     source_indices = np.arange(len(A))
-    result_ids = np.zeros_like(data[:, :, 0])
-    # for source_pars in zip(A, ls, ms, ns, source_indices):
-    #     result_ids.append(single_offset_vis.remote(uvw_lmbdas_id, lmbdas_id,
-    #                                                u_phasediffs_id, v_phasediffs_id, spar, source_pars))
-
+    result_ids = []  # np.zeros_like(data[:, :, 0])
     for source_pars in zip(A, ls, ms, ns, source_indices):
-        result_ids += np.array(ray.get(single_offset_vis.remote(uvw_lmbdas_id, lmbdas_id,
-                                                                u_phasediffs_id, v_phasediffs_id, spar, source_pars)))
+        result_ids.append(single_offset_vis.remote(uvw_lmbdas_id, lmbdas_id,
+                                                   u_phasediffs_id, v_phasediffs_id, spar, source_pars))
 
-    #offset_data = sum(ray.get(result_ids))
-    offset_data = result_ids
+    # for source_pars in zip(A, ls, ms, ns, source_indices):
+    #     result_ids += np.array(ray.get(single_offset_vis.remote(uvw_lmbdas_id, lmbdas_id,
+    #                                                             u_phasediffs_id, v_phasediffs_id, spar, source_pars)))
 
-    data[:, :, 0] += offset_data  # feed xx data
-    data[:, :, 3] += offset_data  # feed yy data
+    while len(result_ids):
+        print("adding a done offset source visibilities to data")
+        done_ids, result_ids = ray.wait(result_ids)
+        data = data_incremental(data, np.array(ray.get(done_ids[0])))
+    # offset_data = sum(ray.get(result_ids))
+    # offset_data = result_ids
+
+    # data[:, :, 0] += ray.get(done_offset_data)  # feed xx data
+    # data[:, :, 3] += done_offset_data  # feed yy data
+
     return data
 
 
