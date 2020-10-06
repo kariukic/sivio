@@ -149,9 +149,8 @@ def mp_offset_vis(data, lmbdas, uvw_lmbdas, A, ls, ms, ns, u_phasediffs, v_phase
 
 
 @ray.remote
-def single_offset_vis(shared_objs_in_mem, spar, source_pars):
+def single_offset_vis(uvw_lmbdas, lmbdas, u_phasediffs, v_phasediffs, spar, source_pars):
     """Offset visibilities"""
-    uvw_lmbdas, lmbdas, u_phasediffs, v_phasediffs = shared_objs_in_mem
     amp, l, m, n, index = source_pars
 
     u_phasediff = float(
@@ -184,14 +183,11 @@ def mp_offset_vis(data, uvw_lmbdas, lmbdas, u_phasediffs, v_phasediffs, spar, A,
     u_phasediffs_id = ray.put(u_phasediffs)
     v_phasediffs_id = ray.put(v_phasediffs)
 
-    shared_objs_in_mem = (uvw_lmbdas_id, lmbdas_id,
-                          u_phasediffs_id, v_phasediffs_id)
-
     source_indices = np.arange(len(A))
     result_ids = []  # np.zeros_like(data[:, :, 0])
     for source_pars in zip(A, ls, ms, ns, source_indices):
         result_ids.append(single_offset_vis.remote(
-            shared_objs_in_mem, spar, source_pars))
+            uvw_lmbdas_id, lmbdas_id, u_phasediffs_id, v_phasediffs_id, spar, source_pars))
 
     # for source_pars in zip(A, ls, ms, ns, source_indices):
     #     result_ids += np.array(ray.get(single_offset_vis.remote(uvw_lmbdas_id, lmbdas_id,
