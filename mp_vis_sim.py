@@ -173,6 +173,7 @@ def single_offset_vis(uvw_lmbdas, lmbdas, u_phasediffs, v_phasediffs, spar, sour
 def data_incremental(data, source_offset_vis):
     data[:, :, 0] += source_offset_vis
     data[:, :, 3] += source_offset_vis
+    del source_offset_vis
     return data
 
 
@@ -196,6 +197,7 @@ def mp_offset_vis(data, uvw_lmbdas, lmbdas, u_phasediffs, v_phasediffs, spar, A,
         print("adding a done offset source visibilities to data")
         done_ids, result_ids = ray.wait(result_ids)
         data = data_incremental(data, np.array(ray.get(done_ids[0])))
+        del done_ids[0]
     # offset_data = sum(ray.get(result_ids))
     # offset_data = result_ids
 
