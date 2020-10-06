@@ -177,7 +177,7 @@ def mp_offset_vis(data, uvw_lmbdas, lmbdas, u_phasediffs, v_phasediffs, spar, A,
     v_phasediffs_id = ray.put(v_phasediffs)
 
     source_indices = np.arange(len(A))
-    result_ids = np.zeros(data[:, :, 0])
+    result_ids = np.zeros_like(data[:, :, 0])
     # for source_pars in zip(A, ls, ms, ns, source_indices):
     #     result_ids.append(single_offset_vis.remote(uvw_lmbdas_id, lmbdas_id,
     #                                                u_phasediffs_id, v_phasediffs_id, spar, source_pars))
