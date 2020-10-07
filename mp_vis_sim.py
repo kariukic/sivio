@@ -189,11 +189,12 @@ def mp_offset_vis(data, uvw_lmbdas, lmbdas, u_phasediffs, v_phasediffs, spar, A,
     # for source_pars in zip(A, ls, ms, ns, source_indices):
     #     result_ids.append(single_offset_vis.remote(
     #         uvw_lmbdas_id, lmbdas_id, u_phasediffs_id, v_phasediffs_id, spar, source_pars))
-
+    i=0
     for source_pars in zip(A, ls, ms, ns, source_indices):
+        print(f"offset source {i} spar {spar}")
         result_ids += np.array(ray.get(single_offset_vis.remote(uvw_lmbdas_id, lmbdas_id,
                                                                 u_phasediffs_id, v_phasediffs_id, spar, source_pars)))
-
+        i+=1
     # while len(result_ids):
     #     print("adding a done offset source visibilities to data")
     #     done_ids, result_ids = ray.wait(result_ids)
