@@ -171,11 +171,10 @@ def single_offset_vis(uvw_lmbdas, lmbdas, u_phasediffs, v_phasediffs, spar, sour
     return amp * phse
 
 
-def data_incremental(data, source_offset_vis):
-    data[:, :, 0] += source_offset_vis
-    data[:, :, 3] += source_offset_vis
+def data_incremental(offdata, source_offset_vis):
+    offdata += source_offset_vis
     del source_offset_vis
-    return data
+    return offdata
 
 
 def mp_offset_vis(data, uvw_lmbdas, lmbdas, u_phasediffs, v_phasediffs, spar, A, ls, ms, ns):
@@ -198,12 +197,12 @@ def mp_offset_vis(data, uvw_lmbdas, lmbdas, u_phasediffs, v_phasediffs, spar, A,
     #     result_ids += np.array(ray.get(single_offset_vis.remote(uvw_lmbdas_id, lmbdas_id,
     #                                                             u_phasediffs_id, v_phasediffs_id, spar, source_pars)))
     #     i += 1
+    offset_data = np.zeros_like(data[:, :, 0])
     while len(result_ids):
         print("adding a done offset source visibilities to data")
         done_ids, result_ids = ray.wait(result_ids)
-        data = data_incremental(data, ray.get(done_ids[0]))
+        offset_data = data_incremental(offset_data, ray.get(done_ids[0]))
         del done_ids[0]
-    offset_data = data
 
     data[:, :, 0] += offset_data  # feed xx data
     data[:, :, 3] += offset_data  # feed yy data
