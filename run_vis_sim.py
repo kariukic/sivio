@@ -6,10 +6,11 @@ import numpy as np
 from argparse import ArgumentParser
 from casacore.tables import table
 
-from numba import set_num_threads
+# from numba import set_num_threads
 
 import mset_utils as mtls
 import time as tm
+
 # from vis_sim import (
 #     sim_prep,
 #     true_vis_numba,
@@ -42,10 +43,8 @@ def main():
     parser = ArgumentParser(
         "python run_vis_sim.py", description="Ionospheric effects simulations"
     )
-    parser.add_argument("--ms_template", required=True,
-                        help="Template measurement set")
-    parser.add_argument("--metafits", required=True,
-                        help="Path to the metafits file")
+    parser.add_argument("--ms_template", required=True, help="Template measurement set")
+    parser.add_argument("--metafits", required=True, help="Path to the metafits file")
     parser.add_argument(
         "--yfile", required=False, help="Path to yaml file to obtain the sky model from"
     )
@@ -75,10 +74,7 @@ def main():
         help="Number of point sources to simulate",
     )
     parser.add_argument(
-        "--spar",
-        type=int,
-        default=20,
-        help="Number of point sources to simulate",
+        "--spar", type=int, default=20, help="Number of point sources to simulate",
     )
     parser.add_argument(
         "--offset_vis",
@@ -134,8 +130,7 @@ def main():
         action="store_true",
         help="run multiprocessing. not yet fully implemented",
     )
-    parser.add_argument("--debug", action="store_true",
-                        help="Run in debug mode")
+    parser.add_argument("--debug", action="store_true", help="Run in debug mode")
     args = parser.parse_args()
 
     logger = logging.getLogger(__name__)
@@ -161,8 +156,7 @@ def main():
         tbl = table(mset, readonly=False)
         ra0, dec0 = mtls.get_phase_center(tbl)
         print(
-            "The phase center is at ra=%s, dec=%s" % (
-                np.degrees(ra0), np.degrees(dec0))
+            "The phase center is at ra=%s, dec=%s" % (np.degrees(ra0), np.degrees(dec0))
         )
         if args.modelpath is not None:
             ras, decs, fluxes = [], [], []
@@ -231,8 +225,7 @@ def main():
             us, vs, ws = get_antenna_in_uvw(mset, tbl, lst)
             h_pix = args.height / args.scale
             # first lets calculate the offset of the ref antenna from phase screen center.
-            pp_u_offset, pp_v_offset = phase_center_offset(
-                ra0, dec0, h_pix, time)
+            pp_u_offset, pp_v_offset = phase_center_offset(ra0, dec0, h_pix, time)
             print("pp_u_offset,pp_v_offset", pp_u_offset, pp_v_offset)
 
             """
@@ -291,7 +284,16 @@ def main():
             )
             start = tm.time()
             offset_data = mp_offset_vis(
-                data,  uvw_lmbdas, lmbdas, u_phasediffs, v_phasediffs, args.spar, fluxes, ls, ms, ns,
+                data,
+                uvw_lmbdas,
+                lmbdas,
+                u_phasediffs,
+                v_phasediffs,
+                args.spar,
+                fluxes,
+                ls,
+                ms,
+                ns,
             )
             # offset_data = offset_vis_slow(
             #     data, lmbdas, uvw_lmbdas, fluxes, ls, ms, ns, u_phasediffs, v_phasediffs, args.spar)
@@ -351,8 +353,7 @@ def main():
     if args.match:
         true_image = prefix + "_truevis-image.fits"
         offset_image = prefix + "_offsetvis-image.fits"
-        sorted_df_true_sky, sorted_df_offset_sky = main_match(
-            true_image, offset_image)
+        sorted_df_true_sky, sorted_df_offset_sky = main_match(true_image, offset_image)
 
     if args.plot:
         if args.offset_vis:
@@ -364,7 +365,7 @@ def main():
             try:
                 phscrn_path = prefix + "_phase_screen.npz"
                 phs_screen = np.rad2deg(np.load(phscrn_path)["tecscreen"])
-            except:
+            except FileNotFoundError:
                 sys.exit(f"Phase screen not found at {phscrn_path}. Exiting.")
         npz = prefix + "_pierce_points.npz"
         tecdata = np.load(npz)
@@ -393,8 +394,7 @@ def main():
                 pname = prefix + "_cthulhu_plots.png"
                 sorted_true_sky_cat = "sorted_" + prefix + "_truevis-image.csv"
                 sorted_offset_sky_cat = "sorted_" + prefix + "_offsetvis-image.csv"
-                obj = cthulhu_analyse(
-                    sorted_true_sky_cat, sorted_offset_sky_cat)
+                obj = cthulhu_analyse(sorted_true_sky_cat, sorted_offset_sky_cat)
                 plotting.cthulhu_plots(
                     obj, phs_screen, ppoints, fieldcenter, args.scale, plotname=pname
                 )
@@ -402,13 +402,12 @@ def main():
                 print("No matching sources in both catalogs.")
 
     print("Wrapping up")
-    output_dir = "simulation_output/" + prefix + "_spar"+str(args.spar)
+    output_dir = "simulation_output/" + prefix + "_spar" + str(args.spar)
     print(output_dir)
     if os.path.exists(output_dir):
         output_dir += "_run2"
     os.makedirs(output_dir, exist_ok=True)
-    os.system("mv %s* sorted_%s* %s" %
-              (args.n_sources, args.n_sources, output_dir))
+    os.system("mv %s* sorted_%s* %s" % (args.n_sources, args.n_sources, output_dir))
 
 
 if __name__ == "__main__":

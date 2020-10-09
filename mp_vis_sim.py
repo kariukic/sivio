@@ -1,15 +1,24 @@
 import numpy as np
-import os
-# import multiprocessing as mp
-import ctypes
-from numba import njit, float64, complex64, prange
-import time
 from scipy import constants
+
+# import time
+# import os
+
+# import multiprocessing as mp
+# import ctypes
+from numba import njit, float64, complex64, prange
 import ray
-
 import mset_utils as mtls
+import psutil
 
-ray.init(address=os.environ["ip_head"])
+phys_cores = psutil.cpu_count(logical=False)
+logical_cpus = psutil.cpu_count(logical=True)
+print(f"No. of cores: {phys_cores}")
+print(f"No. of logical CPUS: {logical_cpus}")
+mem = psutil.virtual_memory()
+print(f"Total memory in bytes: {mem.total}")
+
+ray.init(num_cpus=logical_cpus)
 
 # from casacore.tables import table
 # ctypes.c
@@ -150,14 +159,14 @@ def mp_offset_vis(data, lmbdas, uvw_lmbdas, A, ls, ms, ns, u_phasediffs, v_phase
 
 
 @ray.remote
-def single_offset_vis(uvw_lmbdas, lmbdas, u_phasediffs, v_phasediffs, spar, source_pars):
+def single_offset_vis(
+    uvw_lmbdas, lmbdas, u_phasediffs, v_phasediffs, spar, source_pars
+):
     """Offset visibilities"""
     amp, l, m, n, index = source_pars
 
-    u_phasediff = float(
-        spar) * u_phasediffs[index][:, np.newaxis] * lmbdas ** 2
-    v_phasediff = float(
-        spar) * v_phasediffs[index][:, np.newaxis] * lmbdas ** 2
+    u_phasediff = float(spar) * u_phasediffs[index][:, np.newaxis] * lmbdas ** 2
+    v_phasediff = float(spar) * v_phasediffs[index][:, np.newaxis] * lmbdas ** 2
 
     phse = np.exp(
         2j
@@ -177,7 +186,9 @@ def data_incremental(offdata, source_offset_vis):
     return offdata
 
 
-def mp_offset_vis(data, uvw_lmbdas, lmbdas, u_phasediffs, v_phasediffs, spar, A, ls, ms, ns):
+def mp_offset_vis(
+    data, uvw_lmbdas, lmbdas, u_phasediffs, v_phasediffs, spar, A, ls, ms, ns
+):
     uvw_lmbdas_id = ray.put(uvw_lmbdas)
     lmbdas_id = ray.put(lmbdas)
     u_phasediffs_id = ray.put(u_phasediffs)
@@ -187,8 +198,16 @@ def mp_offset_vis(data, uvw_lmbdas, lmbdas, u_phasediffs, v_phasediffs, spar, A,
     result_ids = []  #
 
     for source_pars in zip(A, ls, ms, ns, source_indices):
-        result_ids.append(single_offset_vis.remote(
-            uvw_lmbdas_id, lmbdas_id, u_phasediffs_id, v_phasediffs_id, spar, source_pars))
+        result_ids.append(
+            single_offset_vis.remote(
+                uvw_lmbdas_id,
+                lmbdas_id,
+                u_phasediffs_id,
+                v_phasediffs_id,
+                spar,
+                source_pars,
+            )
+        )
 
     # result_ids = np.zeros_like(data[:, :, 0])
     # i = 0
@@ -263,8 +282,6 @@ def merge_true_vis(data, uvw_lmbdas, A, ls, ms, ns):
 # Adopted from Bella's code
 def thermal_variance_baseline(
     dnu=40000.0000000298, Tsys=240, timestamps=1, effective_collecting_area=21
-
-
 ):
     """
         The thermal variance of each baseline (assumed constant across baselines/times/frequencies.
