@@ -69,8 +69,7 @@ def linear_tec(npix, sine=False):
         tec[np.triu_indices(npix, npix / 4)] = np.pi * 1e-6
         # np.rot90(tec)[np.triu_indices(npix, npix / 2)] = np.pi * 1e-6
         tec[np.tril_indices(0, npix / 4)] = np.pi * 1e-6
-        tec += np.random.normal(loc=1e-6, scale=0.1,
-                                size=(npix, npix))  # noise
+        tec += np.random.normal(loc=1e-6, scale=0.1, size=(npix, npix))  # noise
         # for once lets change ridge orientation to along minor diagonal.
         # tec = np.fliplr(tec)
         """
@@ -89,7 +88,7 @@ def linear_tec(npix, sine=False):
     return tec
 
 
-def iono_phase_shift(scale=3, size=60000, tec_type="l"):
+def iono_phase_shift(scale=100, size=80000, tec_type="l"):
     """
     produces a phase offset screen.
 
@@ -246,10 +245,11 @@ def phase_center_offset(ra0, dec0, h_pix, time):
     return pp_u_off, pp_v_off
 
 
-def get_tec_value(
+def get_tec_value_old(
     tec, us, vs, zen_angles, azimuths, scale, h_pix, pp_u_offset, pp_v_offset, refant=0
 ):
     """
+    OLD/DEPRECATED. HAS NO GRADIENT!
     Given a source position (zenith and azimuth angles) with reference to the reference antenna, this function obtains
     the tec phase offset value at the pierce point corresponding to each antenna. \n \n
 
@@ -330,7 +330,7 @@ def get_tec_value(
     return np.array(u_per_source), np.array(v_per_source), np.array(tec_per_source)
 
 
-def get_tec_value2(
+def get_tec_value(
     tec, us, vs, zen_angles, azimuths, scale, h_pix, pp_u_offset, pp_v_offset, refant=0
 ):
     """
@@ -345,7 +345,7 @@ def get_tec_value2(
     tec : 2Darray.
         The TEC/phase screen. \n
     us : arraylike.
-        x coordinates for each antenna. Named 'us' bcause the array is projected into the uv space.\n
+        x coordinates for each antenna. Named 'us' because the array is projected into the "uv" space.\n
     vs : arraylike.
         y coordinates for each antenna. \n
     zen_angle : float.
@@ -419,6 +419,7 @@ def get_tec_value2(
             # tec_per_ant.append(tec[int(round(uu)), int(round(vv))])
         u_per_source.append(u_tec_list)
         v_per_source.append(v_tec_list)
+
         # tec_per_source.append(tec_per_ant)
         u_vec_per_source.append(u_vec_list)
         v_vec_per_source.append(v_vec_list)

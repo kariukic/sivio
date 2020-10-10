@@ -7,31 +7,20 @@ from argparse import ArgumentParser
 from casacore.tables import table
 
 # from numba import set_num_threads
-
 import mset_utils as mtls
 import time as tm
-
-# from vis_sim import (
-#     sim_prep,
-#     true_vis_numba,
-#     offset_vis_slow,
-#     add_phase_offsets2,
-#     add_thermal_noise,
-# )  # , scint_vis
 from mp_vis_sim import (
+    add_thermal_noise,
+    compute_initial_setup_params,
+    compute_offset_vis_parallel,
     sim_prep,
     true_vis_numba,
-    mp_offset_vis,
-    add_phase_offsets2,
-    add_thermal_noise,
-)  # , scint_vis
+)
 
 import sky_models
 from phase_screen import (
     get_antenna_in_uvw,
-    get_tec_value2,
     iono_phase_shift,
-    phase_center_offset,
 )
 from coordinates import get_time, MWAPOS, radec_to_altaz
 from match_catalogs import main_match
@@ -218,88 +207,75 @@ def main():
                 )
                 tecnpz = prefix + "_phase_screen.npz"
                 np.savez(tecnpz, tecscreen=phs_screen)
+
             time, lst = get_time(args.metafits, MWAPOS)
             alts, azimuths = radec_to_altaz(ras, decs, time, MWAPOS)
             zen_angles = np.pi / 2.0 - alts
 
             us, vs, ws = get_antenna_in_uvw(mset, tbl, lst)
+            initial_setup_params = compute_initial_setup_params(
+                phs_screen, us, vs, args.height, args.scale, ra0, dec0, time
+            )
+
             h_pix = args.height / args.scale
             # first lets calculate the offset of the ref antenna from phase screen center.
-            pp_u_offset, pp_v_offset = phase_center_offset(ra0, dec0, h_pix, time)
-            print("pp_u_offset,pp_v_offset", pp_u_offset, pp_v_offset)
-
-            """
-            u_per_source, v_per_source, params = get_tec_value(
-                phs_screen,
-                us,
-                vs,
-                zen_angles,
-                azimuths,
-                args.scale,
-                h_pix,
-                pp_u_offset,
-                pp_v_offset,
-            )
-
-            # params = former tec_per_source  # 128 phasescreen values one for each pierce point
-            source_ppoints = np.stack((u_per_source, v_per_source))
-            source_params = np.stack(params)
-            # Lets save the x and y coordinates, the tec params and phasediffs
-            npz = mset.split(".")[0] + "_pierce_points.npz"
-            np.savez(npz, ppoints=source_ppoints, params=source_params)
-
-            ant1, ant2 = mtls.get_ant12(mset)
-            phasediffs = np.array(add_phase_offsets(ant1, ant2, params))
-            # phasediffs = phasediffs[:, :, np.newaxis] * lmbdas ** 2
-
-            # set_num_threads(3)
-            start = tm.time()
-            offset_data = offset_vis(
-                data, lmbdas, uvw_lmbdas, fluxes, ls, ms, ns, phasediffs
-            )
-            print("sim offset_vis elapsed: %g", tm.time() - start)
-            set_num_threads(8)
-            """
+            # pp_u_offset, pp_v_offset = phase_center_offset(ra0, dec0, h_pix, time)
+            # print("pp_u_offset,pp_v_offset", pp_u_offset, pp_v_offset)
             # here----------------------------------------------------------------
-            u_per_source, v_per_source, u_vec_params, v_vec_params = get_tec_value2(
-                phs_screen,
-                us,
-                vs,
-                zen_angles,
-                azimuths,
-                args.scale,
-                h_pix,
-                pp_u_offset,
-                pp_v_offset,
-            )
-            source_ppoints = np.stack((u_per_source, v_per_source))
-            source_params = np.stack((u_vec_params, v_vec_params))
-            # Lets save the x and y coordinates, the tec params and phasediffs
-            npz = mset.split(".")[0] + "_pierce_points.npz"
-            np.savez(npz, ppoints=source_ppoints, params=source_params)
+            # u_per_source, v_per_source, u_vec_params, v_vec_params = get_tec_value(
+            #     phs_screen,
+            #     us,
+            #     vs,
+            #     zen_angles,
+            #     azimuths,
+            #     args.scale,
+            #     h_pix,
+            #     pp_u_offset,
+            #     pp_v_offset,
+            # )
+            # source_ppoints = np.stack((u_per_source, v_per_source))
+            # source_params = np.stack((u_vec_params, v_vec_params))
+            # # Lets save the x and y coordinates, the tec params and phasediffs
+            # npz = mset.split(".")[0] + "_pierce_points.npz"
+            # np.savez(npz, ppoints=source_ppoints, params=source_params)
 
             ant1, ant2 = mtls.get_ant12(mset)
-            u_phasediffs, v_phasediffs = add_phase_offsets2(
-                ant1, ant2, u_vec_params, v_vec_params
-            )
             start = tm.time()
-            offset_data = mp_offset_vis(
+            offset_data = compute_offset_vis_parallel(
                 data,
-                uvw_lmbdas,
+                initial_setup_params,
+                zen_angles,
+                azimuths,
                 lmbdas,
-                u_phasediffs,
-                v_phasediffs,
-                args.spar,
+                uvw_lmbdas,
                 fluxes,
                 ls,
                 ms,
                 ns,
+                args.spar,
+                h_pix,
+                ant1,
+                ant2,
             )
+
+            # offset_data = mp_offset_vis(
+            #     data,
+            #     uvw_lmbdas,
+            #     lmbdas,
+            #     u_phasediffs,
+            #     v_phasediffs,
+            #     args.spar,
+            #     fluxes,
+            #     ls,
+            #     ms,
+            #     ns,
+            # )
             # offset_data = offset_vis_slow(
             #     data, lmbdas, uvw_lmbdas, fluxes, ls, ms, ns, u_phasediffs, v_phasediffs, args.spar)
+            print("sim offset_vis elapsed: %g", tm.time() - start)
             print("Adding thermal noise to offset visibilities...")
             offset_data = add_thermal_noise(offset_data, dnu)
-            print("sim offset_vis elapsed: %g", tm.time() - start)
+
             # set_num_threads(8)
             # to here------------------------------------------------------------
 
