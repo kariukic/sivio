@@ -1,39 +1,40 @@
+import csv
+import gc
+import logging
 import os
 import sys
-import csv
-import logging
-import numpy as np
+import time as tm
 from argparse import ArgumentParser
+
+import numpy as np
 from casacore.tables import table
 
 # from numba import set_num_threads
 import mset_utils as mtls
-import time as tm
-from mp_vis_sim import (
+import plotting
+import sky_models
+from coordinates import MWAPOS, get_time, radec_to_altaz
+from cthulhu_analysis import cthulhu_analyse
+from match_catalogs import main_match
+from phase_screen import get_antenna_in_uvw, iono_phase_shift
+from vis_sim_numba import (
     add_thermal_noise,
+    collective_pierce_points,
     compute_initial_setup_params,
+    true_vis_numba,
     compute_offset_vis_parallel,
     sim_prep,
-    true_vis_numba,
 )
-
-import sky_models
-from phase_screen import (
-    get_antenna_in_uvw,
-    iono_phase_shift,
-)
-from coordinates import get_time, MWAPOS, radec_to_altaz
-from match_catalogs import main_match
-from cthulhu_analysis import cthulhu_analyse
-import plotting
 
 
 def main():
     parser = ArgumentParser(
         "python run_vis_sim.py", description="Ionospheric effects simulations"
     )
-    parser.add_argument("--ms_template", required=True, help="Template measurement set")
-    parser.add_argument("--metafits", required=True, help="Path to the metafits file")
+    parser.add_argument("--ms_template", required=True,
+                        help="Template measurement set")
+    parser.add_argument("--metafits", required=True,
+                        help="Path to the metafits file")
     parser.add_argument(
         "--yfile", required=False, help="Path to yaml file to obtain the sky model from"
     )
@@ -119,7 +120,8 @@ def main():
         action="store_true",
         help="run multiprocessing. not yet fully implemented",
     )
-    parser.add_argument("--debug", action="store_true", help="Run in debug mode")
+    parser.add_argument("--debug", action="store_true",
+                        help="Run in debug mode")
     args = parser.parse_args()
 
     logger = logging.getLogger(__name__)
@@ -145,7 +147,8 @@ def main():
         tbl = table(mset, readonly=False)
         ra0, dec0 = mtls.get_phase_center(tbl)
         print(
-            "The phase center is at ra=%s, dec=%s" % (np.degrees(ra0), np.degrees(dec0))
+            "The phase center is at ra=%s, dec=%s" % (
+                np.degrees(ra0), np.degrees(dec0))
         )
         if args.modelpath is not None:
             ras, decs, fluxes = [], [], []
@@ -188,9 +191,13 @@ def main():
             # set_num_threads(5)
             start = tm.time()
             true_data = true_vis_numba(data, uvw_lmbdas, fluxes, ls, ms, ns)
-            print("Adding thermal noise to true visibilities...")
-            # true_data = add_thermal_noise(true_data, dnu)
+            #true_data = compute_true_vis_parallel(data, uvw_lmbdas, fluxes, ls, ms, ns)
             print("sim true_vis elapsed: %g", tm.time() - start)
+            print("Adding thermal noise to true visibilities...")
+            true_data[:, :, 0] = add_thermal_noise(true_data[:, :, 0], dnu)
+            true_data[:, :, 3] = true_data[:, :, 0]
+            # collected = gc.collect()
+            # print(f"collected: {collected}")
 
             mtls.put_col(tbl, "DATA", true_data)
 
@@ -213,11 +220,22 @@ def main():
             zen_angles = np.pi / 2.0 - alts
 
             us, vs, ws = get_antenna_in_uvw(mset, tbl, lst)
+
             initial_setup_params = compute_initial_setup_params(
                 phs_screen, us, vs, args.height, args.scale, ra0, dec0, time
             )
-
-            h_pix = args.height / args.scale
+            ant1, ant2 = mtls.get_ant12(mset)
+            initial_setup_params = list(initial_setup_params) + list(
+                (ant1, ant2, args.spar)
+            )
+            initial_setup_params = tuple(initial_setup_params)
+            start = tm.time()
+            source_ppoints = collective_pierce_points(
+                zen_angles, azimuths, initial_setup_params
+            )
+            print("collective_pierce_points elapsed: %g", tm.time() - start)
+            npz = mset.split(".")[0] + "_pierce_points.npz"
+            np.savez(npz, ppoints=source_ppoints)
             # first lets calculate the offset of the ref antenna from phase screen center.
             # pp_u_offset, pp_v_offset = phase_center_offset(ra0, dec0, h_pix, time)
             # print("pp_u_offset,pp_v_offset", pp_u_offset, pp_v_offset)
@@ -233,13 +251,13 @@ def main():
             #     pp_u_offset,
             #     pp_v_offset,
             # )
+
             # source_ppoints = np.stack((u_per_source, v_per_source))
             # source_params = np.stack((u_vec_params, v_vec_params))
             # # Lets save the x and y coordinates, the tec params and phasediffs
             # npz = mset.split(".")[0] + "_pierce_points.npz"
             # np.savez(npz, ppoints=source_ppoints, params=source_params)
 
-            ant1, ant2 = mtls.get_ant12(mset)
             start = tm.time()
             offset_data = compute_offset_vis_parallel(
                 data,
@@ -252,32 +270,11 @@ def main():
                 ls,
                 ms,
                 ns,
-                args.spar,
-                h_pix,
-                ant1,
-                ant2,
             )
-
-            # offset_data = mp_offset_vis(
-            #     data,
-            #     uvw_lmbdas,
-            #     lmbdas,
-            #     u_phasediffs,
-            #     v_phasediffs,
-            #     args.spar,
-            #     fluxes,
-            #     ls,
-            #     ms,
-            #     ns,
-            # )
-            # offset_data = offset_vis_slow(
-            #     data, lmbdas, uvw_lmbdas, fluxes, ls, ms, ns, u_phasediffs, v_phasediffs, args.spar)
             print("sim offset_vis elapsed: %g", tm.time() - start)
             print("Adding thermal noise to offset visibilities...")
-            offset_data = add_thermal_noise(offset_data, dnu)
-
-            # set_num_threads(8)
-            # to here------------------------------------------------------------
+            offset_data[:, :, 0] = add_thermal_noise(offset_data[:, :, 0], dnu)
+            offset_data[:, :, 3] = offset_data[:, :, 0]
 
             if "OFFSET_DATA" not in tbl.colnames():
                 print("Adding OFFSET_DATA column in MS with offset visibilities...")
@@ -329,7 +326,8 @@ def main():
     if args.match:
         true_image = prefix + "_truevis-image.fits"
         offset_image = prefix + "_offsetvis-image.fits"
-        sorted_df_true_sky, sorted_df_offset_sky = main_match(true_image, offset_image)
+        sorted_df_true_sky, sorted_df_offset_sky = main_match(
+            true_image, offset_image)
 
     if args.plot:
         if args.offset_vis:
@@ -346,15 +344,15 @@ def main():
         npz = prefix + "_pierce_points.npz"
         tecdata = np.load(npz)
         ppoints = tecdata["ppoints"]
-        params = np.rad2deg(tecdata["params"])
+        # params = np.rad2deg(tecdata["params"])
         fieldcenter = (args.size / args.scale) // 2
         print(fieldcenter, phs_screen.shape)
 
-        max_bl = mtls.get_bl_lens(mset).max()
+        # max_bl = mtls.get_bl_lens(mset).max()
 
-        plotting.ppoints_on_tec_field(
-            phs_screen, ppoints, params, fieldcenter, prefix, max_bl, args.scale
-        )
+        # plotting.ppoints_on_tec_field(
+        #     phs_screen, ppoints, params, fieldcenter, prefix, max_bl, args.scale
+        # )
         if args.match:
             try:
                 pname = prefix + "_cthulhu_plots.png"
@@ -370,7 +368,8 @@ def main():
                 pname = prefix + "_cthulhu_plots.png"
                 sorted_true_sky_cat = "sorted_" + prefix + "_truevis-image.csv"
                 sorted_offset_sky_cat = "sorted_" + prefix + "_offsetvis-image.csv"
-                obj = cthulhu_analyse(sorted_true_sky_cat, sorted_offset_sky_cat)
+                obj = cthulhu_analyse(
+                    sorted_true_sky_cat, sorted_offset_sky_cat)
                 plotting.cthulhu_plots(
                     obj, phs_screen, ppoints, fieldcenter, args.scale, plotname=pname
                 )
@@ -383,7 +382,8 @@ def main():
     if os.path.exists(output_dir):
         output_dir += "_run2"
     os.makedirs(output_dir, exist_ok=True)
-    os.system("mv %s* sorted_%s* %s" % (args.n_sources, args.n_sources, output_dir))
+    os.system("mv %s* sorted_%s* %s" %
+              (args.n_sources, args.n_sources, output_dir))
 
 
 if __name__ == "__main__":

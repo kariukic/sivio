@@ -231,7 +231,12 @@ def compute_initial_setup_params(tec, us, vs, height, scale, ra0, dec0, time):
 
 @njit
 def get_uv_phase_offsets(
-    source_zenith_angle, source_azimuth_angle, initial_setup_params, h_pix, ant1, ant2,
+    source_zenith_angle,
+    source_azimuth_angle,
+    initial_setup_params,
+    h_pix,
+    ant1,
+    ant2,
 ):
     (
         du,
@@ -286,7 +291,12 @@ def single_source_offset_vis_(
     spar,
 ):
     u_phasediffs, v_phasediffs = get_uv_phase_offsets(
-        zen_a, az, initial_setup_params, h_pix, ant1, ant2,
+        zen_a,
+        az,
+        initial_setup_params,
+        h_pix,
+        ant1,
+        ant2,
     )
     source_offset_vis = single_source_offset_vis(
         lmbdas, uvw_lmbdas, ff, ll, mm, nn, u_phasediffs, v_phasediffs, spar
@@ -300,7 +310,7 @@ def data_incremental(offdata, source_offset_vis):
     return offdata
 
 
-@njit(parallel=True)
+@njit(parallel=False)
 def compute_offset_vis_parallel(
     data,
     initial_setup_params,
@@ -549,9 +559,9 @@ def thermal_variance_baseline(
     dnu=40000.0000000298, Tsys=240, timestamps=1, effective_collecting_area=21
 ):
     """
-        The thermal variance of each baseline (assumed constant across baselines/times/frequencies.
-        Equation comes from Trott 2016 (from Morales 2005)
-        """
+    The thermal variance of each baseline (assumed constant across baselines/times/frequencies.
+    Equation comes from Trott 2016 (from Morales 2005)
+    """
     # dnu = frequencies[1] - frequencies[0]
     integration_time = timestamps * 8
 
