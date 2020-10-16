@@ -9,7 +9,6 @@ from argparse import ArgumentParser
 import numpy as np
 from casacore.tables import table
 
-# from numba import set_num_threads
 import mset_utils as mtls
 import plotting
 import sky_models
@@ -62,10 +61,7 @@ def main():
         help="Number of point sources to simulate",
     )
     parser.add_argument(
-        "--spar",
-        type=int,
-        default=20,
-        help="Number of point sources to simulate",
+        "--spar", type=int, default=20, help="Number of point sources to simulate",
     )
     parser.add_argument(
         "--offset_vis",
@@ -135,11 +131,7 @@ def main():
     else:
         obsid = args.ms_template.split(".")[0]
     print("obsid:", obsid)
-    mset = "%s_sources_%s_%stec.ms" % (
-        args.n_sources,
-        obsid,
-        args.tec_type,
-    )
+    mset = "%s_sources_%s_%stec.ms" % (args.n_sources, obsid, args.tec_type,)
     prefix = mset.split(".")[0]
 
     if args.sim:
@@ -302,16 +294,22 @@ def main():
                     -data-column %s %s"
             % (imagename, "DATA", mset)
         )
-        os.system(command)
+        try:
+            os.system(command)
+            wsclean_imager = True
+        except Exception:
+            wsclean_imager = False
+            print("Unexpected wsclean error.")
 
         if args.offset_vis:
-            imagename = prefix + "_offsetvis"
-            command2 = (
-                "wsclean -name %s -abs-mem 40 -size 2048 2048 -scale 30asec -niter 1000000 -auto-threshold 3 \
-                        -data-column %s %s"
-                % (imagename, "OFFSET_DATA", mset)
-            )
-            os.system(command2)
+            if wsclean_imager:
+                imagename = prefix + "_offsetvis"
+                command2 = (
+                    "wsclean -name %s -abs-mem 40 -size 2048 2048 -scale 30asec -niter 1000000 -auto-threshold 3 \
+                            -data-column %s %s"
+                    % (imagename, "OFFSET_DATA", mset)
+                )
+                os.system(command2)
         """
         if args.scint_vis:
             imagename = prefix + "_%srd_scint" % (int(args.rdiff / 1000))
