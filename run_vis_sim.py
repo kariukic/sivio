@@ -1,5 +1,5 @@
 import csv
-import gc
+
 import logging
 import os
 import sys
@@ -31,10 +31,8 @@ def main():
     parser = ArgumentParser(
         "python run_vis_sim.py", description="Ionospheric effects simulations"
     )
-    parser.add_argument("--ms_template", required=True,
-                        help="Template measurement set")
-    parser.add_argument("--metafits", required=True,
-                        help="Path to the metafits file")
+    parser.add_argument("--ms_template", required=True, help="Template measurement set")
+    parser.add_argument("--metafits", required=True, help="Path to the metafits file")
     parser.add_argument(
         "--yfile", required=False, help="Path to yaml file to obtain the sky model from"
     )
@@ -64,7 +62,10 @@ def main():
         help="Number of point sources to simulate",
     )
     parser.add_argument(
-        "--spar", type=int, default=20, help="Number of point sources to simulate",
+        "--spar",
+        type=int,
+        default=20,
+        help="Number of point sources to simulate",
     )
     parser.add_argument(
         "--offset_vis",
@@ -120,8 +121,7 @@ def main():
         action="store_true",
         help="run multiprocessing. not yet fully implemented",
     )
-    parser.add_argument("--debug", action="store_true",
-                        help="Run in debug mode")
+    parser.add_argument("--debug", action="store_true", help="Run in debug mode")
     args = parser.parse_args()
 
     logger = logging.getLogger(__name__)
@@ -135,7 +135,11 @@ def main():
     else:
         obsid = args.ms_template.split(".")[0]
     print("obsid:", obsid)
-    mset = "%s_sources_%s_%stec.ms" % (args.n_sources, obsid, args.tec_type,)
+    mset = "%s_sources_%s_%stec.ms" % (
+        args.n_sources,
+        obsid,
+        args.tec_type,
+    )
     prefix = mset.split(".")[0]
 
     if args.sim:
@@ -147,8 +151,7 @@ def main():
         tbl = table(mset, readonly=False)
         ra0, dec0 = mtls.get_phase_center(tbl)
         print(
-            "The phase center is at ra=%s, dec=%s" % (
-                np.degrees(ra0), np.degrees(dec0))
+            "The phase center is at ra=%s, dec=%s" % (np.degrees(ra0), np.degrees(dec0))
         )
         if args.modelpath is not None:
             ras, decs, fluxes = [], [], []
@@ -191,13 +194,11 @@ def main():
             # set_num_threads(5)
             start = tm.time()
             true_data = true_vis_numba(data, uvw_lmbdas, fluxes, ls, ms, ns)
-            #true_data = compute_true_vis_parallel(data, uvw_lmbdas, fluxes, ls, ms, ns)
+            # true_data = compute_true_vis_parallel(data, uvw_lmbdas, fluxes, ls, ms, ns)
             print("sim true_vis elapsed: %g", tm.time() - start)
             print("Adding thermal noise to true visibilities...")
             true_data[:, :, 0] = add_thermal_noise(true_data[:, :, 0], dnu)
             true_data[:, :, 3] = true_data[:, :, 0]
-            # collected = gc.collect()
-            # print(f"collected: {collected}")
 
             mtls.put_col(tbl, "DATA", true_data)
 
@@ -219,12 +220,12 @@ def main():
             alts, azimuths = radec_to_altaz(ras, decs, time, MWAPOS)
             zen_angles = np.pi / 2.0 - alts
 
-            us, vs, ws = get_antenna_in_uvw(mset, tbl, lst)
+            us, vs, _ = get_antenna_in_uvw(mset, tbl, lst)
+            ant1, ant2 = mtls.get_ant12(mset)
 
             initial_setup_params = compute_initial_setup_params(
                 phs_screen, us, vs, args.height, args.scale, ra0, dec0, time
             )
-            ant1, ant2 = mtls.get_ant12(mset)
             initial_setup_params = list(initial_setup_params) + list(
                 (ant1, ant2, args.spar)
             )
@@ -326,8 +327,7 @@ def main():
     if args.match:
         true_image = prefix + "_truevis-image.fits"
         offset_image = prefix + "_offsetvis-image.fits"
-        sorted_df_true_sky, sorted_df_offset_sky = main_match(
-            true_image, offset_image)
+        sorted_df_true_sky, sorted_df_offset_sky = main_match(true_image, offset_image)
 
     if args.plot:
         if args.offset_vis:
@@ -344,15 +344,15 @@ def main():
         npz = prefix + "_pierce_points.npz"
         tecdata = np.load(npz)
         ppoints = tecdata["ppoints"]
-        # params = np.rad2deg(tecdata["params"])
         fieldcenter = (args.size / args.scale) // 2
         print(fieldcenter, phs_screen.shape)
 
+        # params = np.rad2deg(tecdata["params"])
         # max_bl = mtls.get_bl_lens(mset).max()
-
         # plotting.ppoints_on_tec_field(
         #     phs_screen, ppoints, params, fieldcenter, prefix, max_bl, args.scale
         # )
+
         if args.match:
             try:
                 pname = prefix + "_cthulhu_plots.png"
@@ -368,13 +368,12 @@ def main():
                 pname = prefix + "_cthulhu_plots.png"
                 sorted_true_sky_cat = "sorted_" + prefix + "_truevis-image.csv"
                 sorted_offset_sky_cat = "sorted_" + prefix + "_offsetvis-image.csv"
-                obj = cthulhu_analyse(
-                    sorted_true_sky_cat, sorted_offset_sky_cat)
+                obj = cthulhu_analyse(sorted_true_sky_cat, sorted_offset_sky_cat)
                 plotting.cthulhu_plots(
                     obj, phs_screen, ppoints, fieldcenter, args.scale, plotname=pname
                 )
-            except AssertionError:
-                print("No matching sources in both catalogs.")
+            except FileNotFoundError:
+                print("No catalog files found to match.")
 
     print("Wrapping up")
     output_dir = "simulation_output/" + prefix + "_spar" + str(args.spar)
@@ -382,8 +381,7 @@ def main():
     if os.path.exists(output_dir):
         output_dir += "_run2"
     os.makedirs(output_dir, exist_ok=True)
-    os.system("mv %s* sorted_%s* %s" %
-              (args.n_sources, args.n_sources, output_dir))
+    os.system("mv %s* sorted_%s* %s" % (args.n_sources, args.n_sources, output_dir))
 
 
 if __name__ == "__main__":
