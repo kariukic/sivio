@@ -139,6 +139,12 @@ def main():
     print("obsid:", obsid)
     mset = "%s_sources_%s_%stec.ms" % (args.n_sources, obsid, args.tec_type,)
     prefix = mset.split(".")[0]
+    output_dir = "simulation_output/" + prefix + "_spar" + str(args.spar)
+    print(output_dir)
+    if os.path.exists(output_dir):
+        output_dir += "_run2"
+    os.makedirs(output_dir, exist_ok=True)
+    os.chdir(output_dir)
 
     if args.sim:
         if mset not in os.listdir(os.path.abspath(".")):
@@ -357,12 +363,8 @@ def main():
                 print("No catalog files found to match.")
 
     print("Wrapping up")
-    output_dir = "simulation_output/" + prefix + "_spar" + str(args.spar)
-    print(output_dir)
-    if os.path.exists(output_dir):
-        output_dir += "_run2"
-    os.makedirs(output_dir, exist_ok=True)
-    os.system("mv %s* sorted_%s* %s" % (args.n_sources, args.n_sources, output_dir))
+
+    # os.system("mv %s* sorted_%s* %s" % (args.n_sources, args.n_sources, output_dir))
 
 
 if __name__ == "__main__":

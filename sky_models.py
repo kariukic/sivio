@@ -135,9 +135,9 @@ def random_model(N, ra0, dec0, filename="sky_model.csv"):
     decs = np.array(decs)
     fluxes = np.array(fluxes)
 
-    print("RAs range", ras.min(), ras.max())
-    print("Decs range", decs.min(), decs.max())
-    print("Fluxes range", fluxes.min(), fluxes.max())
+    # print("RAs range", ras.min(), ras.max())
+    # print("Decs range", decs.min(), decs.max())
+    # print("Fluxes range", fluxes.min(), fluxes.max())
 
     df = pd.DataFrame(
         list(zip(list(ras), list(decs), list(fluxes))), columns=["ra", "dec", "flux"],
