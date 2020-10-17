@@ -1,12 +1,13 @@
 import csv
-
 import logging
+import multiprocessing
 import os
 import sys
 import time as tm
 from argparse import ArgumentParser
 
 import numpy as np
+import psutil
 from casacore.tables import table
 
 import mset_utils as mtls
@@ -15,14 +16,19 @@ import sky_models
 from coordinates import MWAPOS, get_time, radec_to_altaz
 from cthulhu_analysis import cthulhu_analyse
 from match_catalogs import main_match
-from phase_screen import get_antenna_in_uvw, iono_phase_shift
+from phase_screen import make_phase_screen
 from vis_sim_numba import (
     add_thermal_noise,
     collective_pierce_points,
     compute_initial_setup_params,
-    true_vis_numba,
     compute_offset_vis_parallel,
+    get_antenna_in_uvw,
     sim_prep,
+    true_vis_numba,
+)
+
+print(
+    f"No. of CPUS: {multiprocessing.cpu_count()}: Total memory: ~{psutil.virtual_memory().total/1e9} GB"
 )
 
 
@@ -186,11 +192,10 @@ def main():
             # set_num_threads(5)
             start = tm.time()
             true_data = true_vis_numba(data, uvw_lmbdas, fluxes, ls, ms, ns)
-            # true_data = compute_true_vis_parallel(data, uvw_lmbdas, fluxes, ls, ms, ns)
-            print("sim true_vis elapsed: %g", tm.time() - start)
-            print("Adding thermal noise to true visibilities...")
+            print("Adding thermal noise to model visibilities...")
             true_data[:, :, 0] = add_thermal_noise(true_data[:, :, 0], dnu)
             true_data[:, :, 3] = true_data[:, :, 0]
+            print("Time elapsed simulating model visibilities: %g", tm.time() - start)
 
             mtls.put_col(tbl, "DATA", true_data)
 
@@ -202,7 +207,7 @@ def main():
                 loaded_tecpath = np.load(args.tecpath)
                 phs_screen = loaded_tecpath["tecscreen"]
             else:
-                phs_screen = iono_phase_shift(
+                phs_screen = make_phase_screen(
                     scale=args.scale, size=args.size, tec_type=args.tec_type
                 )
                 tecnpz = prefix + "_phase_screen.npz"
@@ -229,28 +234,6 @@ def main():
             print("collective_pierce_points elapsed: %g", tm.time() - start)
             npz = mset.split(".")[0] + "_pierce_points.npz"
             np.savez(npz, ppoints=source_ppoints)
-            # first lets calculate the offset of the ref antenna from phase screen center.
-            # pp_u_offset, pp_v_offset = phase_center_offset(ra0, dec0, h_pix, time)
-            # print("pp_u_offset,pp_v_offset", pp_u_offset, pp_v_offset)
-            # here----------------------------------------------------------------
-            # u_per_source, v_per_source, u_vec_params, v_vec_params = get_tec_value(
-            #     phs_screen,
-            #     us,
-            #     vs,
-            #     zen_angles,
-            #     azimuths,
-            #     args.scale,
-            #     h_pix,
-            #     pp_u_offset,
-            #     pp_v_offset,
-            # )
-
-            # source_ppoints = np.stack((u_per_source, v_per_source))
-            # source_params = np.stack((u_vec_params, v_vec_params))
-            # # Lets save the x and y coordinates, the tec params and phasediffs
-            # npz = mset.split(".")[0] + "_pierce_points.npz"
-            # np.savez(npz, ppoints=source_ppoints, params=source_params)
-
             start = tm.time()
             offset_data = compute_offset_vis_parallel(
                 data,
@@ -264,27 +247,27 @@ def main():
                 ms,
                 ns,
             )
-            print("sim offset_vis elapsed: %g", tm.time() - start)
             print("Adding thermal noise to offset visibilities...")
             offset_data[:, :, 0] = add_thermal_noise(offset_data[:, :, 0], dnu)
             offset_data[:, :, 3] = offset_data[:, :, 0]
+            print("Time elapsed simulating offset visibilities: %g", tm.time() - start)
 
             if "OFFSET_DATA" not in tbl.colnames():
                 print("Adding OFFSET_DATA column in MS with offset visibilities...")
                 mtls.add_col(tbl, "OFFSET_DATA")
             mtls.put_col(tbl, "OFFSET_DATA", offset_data)
-        """
-        if args.scint_vis:
-            scint_data = scint_vis(
-                mset, data, uvw_lmbdas, fluxes, ls, ms, ns, args.rdiff
-            )
-            if "SCINT_DATA" not in tbl.colnames():
-                print(
-                    "Adding SCINT_DATA column in MS with simulated visibilities... ..."
-                )
-                mtls.add_col(tbl, "SCINT_DATA")
-            mtls.put_col(tbl, "SCINT_DATA", scint_data)
-        """
+        # """
+        # if args.scint_vis:
+        #     scint_data = scint_vis(
+        #         mset, data, uvw_lmbdas, fluxes, ls, ms, ns, args.rdiff
+        #     )
+        #     if "SCINT_DATA" not in tbl.colnames():
+        #         print(
+        #             "Adding SCINT_DATA column in MS with simulated visibilities... ..."
+        #         )
+        #         mtls.add_col(tbl, "SCINT_DATA")
+        #     mtls.put_col(tbl, "SCINT_DATA", scint_data)
+        # """
         tbl.close()
 
     if args.image:

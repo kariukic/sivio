@@ -1,19 +1,9 @@
-# import multiprocessing as mp
-
 import numpy as np
-import psutil
 from numba import complex64, float64, njit, prange
 from scipy import constants
 
 import mset_utils as mtls
-from phase_screen import phase_center_offset, scale_to_pixel_range
-
-phys_cores = psutil.cpu_count(logical=False)
-logical_cpus = psutil.cpu_count(logical=True)
-mem = psutil.virtual_memory()
-print(
-    f"No. of cores: {phys_cores}: No. of logical CPUS: {logical_cpus}: Total memory in bytes: {mem.total}"
-)
+from coordinates import radec_to_altaz, MWAPOS
 
 
 def sim_prep(tbl, ras, decs):
@@ -65,6 +55,113 @@ def true_vis_numba(data, uvw_lmbdas, fluxes, ls, ms, ns):
         source_count += 1
 
     return data
+
+
+def get_antenna_in_uvw(mset, tbl, lst):
+    """
+    Convert the antennas positions into some sort of uv plane with one antenna position as the center of the field.
+    [Old idea, now I just use the xyz values and they seem mixed up on MWA MS]
+
+    Parameters
+    ----------
+    mset :
+        Measurement set.\n
+    tbl : casacore table.
+        The casacore mset table opened with readonly=False.\n
+    lst : Format: 00h00m00.0000s
+        Local sideral time.\n
+
+    Returns
+    -------
+    3 lists/arrays.
+        u, v and w positions of the projected antennas in metres.
+    """
+    """
+    from astropy.coordinates import Angle
+    from astropy import units as unit
+    ra0, dec0 = mtls.get_phase_center(tbl)
+    # ra0 = np.deg2rad(0)
+    print("lst", lst)
+    ra0 = Angle(ra0, unit.radian)
+    print("ra0", ra0)
+    ha = Angle(lst) - ra0  # HA = LST-RA
+    print("Hour angle", ra0)
+
+    xyz = mtls.get_bl_vectors(mset)
+
+    us = np.sin(ha) * xyz[:, 0] + np.cos(ha) * xyz[:, 1]
+
+    vs = (
+        -np.sin(dec0) * np.cos(ha) * xyz[:, 0]
+        + np.sin(dec0) * np.sin(ha) * xyz[:, 1]
+        + np.cos(dec0) * xyz[:, 2]
+    )
+    ws = (
+        np.cos(dec0) * np.cos(ha) * xyz[:, 0]
+        + -np.cos(dec0) * np.sin(ha) * xyz[:, 1]
+        + np.sin(dec0) * xyz[:, 2]
+    )
+
+    return us, vs, ws
+    """
+    xyz = mtls.get_bl_vectors(mset)
+    return xyz[:, 0], xyz[:, 2], xyz[:, 1]
+
+
+def scale_to_pixel_range(us, scale=10):
+    """
+    Scale antenna positions into the axis range of the tec field.
+
+    Parameters
+    ----------
+    us : list/array.
+        list of distances to be scaled. \n
+    scale : int, optional.
+        the pixel to distance scaling inmetres, by default 10 \n
+
+    Returns
+    -------
+    array.
+        scaled distances.
+    """
+    pixel_max = max(us) / scale
+    pixel_min = 0
+
+    scaled = ((us - np.min(us)) / (np.max(us) - np.min(us))) * (
+        pixel_max - pixel_min
+    ) + pixel_min
+
+    return np.array(scaled)
+
+
+def phase_center_offset(ra0, dec0, h_pix, time):
+    """
+    Calculate the pixel coordinates for the phase center position.
+    This is the offset used to aligh the phase center to the center of the phase screen
+
+    Parameters
+    ----------
+    tbl : casacore MS table.
+        The MS table to get the phase center from.\n
+    h_pix : int/float
+        The scaled height of the phase screen.\n
+    time : astropy time object.
+        The time of observation.
+
+    Returns
+    -------
+    float.
+        The pixel coordinates of the phase center on the phase screen.
+    """
+    new_u0 = 0
+    new_v0 = 0
+    altt, azz = radec_to_altaz(ra0, dec0, time, MWAPOS)
+    zen_angle = np.pi / 2.0 - altt
+    zen_angle_radius = h_pix * np.tan(zen_angle)
+
+    pp_u_off = zen_angle_radius * np.sin(azz) + new_u0
+    pp_v_off = zen_angle_radius * np.cos(azz) + new_v0
+    return pp_u_off, pp_v_off
 
 
 def compute_initial_setup_params(tec, us, vs, height, scale, ra0, dec0, time):
@@ -262,14 +359,25 @@ def get_uv_phase_offsets(
 
 @njit
 def single_source_offset_vis(args):
-    """Compute single source offset visibilities"""
+    """Compute single source offset visibilities
+
+    Parameters
+    ----------
+    args : [type]
+        [description]
+
+    Returns
+    -------
+    [type]
+        [description]
+    """
     (lmbdas, uvw_lmbdas, zen_a, az, flux, ll, mm, nn, initial_setup_params) = args
 
     u_phasediffs, v_phasediffs = get_uv_phase_offsets(
         lmbdas, zen_a, az, initial_setup_params
     )
 
-    phase = np.exp(
+    offset_phase = np.exp(
         2j
         * np.pi
         * (
@@ -278,7 +386,7 @@ def single_source_offset_vis(args):
             + uvw_lmbdas[:, :, 2] * nn
         )
     )
-    return flux * phase
+    return flux * offset_phase
 
 
 @njit(parallel=True)
@@ -294,6 +402,7 @@ def compute_offset_vis_parallel(
     ms,
     ns,
 ):
+    data[:] = 0
     source_num = 0
     for source in prange(len(fluxes)):
         print("source: ", source_num)
@@ -321,9 +430,9 @@ def thermal_variance_baseline(
     dnu=40000.0000000298, Tsys=240, timestamps=1, effective_collecting_area=21
 ):
     """
-        The thermal variance of each baseline (assumed constant across baselines/times/frequencies.
-        Equation comes from Trott 2016 (from Morales 2005)
-        """
+    The thermal variance of each baseline (assumed constant across baselines/times/frequencies.
+    Equation comes from Trott 2016 (from Morales 2005)
+    """
     # dnu = frequencies[1] - frequencies[0]
     integration_time = timestamps * 8
 

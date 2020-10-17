@@ -1,26 +1,24 @@
 import os
 import random
+
 import numpy as np
-import yaml
 import pandas as pd
-from yaml import SafeLoader as SafeLoader
+import yaml
 from astropy.io import fits
+from yaml import SafeLoader as SafeLoader
 
-
-#from mwa_pb import primary_beam
-from coordinates import radec_to_altaz, get_time, MWAPOS
+from mwa_pb import primary_beam
+from coordinates import MWAPOS, get_time, radec_to_altaz
 
 print("Done importing")
 
 
 def precess_to_j2000(ra, deg):
-    from astropy.time import Time
     import astropy.units as u
-    from astropy.coordinates import SkyCoord
-    from astropy.coordinates import FK5
+    from astropy.coordinates import FK5, SkyCoord
+    from astropy.time import Time
 
-    fk5c = SkyCoord(ra * u.degree, deg * u.degree,
-                    frame=FK5(equinox=Time("J2013")))
+    fk5c = SkyCoord(ra * u.degree, deg * u.degree, frame=FK5(equinox=Time("J2013")))
     fk5_2000 = FK5(equinox=Time(2000, format="jyear"))
     ra, dec = (
         fk5c.transform_to(fk5_2000).ra.value,
@@ -46,8 +44,7 @@ def loadfile(data_file, n_sources, ra0, dec0, filename="sky_model.csv"):
         dec.append(unpacked["sources"][source]["dec"])
         ra.append(unpacked["sources"][source]["ra"])
         flux.append(unpacked["sources"][source]["flux_density"])
-        ampscales.append(np.nanmedian(
-            unpacked["sources"][source]["amp_scales"]))
+        ampscales.append(np.nanmedian(unpacked["sources"][source]["amp_scales"]))
         stds.append(np.nanstd(unpacked["sources"][source]["amp_scales"]))
     df = pd.DataFrame(
         list(zip(ra, dec, ampscales, stds, flux, names)),
@@ -148,9 +145,8 @@ def random_model(N, ra0, dec0, filename="sky_model.csv"):
     return ras, decs, fluxes
 
 
-'''
 def compute_mwa_beam_attenuation(
-    ras, decs, metafits, pos, freq=150e6, zenith_pointing=True
+    ras, decs, metafits, pos, frequencies=150e6, zenith_pointing=True
 ):
     """Compute the beam attenuation
 
@@ -189,9 +185,16 @@ def compute_mwa_beam_attenuation(
     alt, az = radec_to_altaz(np.deg2rad(ras), np.deg2rad(decs), time, pos)
     za = np.pi / 2.0 - alt
 
-    print(f"zenith angle: {za} azimuth: {az}")
+    print(f"zenith angle: {np.radians(za)} azimuth: {np.radians(az)}")
+    for channel in frequencies:
     XX, YY = primary_beam.MWA_Tile_full_EE(
-        za, az, freq=freq, delays=delays, zenithnorm=True, power=True, interp=False,
+        za,
+        az,
+        freq=freq[channel],
+        delays=delays,
+        zenithnorm=True,
+        power=True,
+        interp=False,
     )
     return XX, YY
 
@@ -200,7 +203,6 @@ if __name__ == "__main__":
     metafits = "/home/kariuki/scint_sims/mset_data/1098108248.metafits"
     print(
         compute_mwa_beam_attenuation(
-            0.0, -27.0, metafits, MWAPOS, zenith_pointing=False
+            50.0, -20.0, metafits, MWAPOS, zenith_pointing=False
         )
     )
-'''

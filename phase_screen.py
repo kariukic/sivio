@@ -7,11 +7,6 @@ import numpy as np
 from powerbox import PowerBox
 import scipy.ndimage.filters as sp
 
-# from numba import njit
-
-import mset_utils as mtls
-from coordinates import radec_to_altaz, MWAPOS
-
 # from scipy.constants import c
 
 # 1/(8*np.pi**2)*k.elementary_charge**2/(k.epsilon_0*k.electron_mass)
@@ -29,7 +24,7 @@ def convert_to_tecu(frequency, phscreen):
 
 
 def scale_to_pi_range(phscreen):
-    """Scaling our produced phase screen to between [-180,180] degrees
+    """Scaling our produced phase screen to between [0,180] degrees
 
     Parameters
     ----------
@@ -88,7 +83,7 @@ def linear_tec(npix, sine=False):
     return tec
 
 
-def iono_phase_shift(scale=100, size=80000, tec_type="l"):
+def make_phase_screen(scale=100, size=80000, tec_type="l"):
     """
     produces a phase offset screen.
 
@@ -139,303 +134,197 @@ def iono_phase_shift(scale=100, size=80000, tec_type="l"):
     return phs_screen
 
 
-def get_antenna_in_uvw(mset, tbl, lst):
-    """
-    Convert the antennas positions into some sort of uv plane with one antenna position as the center of the field.
+# def get_tec_value_old(
+#     tec, us, vs, zen_angles, azimuths, scale, h_pix, pp_u_offset, pp_v_offset, refant=0
+# ):
+#     """
+#     OLD/DEPRECATED. HAS NO GRADIENT!
+#     Given a source position (zenith and azimuth angles) with reference to the reference antenna, this function obtains
+#     the tec phase offset value at the pierce point corresponding to each antenna. \n \n
 
-    Parameters
-    ----------
-    mset :
-        Measurement set.\n
-    tbl : casacore table.
-        The casacore mset table opened with readonly=False.\n
-    lst : Format: 00h00m00.0000s
-        Local sideral time.\n
+#     Function inspired by: https://stackoverflow.com/a/22778207/7905494 \n
+#     Plotting a point(s) of a circle laying on a plane given the origin, radius and angle(s).
 
-    Returns
-    -------
-    3 lists/arrays.
-        u, v and w positions of the projected antennas in metres.
-    """
-    """
-    from astropy.coordinates import Angle
-    from astropy import units as unit
-    ra0, dec0 = mtls.get_phase_center(tbl)
-    # ra0 = np.deg2rad(0)
-    print("lst", lst)
-    ra0 = Angle(ra0, unit.radian)
-    print("ra0", ra0)
-    ha = Angle(lst) - ra0  # HA = LST-RA
-    print("Hour angle", ra0)
+#     Parameters
+#     ----------
+#     tec : 2Darray.
+#         The TEC/phase screen. \n
+#     us : arraylike.
+#         x coordinates for each antenna. Named 'us' bcause the array is projected into the uv space.\n
+#     vs : arraylike.
+#         y coordinates for each antenna. \n
+#     zen_angle : float.
+#         The zenith angle of the source as calculated from the array earth location and observation time. \n
+#     az : float.
+#         The azimuth angle.
+#     scale : int, optional
+#         Scaling factor. the number of metres represented by the side of a single pixel], by default 10. \n
+#     h : int, optional
+#         Height of the tec screen in metres, by default 200000. \n
+#     refant : int, optional
+#         Reference antenna ID, by default 0
 
-    xyz = mtls.get_bl_vectors(mset)
+#     Returns
+#     -------
+#     1: array.
+#         x coordinates for the pierce points of each antenna.\n
+#     2: array.
+#         y coordinates for the pierce points of each antenna.\n
+#     3: array.
+#         The TEC/phase offset value at the piercepoint of each antenna.
+#     """
+#     # print(
+#     #    "tecscreen size:  %s by %s km. Height:  %s km."
+#     #    % (
+#     #        tec.shape[0] * scale / 1000,
+#     #        tec.shape[1] * scale / 1000,
+#     #        h_pix * scale / 1000,
+#     #    )
+#     # )
+#     # Apply scaling to the array field and tec height.
+#     us_scaled = scale_to_pixel_range(us, scale=scale)
+#     vs_scaled = scale_to_pixel_range(vs, scale=scale)
 
-    us = np.sin(ha) * xyz[:, 0] + np.cos(ha) * xyz[:, 1]
+#     u_tec_center = tec.shape[0] // 2  # + us_scaled[refant]
+#     v_tec_center = tec.shape[1] // 2  # + us_scaled[refant]
 
-    vs = (
-        -np.sin(dec0) * np.cos(ha) * xyz[:, 0]
-        + np.sin(dec0) * np.sin(ha) * xyz[:, 1]
-        + np.cos(dec0) * xyz[:, 2]
-    )
-    ws = (
-        np.cos(dec0) * np.cos(ha) * xyz[:, 0]
-        + -np.cos(dec0) * np.sin(ha) * xyz[:, 1]
-        + np.sin(dec0) * xyz[:, 2]
-    )
+#     u_per_source, v_per_source, tec_per_source = [], [], []
+#     for zen_angle, az in zip(zen_angles, azimuths):
+#         u_tec_list, v_tec_list, tec_per_ant = [], [], []
+#         for u, v in zip(us_scaled, vs_scaled):
+#             # For each antenna, the antenna position becomes a new origin
+#             # This antenna position first has to be in reference to the refant.
+#             new_u0 = u - us_scaled[refant]
+#             new_v0 = v - vs_scaled[refant]
+#             # For each antenna, the zenith angle projects a circle onto the tec screen.
+#             # the radius of the circle is given by:
+#             # zen_angle should be in radians
+#             zen_angle_radius = h_pix * np.tan(zen_angle)
+#             # The azimuth angle gives us the arc on this circle from some starting point
+#             # We can then obtain the u and v coordinates for the pierce point.
+#             pp_u = zen_angle_radius * np.sin(az) + new_u0
+#             pp_v = zen_angle_radius * np.cos(az) + new_v0
 
-    return us, vs, ws
-    """
-    xyz = mtls.get_bl_vectors(mset)
-    return xyz[:, 0], xyz[:, 2], xyz[:, 1]
+#             # Collect pierce points for each antenna.
+#             uu = tec.shape[0] - (pp_u - pp_u_offset + u_tec_center)
+#             vv = pp_v - pp_v_offset + v_tec_center
+#             u_tec_list.append(uu)
+#             v_tec_list.append(vv)
+#             # phase offset value per pierce point.
+#             tec_per_ant.append(tec[int(round(uu)), int(round(vv))])
+#         u_per_source.append(u_tec_list)
+#         v_per_source.append(v_tec_list)
+#         tec_per_source.append(tec_per_ant)
 
-
-def scale_to_pixel_range(us, scale=10):
-    """
-    Scale antenna positions into the axis range of the tec field.
-
-    Parameters
-    ----------
-    us : list/array.
-        list of distances to be scaled. \n
-    scale : int, optional.
-        the pixel to distance scaling inmetres, by default 10 \n
-
-    Returns
-    -------
-    array.
-        scaled distances.
-    """
-    pixel_max = max(us) / scale
-    pixel_min = 0
-
-    scaled = ((us - np.min(us)) / (np.max(us) - np.min(us))) * (
-        pixel_max - pixel_min
-    ) + pixel_min
-
-    return np.array(scaled)
-
-
-def phase_center_offset(ra0, dec0, h_pix, time):
-    """
-    Calculate the pixel coordinates for the phase center position.
-    This is the offset used to aligh the phase center to the center of the phase screen
-
-    Parameters
-    ----------
-    tbl : casacore MS table.
-        The MS table to get the phase center from.\n
-    h_pix : int/float
-        The scaled height of the phase screen.\n
-    time : astropy time object.
-        The time of observation.
-
-    Returns
-    -------
-    float.
-        The pixel coordinates of the phase center on the phase screen.
-    """
-    new_u0 = 0
-    new_v0 = 0
-    altt, azz = radec_to_altaz(ra0, dec0, time, MWAPOS)
-    zen_angle = np.pi / 2.0 - altt
-    zen_angle_radius = h_pix * np.tan(zen_angle)
-
-    pp_u_off = zen_angle_radius * np.sin(azz) + new_u0
-    pp_v_off = zen_angle_radius * np.cos(azz) + new_v0
-    return pp_u_off, pp_v_off
+#     return np.array(u_per_source), np.array(v_per_source), np.array(tec_per_source)
 
 
-def get_tec_value_old(
-    tec, us, vs, zen_angles, azimuths, scale, h_pix, pp_u_offset, pp_v_offset, refant=0
-):
-    """
-    OLD/DEPRECATED. HAS NO GRADIENT!
-    Given a source position (zenith and azimuth angles) with reference to the reference antenna, this function obtains
-    the tec phase offset value at the pierce point corresponding to each antenna. \n \n
+# def get_tec_value(
+#     tec, us, vs, zen_angles, azimuths, scale, h_pix, pp_u_offset, pp_v_offset, refant=0
+# ):
+#     """
+#     Given a source position (zenith and azimuth angles) with reference to the reference antenna, this function obtains
+#     the tec phase offset value at the pierce point corresponding to each antenna. \n \n
 
-    Function inspired by: https://stackoverflow.com/a/22778207/7905494 \n
-    Plotting a point(s) of a circle laying on a plane given the origin, radius and angle(s).
+#     Function inspired by: https://stackoverflow.com/a/22778207/7905494 \n
+#     Plotting a point(s) of a circle laying on a plane given the origin, radius and angle(s).
 
-    Parameters
-    ----------
-    tec : 2Darray.
-        The TEC/phase screen. \n
-    us : arraylike.
-        x coordinates for each antenna. Named 'us' bcause the array is projected into the uv space.\n
-    vs : arraylike.
-        y coordinates for each antenna. \n
-    zen_angle : float.
-        The zenith angle of the source as calculated from the array earth location and observation time. \n
-    az : float.
-        The azimuth angle.
-    scale : int, optional
-        Scaling factor. the number of metres represented by the side of a single pixel], by default 10. \n
-    h : int, optional
-        Height of the tec screen in metres, by default 200000. \n
-    refant : int, optional
-        Reference antenna ID, by default 0
+#     Parameters
+#     ----------
+#     tec : 2Darray.
+#         The TEC/phase screen. \n
+#     us : arraylike.
+#         x coordinates for each antenna. Named 'us' because the array is projected into the "uv" space.\n
+#     vs : arraylike.
+#         y coordinates for each antenna. \n
+#     zen_angle : float.
+#         The zenith angle of the source as calculated from the array earth location and observation time. \n
+#     az : float.
+#         The azimuth angle.
+#     scale : int, optional
+#         Scaling factor. the number of metres represented by the side of a single pixel], by default 10. \n
+#     h : int, optional
+#         Height of the tec screen in metres, by default 200000. \n
+#     refant : int, optional
+#         Reference antenna ID, by default 0
 
-    Returns
-    -------
-    1: array.
-        x coordinates for the pierce points of each antenna.\n
-    2: array.
-        y coordinates for the pierce points of each antenna.\n
-    3: array.
-        The TEC/phase offset value at the piercepoint of each antenna.
-    """
-    # print(
-    #    "tecscreen size:  %s by %s km. Height:  %s km."
-    #    % (
-    #        tec.shape[0] * scale / 1000,
-    #        tec.shape[1] * scale / 1000,
-    #        h_pix * scale / 1000,
-    #    )
-    # )
-    # Apply scaling to the array field and tec height.
-    us_scaled = scale_to_pixel_range(us, scale=scale)
-    vs_scaled = scale_to_pixel_range(vs, scale=scale)
+#     Returns
+#     -------
+#     1: array.
+#         x coordinates for the pierce points of each antenna.\n
+#     2: array.
+#         y coordinates for the pierce points of each antenna.\n
+#     3: array.
+#         The TEC/phase offset value at the piercepoint of each antenna.
+#     """
+#     # print(
+#     #    "tecscreen size:  %s by %s km. Height:  %s km."
+#     #    % (
+#     #        tec.shape[0] * scale / 1000,
+#     #        tec.shape[1] * scale / 1000,
+#     #        h_pix * scale / 1000,
+#     #    )
+#     # )
+#     # Lets first get the gradient of all pixwls in the tec
+#     du, dv = np.gradient(tec)
+#     # Apply scaling to the array field and tec height.
+#     us_scaled = scale_to_pixel_range(us, scale=scale)
+#     vs_scaled = scale_to_pixel_range(vs, scale=scale)
 
-    u_tec_center = tec.shape[0] // 2  # + us_scaled[refant]
-    v_tec_center = tec.shape[1] // 2  # + us_scaled[refant]
+#     u_tec_center = tec.shape[0] // 2  # + us_scaled[refant]
+#     v_tec_center = tec.shape[1] // 2  # + us_scaled[refant]
 
-    u_per_source, v_per_source, tec_per_source = [], [], []
-    for zen_angle, az in zip(zen_angles, azimuths):
-        u_tec_list, v_tec_list, tec_per_ant = [], [], []
-        for u, v in zip(us_scaled, vs_scaled):
-            # For each antenna, the antenna position becomes a new origin
-            # This antenna position first has to be in reference to the refant.
-            new_u0 = u - us_scaled[refant]
-            new_v0 = v - vs_scaled[refant]
-            # For each antenna, the zenith angle projects a circle onto the tec screen.
-            # the radius of the circle is given by:
-            # zen_angle should be in radians
-            zen_angle_radius = h_pix * np.tan(zen_angle)
-            # The azimuth angle gives us the arc on this circle from some starting point
-            # We can then obtain the u and v coordinates for the pierce point.
-            pp_u = zen_angle_radius * np.sin(az) + new_u0
-            pp_v = zen_angle_radius * np.cos(az) + new_v0
+#     u_per_source, v_per_source, u_vec_per_source, v_vec_per_source = [], [], [], []
+#     for zen_angle, az in zip(zen_angles, azimuths):
+#         u_tec_list, v_tec_list, u_vec_list, v_vec_list = [], [], [], []
+#         for u, v in zip(us_scaled, vs_scaled):
+#             # For each antenna, the antenna position becomes a new origin
+#             # This antenna position first has to be in reference to the refant.
+#             new_u0 = u - us_scaled[refant]
+#             new_v0 = v - vs_scaled[refant]
+#             # For each antenna, the zenith angle projects a circle onto the tec screen.
+#             # the radius of the circle is given by:
+#             # zen_angle should be in radians
+#             zen_angle_radius = h_pix * np.tan(zen_angle)
+#             # The azimuth angle gives us the arc on this circle from some starting point
+#             # We can then obtain the u and v coordinates for the pierce point.
+#             pp_u = zen_angle_radius * np.sin(az) + new_u0
+#             pp_v = zen_angle_radius * np.cos(az) + new_v0
 
-            # Collect pierce points for each antenna.
-            uu = tec.shape[0] - (pp_u - pp_u_offset + u_tec_center)
-            vv = pp_v - pp_v_offset + v_tec_center
-            u_tec_list.append(uu)
-            v_tec_list.append(vv)
-            # phase offset value per pierce point.
-            tec_per_ant.append(tec[int(round(uu)), int(round(vv))])
-        u_per_source.append(u_tec_list)
-        v_per_source.append(v_tec_list)
-        tec_per_source.append(tec_per_ant)
+#             # Collect pierce points for each antenna.
+#             uu = tec.shape[0] - (pp_u - pp_u_offset + u_tec_center)
+#             vv = pp_v - pp_v_offset + v_tec_center
+#             u_tec_list.append(uu)
+#             v_tec_list.append(vv)
 
-    return np.array(u_per_source), np.array(v_per_source), np.array(tec_per_source)
+#             # Get the gradient
 
+#             u_vec = du[int(round(uu)), int(round(vv))]
+#             v_vec = dv[int(round(uu)), int(round(vv))]
+#             u_vec_list.append(u_vec)
+#             v_vec_list.append(v_vec)
 
-def get_tec_value(
-    tec, us, vs, zen_angles, azimuths, scale, h_pix, pp_u_offset, pp_v_offset, refant=0
-):
-    """
-    Given a source position (zenith and azimuth angles) with reference to the reference antenna, this function obtains
-    the tec phase offset value at the pierce point corresponding to each antenna. \n \n
+#             # phase offset value per pierce point.
+#             # tec_per_ant.append(tec[int(round(uu)), int(round(vv))])
+#         u_per_source.append(u_tec_list)
+#         v_per_source.append(v_tec_list)
 
-    Function inspired by: https://stackoverflow.com/a/22778207/7905494 \n
-    Plotting a point(s) of a circle laying on a plane given the origin, radius and angle(s).
+#         # tec_per_source.append(tec_per_ant)
+#         u_vec_per_source.append(u_vec_list)
+#         v_vec_per_source.append(v_vec_list)
 
-    Parameters
-    ----------
-    tec : 2Darray.
-        The TEC/phase screen. \n
-    us : arraylike.
-        x coordinates for each antenna. Named 'us' because the array is projected into the "uv" space.\n
-    vs : arraylike.
-        y coordinates for each antenna. \n
-    zen_angle : float.
-        The zenith angle of the source as calculated from the array earth location and observation time. \n
-    az : float.
-        The azimuth angle.
-    scale : int, optional
-        Scaling factor. the number of metres represented by the side of a single pixel], by default 10. \n
-    h : int, optional
-        Height of the tec screen in metres, by default 200000. \n
-    refant : int, optional
-        Reference antenna ID, by default 0
-
-    Returns
-    -------
-    1: array.
-        x coordinates for the pierce points of each antenna.\n
-    2: array.
-        y coordinates for the pierce points of each antenna.\n
-    3: array.
-        The TEC/phase offset value at the piercepoint of each antenna.
-    """
-    # print(
-    #    "tecscreen size:  %s by %s km. Height:  %s km."
-    #    % (
-    #        tec.shape[0] * scale / 1000,
-    #        tec.shape[1] * scale / 1000,
-    #        h_pix * scale / 1000,
-    #    )
-    # )
-    # Lets first get the gradient of all pixwls in the tec
-    du, dv = np.gradient(tec)
-    # Apply scaling to the array field and tec height.
-    us_scaled = scale_to_pixel_range(us, scale=scale)
-    vs_scaled = scale_to_pixel_range(vs, scale=scale)
-
-    u_tec_center = tec.shape[0] // 2  # + us_scaled[refant]
-    v_tec_center = tec.shape[1] // 2  # + us_scaled[refant]
-
-    u_per_source, v_per_source, u_vec_per_source, v_vec_per_source = [], [], [], []
-    for zen_angle, az in zip(zen_angles, azimuths):
-        u_tec_list, v_tec_list, u_vec_list, v_vec_list = [], [], [], []
-        for u, v in zip(us_scaled, vs_scaled):
-            # For each antenna, the antenna position becomes a new origin
-            # This antenna position first has to be in reference to the refant.
-            new_u0 = u - us_scaled[refant]
-            new_v0 = v - vs_scaled[refant]
-            # For each antenna, the zenith angle projects a circle onto the tec screen.
-            # the radius of the circle is given by:
-            # zen_angle should be in radians
-            zen_angle_radius = h_pix * np.tan(zen_angle)
-            # The azimuth angle gives us the arc on this circle from some starting point
-            # We can then obtain the u and v coordinates for the pierce point.
-            pp_u = zen_angle_radius * np.sin(az) + new_u0
-            pp_v = zen_angle_radius * np.cos(az) + new_v0
-
-            # Collect pierce points for each antenna.
-            uu = tec.shape[0] - (pp_u - pp_u_offset + u_tec_center)
-            vv = pp_v - pp_v_offset + v_tec_center
-            u_tec_list.append(uu)
-            v_tec_list.append(vv)
-
-            # Get the gradient
-
-            u_vec = du[int(round(uu)), int(round(vv))]
-            v_vec = dv[int(round(uu)), int(round(vv))]
-            u_vec_list.append(u_vec)
-            v_vec_list.append(v_vec)
-
-            # phase offset value per pierce point.
-            # tec_per_ant.append(tec[int(round(uu)), int(round(vv))])
-        u_per_source.append(u_tec_list)
-        v_per_source.append(v_tec_list)
-
-        # tec_per_source.append(tec_per_ant)
-        u_vec_per_source.append(u_vec_list)
-        v_vec_per_source.append(v_vec_list)
-
-    return (
-        np.array(u_per_source),
-        np.array(v_per_source),
-        np.array(u_vec_per_source),
-        np.array(v_vec_per_source),
-    )  # np.array(tec_per_source)
+#     return (
+#         np.array(u_per_source),
+#         np.array(v_per_source),
+#         np.array(u_vec_per_source),
+#         np.array(v_vec_per_source),
+#     )  # np.array(tec_per_source)
 
 
-def get_xy_phase_vectors(tec, u_per_source, v_per_source):
-    dx, dy = np.gradient(tec)
-    vec_u, vec_v = [], []
-    for u, v in zip(u_per_source, v_per_source):
-        vec_u.append(dx[u, v])
-        vec_v.append(dy[u, v])
-    return vec_u, vec_v
+# def get_xy_phase_vectors(tec, u_per_source, v_per_source):
+#     dx, dy = np.gradient(tec)
+#     vec_u, vec_v = [], []
+#     for u, v in zip(u_per_source, v_per_source):
+#         vec_u.append(dx[u, v])
+#         vec_v.append(dy[u, v])
+#     return vec_u, vec_v
