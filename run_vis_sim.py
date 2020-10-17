@@ -132,13 +132,19 @@ def main():
     else:
         logger.setLevel("INFO")
 
+    if args.modelpath is not None:
+        modelpath = os.path.abspath(args.modelpath)
+    if args.tecpath is not None:
+        tecpath = os.path.abspath(args.tecpath)
     ms_template_path = os.path.abspath(args.ms_template)
+    metafitspath = os.path.abspath(args.ms_template)
 
     if "/" in args.ms_template:
         obsid = args.ms_template.split("/")[-1].split(".")[0]
     else:
         obsid = args.ms_template.split(".")[0]
     print("obsid:", obsid)
+
     mset = "%s_sources_%s_%stec.ms" % (args.n_sources, obsid, args.tec_type,)
     prefix = mset.split(".")[0]
     output_dir = "simulation_output/" + prefix + "_spar" + str(args.spar)
@@ -161,7 +167,7 @@ def main():
         )
         if args.modelpath is not None:
             ras, decs, fluxes = [], [], []
-            with open(args.modelpath, "r") as file:
+            with open(modelpath, "r") as file:
                 reader = csv.reader(file, delimiter=",")
                 next(reader)
                 for row in reader:
@@ -212,7 +218,7 @@ def main():
             # logger.info("Simulating offset visibilities...")
             # "Get the phase screen"
             if args.tecpath is not None:
-                loaded_tecpath = np.load(args.tecpath)
+                loaded_tecpath = np.load(tecpath)
                 phs_screen = loaded_tecpath["tecscreen"]
             else:
                 phs_screen = make_phase_screen(
@@ -221,7 +227,7 @@ def main():
                 tecnpz = prefix + "_phase_screen.npz"
                 np.savez(tecnpz, tecscreen=phs_screen)
 
-            time, lst = get_time(args.metafits, MWAPOS)
+            time, lst = get_time(metafitspath, MWAPOS)
             alts, azimuths = radec_to_altaz(ras, decs, time, MWAPOS)
             zen_angles = np.pi / 2.0 - alts
 
@@ -322,7 +328,7 @@ def main():
         if args.offset_vis:
             phs_screen = np.rad2deg(phs_screen)
         elif args.tecpath:
-            phscrn = np.load(args.tecpath)
+            phscrn = np.load(tecpath)
             phs_screen = np.rad2deg(phscrn["tecscreen"])
         else:
             try:
