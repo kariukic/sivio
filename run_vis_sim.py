@@ -132,7 +132,7 @@ def main():
     else:
         logger.setLevel("INFO")
 
-    ms_template_path = os.path.abspath("args.ms_template")
+    ms_template_path = os.path.abspath(args.ms_template)
 
     if "/" in args.ms_template:
         obsid = args.ms_template.split("/")[-1].split(".")[0]
