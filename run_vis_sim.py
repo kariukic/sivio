@@ -137,7 +137,7 @@ def main():
     if args.tecpath is not None:
         tecpath = os.path.abspath(args.tecpath)
     ms_template_path = os.path.abspath(args.ms_template)
-    metafitspath = os.path.abspath(args.ms_template)
+    metafitspath = os.path.abspath(args.metafits)
 
     if "/" in args.ms_template:
         obsid = args.ms_template.split("/")[-1].split(".")[0]
