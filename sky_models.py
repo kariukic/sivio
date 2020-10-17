@@ -4,11 +4,12 @@ import random
 import numpy as np
 import pandas as pd
 import yaml
-from astropy.io import fits
+
+# from astropy.io import fits
 from yaml import SafeLoader as SafeLoader
 
-from mwa_pb import primary_beam
-from coordinates import MWAPOS, get_time, radec_to_altaz
+# from mwa_pb import primary_beam
+# from coordinates import MWAPOS, get_time, radec_to_altaz
 
 print("Done importing")
 
@@ -145,57 +146,57 @@ def random_model(N, ra0, dec0, filename="sky_model.csv"):
     return ras, decs, fluxes
 
 
-def compute_mwa_beam_attenuation(
-    ras, decs, metafits, pos, freq=150e6, zenith_pointing=True
-):
-    """Compute the beam attenuation
+# def compute_mwa_beam_attenuation(
+#     ras, decs, metafits, pos, freq=150e6, zenith_pointing=True
+# ):
+#     """Compute the beam attenuation
 
- Parameters
-  ----------
-   ras: float/array
-     source RA
-    decs: float/array
-     source dec
-    metafits: str
-     path to observation
-    pos: str
-     Array longitude and latitude
-    freq: float/int, optional
-     frequency, by default 150e6
-    zenith_pointing: bool, optional
-     True if observation is zenith pointing, by default True
+#  Parameters
+#   ----------
+#    ras: float/array
+#      source RA
+#     decs: float/array
+#      source dec
+#     metafits: str
+#      path to observation
+#     pos: str
+#      Array longitude and latitude
+#     freq: float/int, optional
+#      frequency, by default 150e6
+#     zenith_pointing: bool, optional
+#      True if observation is zenith pointing, by default True
 
-    Returns
-    -------
-    float/array, float/array
-     XX, YY beam attenuation for the input direction and frequency.
-    """
-    # for a zenith pointing all delays are zero, and,
-    # you need delays for both XX and YY so need to give it 2 sets of 16 delays
-    if zenith_pointing:
-        delays = np.zeros((2, 16))
-    else:
-        with fits.open(metafits) as hdu:
-            print("getting delays from metafits")
-            delays = list(map(int, hdu[0].header["DELAYS"].split(",")))
-            delays = [delays, delays]
-    print(f"delays: {delays}")
+#     Returns
+#     -------
+#     float/array, float/array
+#      XX, YY beam attenuation for the input direction and frequency.
+#     """
+#     # for a zenith pointing all delays are zero, and,
+#     # you need delays for both XX and YY so need to give it 2 sets of 16 delays
+#     if zenith_pointing:
+#         delays = np.zeros((2, 16))
+#     else:
+#         with fits.open(metafits) as hdu:
+#             print("getting delays from metafits")
+#             delays = list(map(int, hdu[0].header["DELAYS"].split(",")))
+#             delays = [delays, delays]
+#     print(f"delays: {delays}")
 
-    time, _ = get_time(metafits, pos)
-    alt, az = radec_to_altaz(np.deg2rad(ras), np.deg2rad(decs), time, pos)
-    za = np.pi / 2.0 - alt
+#     time, _ = get_time(metafits, pos)
+#     alt, az = radec_to_altaz(np.deg2rad(ras), np.deg2rad(decs), time, pos)
+#     za = np.pi / 2.0 - alt
 
-    print(f"zenith angle: {np.radians(za)} azimuth: {np.radians(az)}")
-    XX, YY = primary_beam.MWA_Tile_full_EE(
-        za, az, freq=freq, delays=delays, zenithnorm=True, power=True, interp=False,
-    )
-    return XX, YY
+#     print(f"zenith angle: {np.radians(za)} azimuth: {np.radians(az)}")
+#     XX, YY = primary_beam.MWA_Tile_full_EE(
+#         za, az, freq=freq, delays=delays, zenithnorm=True, power=True, interp=False,
+#     )
+#     return XX, YY
 
 
-if __name__ == "__main__":
-    metafits = "/home/kariuki/scint_sims/mset_data/1098108248.metafits"
-    print(
-        compute_mwa_beam_attenuation(
-            50.0, -20.0, metafits, MWAPOS, zenith_pointing=False
-        )
-    )
+# if __name__ == "__main__":
+#     metafits = "/home/kariuki/scint_sims/mset_data/1098108248.metafits"
+#     print(
+#         compute_mwa_beam_attenuation(
+#             50.0, -20.0, metafits, MWAPOS, zenith_pointing=False
+#         )
+#     )
