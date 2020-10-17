@@ -146,7 +146,7 @@ def random_model(N, ra0, dec0, filename="sky_model.csv"):
 
 
 def compute_mwa_beam_attenuation(
-    ras, decs, metafits, pos, frequencies=150e6, zenith_pointing=True
+    ras, decs, metafits, pos, freq=150e6, zenith_pointing=True
 ):
     """Compute the beam attenuation
 
@@ -186,15 +186,8 @@ def compute_mwa_beam_attenuation(
     za = np.pi / 2.0 - alt
 
     print(f"zenith angle: {np.radians(za)} azimuth: {np.radians(az)}")
-    for channel in frequencies:
     XX, YY = primary_beam.MWA_Tile_full_EE(
-        za,
-        az,
-        freq=freq[channel],
-        delays=delays,
-        zenithnorm=True,
-        power=True,
-        interp=False,
+        za, az, freq=freq, delays=delays, zenithnorm=True, power=True, interp=False,
     )
     return XX, YY
 
