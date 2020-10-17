@@ -132,6 +132,8 @@ def main():
     else:
         logger.setLevel("INFO")
 
+    ms_template_path = os.path.abspath("args.ms_template")
+
     if "/" in args.ms_template:
         obsid = args.ms_template.split("/")[-1].split(".")[0]
     else:
@@ -150,7 +152,7 @@ def main():
         if mset not in os.listdir(os.path.abspath(".")):
             print("Making the simulation measurement set..")
             os.system("mkdir %s" % (mset))
-            os.system("cp -r %s/* %s" % (args.ms_template, mset))
+            os.system("cp -r %s/* %s" % (ms_template_path, mset))
 
         tbl = table(mset, readonly=False)
         ra0, dec0 = mtls.get_phase_center(tbl)
