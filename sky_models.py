@@ -4,28 +4,79 @@ import random
 import numpy as np
 import pandas as pd
 import yaml
-
-# from astropy.io import fits
 from yaml import SafeLoader as SafeLoader
 
-# from mwa_pb import primary_beam
-# from coordinates import MWAPOS, get_time, radec_to_altaz
 
-print("Done importing")
+def random_sky_model(N, ra0, dec0, filename="sky_model.csv"):
+    ras = sample_floats(ra0 - 9, ra0 + 9, size=N)
+    decs = sample_floats(dec0 - 8.1, dec0 + 8.1, size=N)
 
+    # fluxes = sample_floats(0.5, 15, size=N)
+    # make proper source  count fluxes and pick N fluxes randomly
+    sky_fluxes = make_fluxes(sky_type="random")
+    fluxes = sky_fluxes[np.random.choice(len(sky_fluxes), size=N, replace=False)]
 
-def precess_to_j2000(ra, deg):
-    import astropy.units as u
-    from astropy.coordinates import FK5, SkyCoord
-    from astropy.time import Time
+    ras = np.array(ras)
+    ras = np.where(ras < 0, ras + 360, ras)
+    decs = np.array(decs)
+    fluxes = np.array(fluxes)
 
-    fk5c = SkyCoord(ra * u.degree, deg * u.degree, frame=FK5(equinox=Time("J2013")))
-    fk5_2000 = FK5(equinox=Time(2000, format="jyear"))
-    ra, dec = (
-        fk5c.transform_to(fk5_2000).ra.value,
-        fk5c.transform_to(fk5_2000).dec.value,
+    # print("RAs range", ras.min(), ras.max())
+    # print("Decs range", decs.min(), decs.max())
+    # print("Fluxes range", fluxes.min(), fluxes.max())
+
+    df = pd.DataFrame(
+        list(zip(list(ras), list(decs), list(fluxes))), columns=["ra", "dec", "flux"],
     )
-    return ra, dec
+    df.to_csv("%s" % (filename))
+    return ras, decs, fluxes
+
+
+def make_fluxes(
+    sky_type,
+    fluxes=0,
+    seed=0,
+    k1=4100,
+    gamma1=1.59,
+    k2=4100,
+    gamma2=2.5,
+    flux_low=40e-3,
+    flux_mid=1,
+    flux_high=5.0,
+):
+    if sky_type == "random":
+        np.random.seed(seed)
+        fluxes = stochastic_sky(
+            seed, k1, gamma1, k2, gamma2, flux_low, flux_mid, flux_high
+        )
+    elif sky_type == "point":
+        fluxes = np.array(fluxes)
+    return fluxes
+
+
+# def generate_distribution(mean, sigma, size, dist, type="ra"):
+#     """
+#     #Other distribution types
+#     if dist == "constant":
+#         return np.ones(size) * mean
+#     elif dist == "lognormal":
+#         return np.random.lognormal(loc=mean,
+#                                    sigma=sigma,
+#                                    size=size)
+#     """
+#     if dist == "normal":
+#         d = np.random.normal(loc=mean, scale=sigma, size=size)
+#         if type == "ra":
+#             print("RAs range", d.min(), d.max())
+#             d = np.where(d < 0, d + 360, d)
+#         elif type == "dec":
+#             print("Decs range", d.min(), d.max())
+#         else:
+#             d = np.random.normal(loc=mean, scale=sigma, size=size)
+#         return d
+
+#     else:
+#         raise ValueError("Unrecognised distribution ({}).".format(dist))
 
 
 def loadfile(data_file, n_sources, ra0, dec0, filename="sky_model.csv"):
@@ -79,31 +130,6 @@ def loadfile(data_file, n_sources, ra0, dec0, filename="sky_model.csv"):
         return ras, decs, fluxes
 
 
-def generate_distribution(mean, sigma, size, dist, type="ra"):
-    """
-    #Other distribution types
-    if dist == "constant":
-        return np.ones(size) * mean
-    elif dist == "lognormal":
-        return np.random.lognormal(loc=mean,
-                                   sigma=sigma,
-                                   size=size)
-    """
-    if dist == "normal":
-        d = np.random.normal(loc=mean, scale=sigma, size=size)
-        if type == "ra":
-            print("RAs range", d.min(), d.max())
-            d = np.where(d < 0, d + 360, d)
-        elif type == "dec":
-            print("Decs range", d.min(), d.max())
-        else:
-            d = np.random.normal(loc=mean, scale=sigma, size=size)
-        return d
-
-    else:
-        raise ValueError("Unrecognised distribution ({}).".format(dist))
-
-
 def sample_floats(low, high, size=1):
     """ Return a k-length list of unique random floats
         in the range of low <= x <= high
@@ -119,84 +145,64 @@ def sample_floats(low, high, size=1):
     return result
 
 
-def random_model(N, ra0, dec0, filename="sky_model.csv"):
-    ras = sample_floats(
-        ra0 - 9, ra0 + 9, size=N
-    )  # generate_distribution(0.0, 4.0, N, "normal", type="ra")
-    decs = sample_floats(
-        dec0 - 8.1, dec0 + 8.1, size=N
-    )  # -1 * generate_distribution(27.0, 4.0, N, "normal", type="dec")
-    fluxes = sample_floats(
-        0.5, 15, size=N
-    )  # np.abs(generate_distribution(1.0, 4.0, N, "normal", type="f"))
+def stochastic_sky(
+    seed=0, k1=4100, gamma1=1.59, k2=4100, gamma2=2.5, S_low=400e-3, S_mid=1, S_high=5.0
+):
+    np.random.seed(seed)
 
-    ras = np.array(ras)
-    ras = np.where(ras < 0, ras + 360, ras)
-    decs = np.array(decs)
-    fluxes = np.array(fluxes)
+    # Franzen et al. 2016
+    # k1 = 6998, gamma1 = 1.54, k2=6998, gamma2=1.54
+    # S_low = 0.1e-3, S_mid = 6.0e-3, S_high= 400e-3 Jy
 
-    # print("RAs range", ras.min(), ras.max())
-    # print("Decs range", decs.min(), decs.max())
-    # print("Fluxes range", fluxes.min(), fluxes.max())
+    # Cath's parameters
+    # k1=4100, gamma1 =1.59, k2=4100, gamma2 =2.5
+    # S_low = 0.400e-3, S_mid = 1, S_high= 5 Jy
 
-    df = pd.DataFrame(
-        list(zip(list(ras), list(decs), list(fluxes))), columns=["ra", "dec", "flux"],
-    )
-    df.to_csv("%s" % (filename))
-    return ras, decs, fluxes
+    if S_low > S_mid:
+        norm = (
+            k2 * (S_high ** (1.0 - gamma2) - S_low ** (1.0 - gamma2)) / (1.0 - gamma2)
+        )
+        n_sources = np.random.poisson(norm * 2.0 * np.pi)
+        # generate uniform distribution
+        uniform_distr = np.random.uniform(size=n_sources)
+        # initialize empty array for source fluxes
+        source_fluxes = np.zeros(n_sources)
+        source_fluxes = (
+            uniform_distr * norm * (1.0 - gamma2) / k2 + S_low ** (1.0 - gamma2)
+        ) ** (1.0 / (1.0 - gamma2))
+    else:
+        # normalisation
+        norm = k1 * (S_mid ** (1.0 - gamma1) - S_low ** (1.0 - gamma1)) / (
+            1.0 - gamma1
+        ) + k2 * (S_high ** (1.0 - gamma2) - S_mid ** (1.0 - gamma2)) / (1.0 - gamma2)
+        # transition between the one power law to the other
+        mid_fraction = (
+            k1
+            / (1.0 - gamma1)
+            * (S_mid ** (1.0 - gamma1) - S_low ** (1.0 - gamma1))
+            / norm
+        )
+        n_sources = np.random.poisson(norm * 2.0 * np.pi)
 
+        #########################
+        # n_sources = 1e5
+        #########################
 
-# def compute_mwa_beam_attenuation(
-#     ras, decs, metafits, pos, freq=150e6, zenith_pointing=True
-# ):
-#     """Compute the beam attenuation
+        # generate uniform distribution
+        uniform_distr = np.random.uniform(size=n_sources)
+        # initialize empty array for source fluxes
+        source_fluxes = np.zeros(n_sources)
 
-#  Parameters
-#   ----------
-#    ras: float/array
-#      source RA
-#     decs: float/array
-#      source dec
-#     metafits: str
-#      path to observation
-#     pos: str
-#      Array longitude and latitude
-#     freq: float/int, optional
-#      frequency, by default 150e6
-#     zenith_pointing: bool, optional
-#      True if observation is zenith pointing, by default True
+        source_fluxes[uniform_distr < mid_fraction] = (
+            uniform_distr[uniform_distr < mid_fraction] * norm * (1.0 - gamma1) / k1
+            + S_low ** (1.0 - gamma1)
+        ) ** (1.0 / (1.0 - gamma1))
 
-#     Returns
-#     -------
-#     float/array, float/array
-#      XX, YY beam attenuation for the input direction and frequency.
-#     """
-#     # for a zenith pointing all delays are zero, and,
-#     # you need delays for both XX and YY so need to give it 2 sets of 16 delays
-#     if zenith_pointing:
-#         delays = np.zeros((2, 16))
-#     else:
-#         with fits.open(metafits) as hdu:
-#             print("getting delays from metafits")
-#             delays = list(map(int, hdu[0].header["DELAYS"].split(",")))
-#             delays = [delays, delays]
-#     print(f"delays: {delays}")
-
-#     time, _ = get_time(metafits, pos)
-#     alt, az = radec_to_altaz(np.deg2rad(ras), np.deg2rad(decs), time, pos)
-#     za = np.pi / 2.0 - alt
-
-#     print(f"zenith angle: {np.radians(za)} azimuth: {np.radians(az)}")
-#     XX, YY = primary_beam.MWA_Tile_full_EE(
-#         za, az, freq=freq, delays=delays, zenithnorm=True, power=True, interp=False,
-#     )
-#     return XX, YY
-
-
-# if __name__ == "__main__":
-#     metafits = "/home/kariuki/scint_sims/mset_data/1098108248.metafits"
-#     print(
-#         compute_mwa_beam_attenuation(
-#             50.0, -20.0, metafits, MWAPOS, zenith_pointing=False
-#         )
-#     )
+        source_fluxes[uniform_distr >= mid_fraction] = (
+            (uniform_distr[uniform_distr >= mid_fraction] - mid_fraction)
+            * norm
+            * (1.0 - gamma2)
+            / k2
+            + S_mid ** (1.0 - gamma2)
+        ) ** (1.0 / (1.0 - gamma2))
+    return source_fluxes

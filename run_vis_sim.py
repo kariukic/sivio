@@ -13,19 +13,12 @@ from casacore.tables import table
 import mset_utils as mtls
 import plotting
 import sky_models
+import vis_sim_numba as numba_dance
+from beam import compute_mwa_beam_attenuation
 from coordinates import MWAPOS, get_time, radec_to_altaz
 from cthulhu_analysis import cthulhu_analyse
 from match_catalogs import main_match
 from phase_screen import make_phase_screen
-from vis_sim_numba import (
-    add_thermal_noise,
-    collective_pierce_points,
-    compute_initial_setup_params,
-    compute_offset_vis_parallel,
-    get_antenna_in_uvw,
-    sim_prep,
-    true_vis_numba,
-)
 
 print(
     f"No. of CPUS: {multiprocessing.cpu_count()}: Total memory: ~{psutil.virtual_memory().total/1e9} GB"
@@ -147,7 +140,7 @@ def main():
 
     mset = "%s_sources_%s_%stec.ms" % (args.n_sources, obsid, args.tec_type,)
     prefix = mset.split(".")[0]
-    output_dir = "simulation_output/" + prefix + "_spar" + str(args.spar)
+    output_dir = "sivio_output/" + prefix + "_spar" + str(args.spar)
     print(output_dir)
     if os.path.exists(output_dir):
         output_dir += "_run2"
@@ -162,9 +155,8 @@ def main():
 
         tbl = table(mset, readonly=False)
         ra0, dec0 = mtls.get_phase_center(tbl)
-        print(
-            "The phase center is at ra=%s, dec=%s" % (np.degrees(ra0), np.degrees(dec0))
-        )
+        print(f"The phase center is at ra={np.degrees(ra0)}, dec={np.degrees(dec0)}")
+
         if args.modelpath is not None:
             ras, decs, fluxes = [], [], []
             with open(modelpath, "r") as file:
@@ -187,7 +179,7 @@ def main():
                 )
             else:
                 model_textfile = prefix + "_sky_model.csv"
-                ras, decs, fluxes = sky_models.random_model(
+                ras, decs, fluxes = sky_models.random_sky_model(
                     args.n_sources,
                     np.rad2deg(ra0),
                     np.rad2deg(dec0),
@@ -197,17 +189,27 @@ def main():
         ras = np.radians(ras)
         decs = np.radians(decs)
         assert len(ras) == len(decs) == len(fluxes)
-        print("The sky model has %s sources" % (len(ras)))
+        print(f"The sky model has {len(ras)} sources")
 
-        data, lmbdas, uvw_lmbdas, dnu, ls, ms, ns = sim_prep(tbl, ras, decs)
+        frequencies = mtls.get_channels(tbl, ls=False)
+        mid_frequency = frequencies[len(frequencies) // 2]
+        print(
+            f"Applying MWA beam attenuation using mid-frequency value: {mid_frequency}MHz"
+        )
+        xx_attenuations, _ = compute_mwa_beam_attenuation(
+            ras, decs, freq=mid_frequency, metafits=metafitspath
+        )
+        fluxes *= xx_attenuations
+
+        data, lmbdas, uvw_lmbdas, dnu, ls, ms, ns = numba_dance.sim_prep(tbl, ras, decs)
 
         if args.true_vis:
             # logger.info("Simulating the true visibilities...")
             # set_num_threads(5)
             start = tm.time()
-            true_data = true_vis_numba(data, uvw_lmbdas, fluxes, ls, ms, ns)
+            true_data = numba_dance.true_vis_numba(data, uvw_lmbdas, fluxes, ls, ms, ns)
             print("Adding thermal noise to model visibilities...")
-            true_data[:, :, 0] = add_thermal_noise(true_data[:, :, 0], dnu)
+            true_data[:, :, 0] = numba_dance.add_thermal_noise(true_data[:, :, 0], dnu)
             true_data[:, :, 3] = true_data[:, :, 0]
             print("Time elapsed simulating model visibilities: %g", tm.time() - start)
 
@@ -231,10 +233,10 @@ def main():
             alts, azimuths = radec_to_altaz(ras, decs, time, MWAPOS)
             zen_angles = np.pi / 2.0 - alts
 
-            us, vs, _ = get_antenna_in_uvw(mset, tbl, lst)
+            us, vs, _ = numba_dance.get_antenna_in_uvw(mset, tbl, lst)
             ant1, ant2 = mtls.get_ant12(mset)
 
-            initial_setup_params = compute_initial_setup_params(
+            initial_setup_params = numba_dance.compute_initial_setup_params(
                 phs_screen, us, vs, args.height, args.scale, ra0, dec0, time
             )
             initial_setup_params = list(initial_setup_params) + list(
@@ -242,14 +244,14 @@ def main():
             )
             initial_setup_params = tuple(initial_setup_params)
             start = tm.time()
-            source_ppoints = collective_pierce_points(
+            source_ppoints = numba_dance.collective_pierce_points(
                 zen_angles, azimuths, initial_setup_params
             )
             print("collective_pierce_points elapsed: %g", tm.time() - start)
             npz = mset.split(".")[0] + "_pierce_points.npz"
             np.savez(npz, ppoints=source_ppoints)
             start = tm.time()
-            offset_data = compute_offset_vis_parallel(
+            offset_data = numba_dance.compute_offset_vis_parallel(
                 data,
                 initial_setup_params,
                 zen_angles,
@@ -262,7 +264,9 @@ def main():
                 ns,
             )
             print("Adding thermal noise to offset visibilities...")
-            offset_data[:, :, 0] = add_thermal_noise(offset_data[:, :, 0], dnu)
+            offset_data[:, :, 0] = numba_dance.add_thermal_noise(
+                offset_data[:, :, 0], dnu
+            )
             offset_data[:, :, 3] = offset_data[:, :, 0]
             print("Time elapsed simulating offset visibilities: %g", tm.time() - start)
 
@@ -371,8 +375,6 @@ def main():
                 print("No catalog files found to match.")
 
     print("Wrapping up")
-
-    # os.system("mv %s* sorted_%s* %s" % (args.n_sources, args.n_sources, output_dir))
 
 
 if __name__ == "__main__":
