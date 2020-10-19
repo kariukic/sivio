@@ -7,7 +7,7 @@ import yaml
 from yaml import SafeLoader as SafeLoader
 
 
-def random_sky_model(N, ra0, dec0, filename="sky_model.csv"):
+def random_sky_model(N, ra0, dec0, save=True, filename="sky_model.csv"):
     ras = sample_floats(ra0 - 9, ra0 + 9, size=N)
     decs = sample_floats(dec0 - 8.1, dec0 + 8.1, size=N)
 
@@ -28,7 +28,8 @@ def random_sky_model(N, ra0, dec0, filename="sky_model.csv"):
     df = pd.DataFrame(
         list(zip(list(ras), list(decs), list(fluxes))), columns=["ra", "dec", "flux"],
     )
-    df.to_csv("%s" % (filename))
+    if save:
+        df.to_csv("%s" % (filename))
     return ras, decs, fluxes
 
 
@@ -40,9 +41,9 @@ def make_fluxes(
     gamma1=1.59,
     k2=4100,
     gamma2=2.5,
-    flux_low=40e-3,
-    flux_mid=1,
-    flux_high=5.0,
+    flux_low=1,  # 40e-3,
+    flux_mid=5.0,  # 1,
+    flux_high=15.0,  # 5.0,
 ):
     if sky_type == "random":
         np.random.seed(seed)
@@ -206,3 +207,8 @@ def stochastic_sky(
             + S_mid ** (1.0 - gamma2)
         ) ** (1.0 / (1.0 - gamma2))
     return source_fluxes
+
+
+if __name__ == "__main__":
+    ras, decs, fluxes = random_sky_model(50, 0.0, -27.0, save=False)
+    print(np.max(fluxes))

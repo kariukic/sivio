@@ -186,21 +186,20 @@ def main():
                     filename=model_textfile,
                 )
 
-        ras = np.radians(ras)
-        decs = np.radians(decs)
-        assert len(ras) == len(decs) == len(fluxes)
-        print(f"The sky model has {len(ras)} sources")
-
         frequencies = mtls.get_channels(tbl, ls=False)
         mid_frequency = frequencies[len(frequencies) // 2]
         print(
-            f"Applying MWA beam attenuation using mid-frequency value: {mid_frequency}MHz"
+            f"Applying MWA beam attenuation using mid-frequency value: {mid_frequency} Hz"
         )
         xx_attenuations, _ = compute_mwa_beam_attenuation(
             ras, decs, freq=mid_frequency, metafits=metafitspath
         )
         fluxes *= xx_attenuations
 
+        ras = np.radians(ras)
+        decs = np.radians(decs)
+        # assert len(ras) == len(decs) == len(fluxes)
+        print(f"The sky model has {len(ras)} sources")
         data, lmbdas, uvw_lmbdas, dnu, ls, ms, ns = numba_dance.sim_prep(tbl, ras, decs)
 
         if args.true_vis:
