@@ -1,9 +1,11 @@
 #! /usr/bin/env python
-__author__ = [
-    "Kariuki Chege",
-]
+
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
 
 import numpy as np
+import scipy.fftpack
 
 # from powerbox import PowerBox
 import scipy.ndimage.filters as sp
@@ -15,6 +17,88 @@ import scipy.ndimage.filters as sp
 constant = 40.30819300005713
 tecu = 1e16
 kolmogorov_index = -11 / 3  # -1.66667
+
+# Fron Bruno Sciolla github
+
+
+def fftind(size):
+    """ Returns a numpy array of shifted Fourier coordinates k_x k_y.
+
+        Input args:
+            size (integer): The size of the coordinate array to create
+        Returns:
+            k_ind, numpy array of shape (2, size, size) with:
+                k_ind[0,:,:]:  k_x components
+                k_ind[1,:,:]:  k_y components
+
+        Example:
+
+            print(fftind(5))
+
+            [[[ 0  1 -3 -2 -1]
+            [ 0  1 -3 -2 -1]
+            [ 0  1 -3 -2 -1]
+            [ 0  1 -3 -2 -1]
+            [ 0  1 -3 -2 -1]]
+
+            [[ 0  0  0  0  0]
+            [ 1  1  1  1  1]
+            [-3 -3 -3 -3 -3]
+            [-2 -2 -2 -2 -2]
+            [-1 -1 -1 -1 -1]]]
+
+        """
+    k_ind = np.mgrid[:size, :size] - int((size + 1) / 2)
+    k_ind = scipy.fftpack.fftshift(k_ind)
+    return k_ind
+
+
+def gaussian_random_field(alpha=3.0, size=128, flag_normalize=True):
+    """ Returns a numpy array of shifted Fourier coordinates k_x k_y.
+
+        Input args:
+            alpha (double, default = 3.0):
+                The power of the power-law momentum distribution
+            size (integer, default = 128):
+                The size of the square output Gaussian Random Fields
+            flag_normalize (boolean, default = True):
+                Normalizes the Gaussian Field:
+                    - to have an average of 0.0
+                    - to have a standard deviation of 1.0
+
+        Returns:
+            gfield (numpy array of shape (size, size)):
+
+        Example:
+        import matplotlib
+        import matplotlib.pyplot as plt
+        example = gaussian_random_field()
+        plt.imshow(example)
+        """
+
+    # Defines momentum indices
+    k_idx = fftind(size)
+
+    # Defines the amplitude as a power law 1/|k|^(alpha/2)
+    # amplitude = np.power(k_idx[0] ** 2 + k_idx[1] ** 2 + 1e-10, -alpha / 4.0)
+    amplitude = np.power(k_idx[0] ** 2 + k_idx[1] ** 2 + 1e-10, -alpha / 3.0)
+    amplitude[0, 0] = 0
+
+    # Draws a complex gaussian random noise with normal
+    # (circular) distribution
+    noise = np.random.normal(size=(size, size)) + 1j * np.random.normal(
+        size=(size, size)
+    )
+
+    # To real space
+    gfield = np.fft.ifft2(noise * amplitude).real
+
+    # Sets the standard deviation to one
+    if flag_normalize:
+        gfield = gfield - np.mean(gfield)
+        gfield = gfield / np.std(gfield)
+
+    return gfield
 
 
 def convert_to_tecu(frequency, phscreen):
@@ -119,9 +203,7 @@ def make_phase_screen(scale=100, size=140000, tec_type="l"):
         # )
         # phs_screen = pb.delta_x()
 
-        import gaussian_random_fields as gr
-
-        phs_screen = gr.gaussian_random_field(alpha=1.6667, size=resolution)
+        phs_screen = gaussian_random_field(alpha=1.6667, size=resolution)
 
     elif tec_type == "s":
         apply_filter = True
@@ -133,7 +215,7 @@ def make_phase_screen(scale=100, size=140000, tec_type="l"):
 
     phs_screen = scale_to_pi_range(phs_screen)
     if apply_filter:
-        sigma = [60, 60]
+        sigma = [30, 30]
         phs_screen = sp.gaussian_filter(phs_screen, sigma, mode="constant")
 
     return phs_screen
