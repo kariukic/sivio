@@ -105,7 +105,8 @@ def get_antenna_in_uvw(mset, tbl, lst):
     return us, vs, ws
     """
     xyz = mtls.get_bl_vectors(mset)
-    return xyz[:, 0], xyz[:, 2], xyz[:, 1]
+    # return xyz[:, 0], xyz[:, 2], xyz[:, 1]
+    return xyz[:, 0], xyz[:, 1], xyz[:, 2]
 
 
 def scale_to_pixel_range(us, scale=10):
@@ -117,7 +118,7 @@ def scale_to_pixel_range(us, scale=10):
     us : list/array.
         list of distances to be scaled. \n
     scale : int, optional.
-        the pixel to distance scaling inmetres, by default 10 \n
+        the pixel to distance scaling in metres, by default 10 \n
 
     Returns
     -------
@@ -466,7 +467,7 @@ def add_thermal_noise(visibilities, dnu):
         The visibilities at each baseline and frequency with the thermal noise from the sky.
     """
 
-    print("Adding thermal noise...")
+    # print("Adding thermal noise...")
     rl_im = np.random.normal(0, 1, (2,) + visibilities.shape)
 
     # NOTE: we divide the variance by two here, because the variance of the absolute value of the
