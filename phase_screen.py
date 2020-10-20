@@ -4,7 +4,8 @@ __author__ = [
 ]
 
 import numpy as np
-from powerbox import PowerBox
+
+# from powerbox import PowerBox
 import scipy.ndimage.filters as sp
 
 # from scipy.constants import c
@@ -24,7 +25,7 @@ def convert_to_tecu(frequency, phscreen):
 
 
 def scale_to_pi_range(phscreen):
-    """Scaling our produced phase screen to between [0,180] degrees
+    """Scaling our produced phase screen to between [0, 180] degrees
 
     Parameters
     ----------
@@ -83,7 +84,7 @@ def linear_tec(npix, sine=False):
     return tec
 
 
-def make_phase_screen(scale=100, size=80000, tec_type="l"):
+def make_phase_screen(scale=100, size=140000, tec_type="l"):
     """
     produces a phase offset screen.
 
@@ -113,10 +114,14 @@ def make_phase_screen(scale=100, size=80000, tec_type="l"):
 
     if tec_type == "k":
         apply_filter = True
-        pb = PowerBox(
-            resolution, lambda k: 10 * k ** kolmogorov_index, ensure_physical=True
-        )
-        phs_screen = pb.delta_x()
+        # pb = PowerBox(
+        #     resolution, lambda k: 10 * k ** kolmogorov_index, ensure_physical=True
+        # )
+        # phs_screen = pb.delta_x()
+
+        import gaussian_random_fields as gr
+
+        phs_screen = gr.gaussian_random_field(alpha=1.6667, size=resolution)
 
     elif tec_type == "s":
         apply_filter = True

@@ -77,7 +77,7 @@ def main():
         help="Simulate the true (un-corrupted) visibilities too",
     )
     parser.add_argument(
-        "--size", type=int, default=80000, help="TEC field size per side [m]"
+        "--size", type=int, default=140000, help="TEC field size per side [m]"
     )
     parser.add_argument(
         "--scale", type=int, default=100, help="pixel to distance scaling [m]"
@@ -108,7 +108,7 @@ def main():
         "-i",
         action="store_true",
         help="Run wsclean. Default settings are: \
-            '-abs-mem 40 -size 2048 2048 -scale 30asec -niter 1000000 -auto-threshold 3'",
+            '-abs-mem 40 -size 4096 4096 -scale 30asec -niter 1000000 -auto-threshold 3'",
     )
     parser.add_argument("--plot", "-p", action="store_true", help="Make plots")
     parser.add_argument(
@@ -142,9 +142,8 @@ def main():
     prefix = mset.split(".")[0]
     output_dir = "sivio_output/" + prefix + "_spar" + str(args.spar)
     print(output_dir)
-    if os.path.exists(output_dir):
-        output_dir += "_run2"
-    os.makedirs(output_dir, exist_ok=True)
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir, exist_ok=True)
     os.chdir(output_dir)
 
     if args.sim:
@@ -290,7 +289,7 @@ def main():
     if args.image:
         imagename = prefix + "_truevis"
         command = (
-            "wsclean -name %s -abs-mem 40 -size 2048 2048 -scale 30asec -niter 1000000 -auto-threshold 3 \
+            "wsclean -name %s -abs-mem 40 -size 4096 4096 -scale 30asec -niter 1000000 -auto-threshold 3 \
                     -data-column %s %s"
             % (imagename, "DATA", mset)
         )
@@ -305,7 +304,7 @@ def main():
             if wsclean_imager:
                 imagename = prefix + "_offsetvis"
                 command2 = (
-                    "wsclean -name %s -abs-mem 40 -size 2048 2048 -scale 30asec -niter 1000000 -auto-threshold 3 \
+                    "wsclean -name %s -abs-mem 40 -size 4096 4096 -scale 30asec -niter 1000000 -auto-threshold 3 \
                             -data-column %s %s"
                     % (imagename, "OFFSET_DATA", mset)
                 )
@@ -314,7 +313,7 @@ def main():
         if args.scint_vis:
             imagename = prefix + "_%srd_scint" % (int(args.rdiff / 1000))
             command3 = (
-                "wsclean -name %s -abs-mem 40 -size 2048 2048 -scale 30asec -niter 1000000 -auto-threshold 3 \
+                "wsclean -name %s -abs-mem 40 -size 4096 4096 -scale 30asec -niter 1000000 -auto-threshold 3 \
                             -data-column %s %s"
                 % (imagename, "SCINT_DATA", mset)
             )

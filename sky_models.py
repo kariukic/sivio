@@ -7,9 +7,9 @@ import yaml
 from yaml import SafeLoader as SafeLoader
 
 
-def random_sky_model(N, ra0, dec0, save=True, filename="sky_model.csv"):
-    ras = sample_floats(ra0 - 9, ra0 + 9, size=N)
-    decs = sample_floats(dec0 - 8.1, dec0 + 8.1, size=N)
+def random_sky_model(N, ra0, dec0, save=True, radius=15, filename="sky_model.csv"):
+    ras = sample_floats(ra0 - radius, ra0 + radius, size=N)
+    decs = sample_floats(dec0 - radius, dec0 + radius, size=N)
 
     # fluxes = sample_floats(0.5, 15, size=N)
     # make proper source  count fluxes and pick N fluxes randomly
