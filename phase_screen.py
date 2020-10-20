@@ -53,7 +53,7 @@ def fftind(size):
     return k_ind
 
 
-def gaussian_random_field(alpha=3.0, size=128, flag_normalize=True):
+def gaussian_random_field(alpha=11, size=128, flag_normalize=True):
     """ Returns a numpy array of shifted Fourier coordinates k_x k_y.
 
         Input args:
@@ -168,7 +168,7 @@ def linear_tec(npix, sine=False):
     return tec
 
 
-def make_phase_screen(scale=100, size=140000, tec_type="l"):
+def make_phase_screen(scale=100, size=110000, tec_type="l"):
     """
     produces a phase offset screen.
 
