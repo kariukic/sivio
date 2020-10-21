@@ -60,7 +60,10 @@ def main():
         help="Number of point sources to simulate",
     )
     parser.add_argument(
-        "--spar", type=int, default=20, help="Number of point sources to simulate",
+        "--spar",
+        type=int,
+        default=20,
+        help="Number of point sources to simulate",
     )
     parser.add_argument(
         "--offset_vis",
@@ -138,7 +141,11 @@ def main():
         obsid = args.ms_template.split(".")[0]
     print("obsid:", obsid)
 
-    mset = "%s_sources_%s_%stec.ms" % (args.n_sources, obsid, args.tec_type,)
+    mset = "%s_sources_%s_%stec.ms" % (
+        args.n_sources,
+        obsid,
+        args.tec_type,
+    )
     prefix = mset.split(".")[0]
     output_dir = "sivio_output/" + prefix + "_spar" + str(args.spar)
     print(output_dir)
@@ -178,10 +185,14 @@ def main():
                 )
             else:
                 model_textfile = prefix + "_sky_model.csv"
-                ras, decs, fluxes = sky_models.random_sky_model(
-                    args.n_sources,
-                    np.rad2deg(ra0),
-                    np.rad2deg(dec0),
+                # ras, decs, fluxes = sky_models.random_sky_model(
+                #     args.n_sources,
+                #     np.rad2deg(ra0),
+                #     np.rad2deg(dec0),
+                #     filename=model_textfile,
+                # )
+                ras, decs, fluxes = sky_models.gleam_model(
+                    csvfile="Gleam_low_band_catalogue_si.csv",
                     filename=model_textfile,
                 )
 

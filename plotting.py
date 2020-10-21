@@ -120,11 +120,9 @@ def ppoints_on_tec_field(tec, ppoints, params, fieldcenter, prefix, max_bl, scal
         params0 = params[0, :, :]
         params1 = params[1, :, :]
     for params_list in params0:
-        ax2.plot(range(len(params_list)), params_list,
-                 marker="*", linestyle="--")
+        ax2.plot(range(len(params_list)), params_list, marker="*", linestyle="--")
     for params_list in params1:
-        ax3.plot(range(len(params_list)), params_list,
-                 marker="*", linestyle="--")
+        ax3.plot(range(len(params_list)), params_list, marker="*", linestyle="--")
     # ax2.set_xlabel("Antenna ID")
     ax2.set_ylabel("x phase [deg]")
     ax3.set_xlabel("Antenna ID")
@@ -171,12 +169,11 @@ def cthulhu_plots(
     # extent = [-9, 9, -35, -18]
 
     fig = plt.figure(figsize=(12, 9))
-    plt.subplots_adjust(hspace=0.25, left=0.05,
-                        right=0.95, top=0.95, bottom=0.07)
+    plt.subplots_adjust(hspace=0.25, left=0.05, right=0.95, top=0.95, bottom=0.07)
     ax1 = fig.add_subplot(224)
     j = ax1.imshow(
-        np.flipud(o.tec), cmap="plasma", vmin=0, vmax=0.22
-    )  # , extent=extent)  # ,vmin=0,vmax=1)
+        np.flipud(o.tec), cmap="plasma"
+    )  # , vmin=0, vmax=0.05)  # , extent=extent)  # ,vmin=0,vmax=1)
     cbar4 = colorbar(j)
     cbar4.ax.set_ylabel("TEC [TECU]", rotation=270)
     ax1.set_title("Reconstructed TEC field", fontsize=f)

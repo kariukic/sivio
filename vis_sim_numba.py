@@ -167,7 +167,7 @@ def phase_center_offset(ra0, dec0, h_pix, time):
 
 def compute_initial_setup_params(tec, us, vs, height, scale, ra0, dec0, time):
     # Lets first get the gradient of all pixels in the tecscreen
-    du, dv = np.gradient(tec)  # save this in memory: first shared array.!!!
+    du, dv = np.gradient(tec)
     # Apply scaling to the array field and height
     scaled_u_axis_ants_pos = scale_to_pixel_range(us, scale=scale)
     scaled_v_axis_ants_pos = scale_to_pixel_range(vs, scale=scale)
