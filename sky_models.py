@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 import yaml
 from yaml import SafeLoader as SafeLoader
+from numba import prange, njit
 
 
 def great_circle_dist1(r1, d1, r2, d2):
@@ -47,8 +48,7 @@ def random_sky_model(
     # print("Fluxes range", fluxes.min(), fluxes.max())
 
     df = pd.DataFrame(
-        list(zip(list(ras), list(decs), list(fluxes))),
-        columns=["ra", "dec", "flux"],
+        list(zip(list(ras), list(decs), list(fluxes))), columns=["ra", "dec", "flux"],
     )
     if save:
         df.to_csv("%s" % (filename))
@@ -231,32 +231,50 @@ def stochastic_sky(
     return source_fluxes
 
 
-def gleam_model(
-    csvfile="Gleam_low_band_catalogue_si.csv", filename="gleam_model_20_deg_radius.csv"
-):
-
+def read_gleam(csvfile="Gleam_low_band_catalogue_si.csv"):
     df = pd.read_csv(csvfile, sep=";")
-    df2 = df[df["Fp151"] > 0.4]
-    df2 = df.dropna(axis=0)
+    df2 = df[df["Fp151"] > 4]
+    df2 = df2.dropna(axis=0)
 
-    ra0 = np.rad2deg(ra0)
-    dec0 = np.rad2deg(dec0)
+    print(df2.shape)
+    names = np.array(df2.GLEAM)
+    ras = np.array(df2.RAJ2000)
+    ras = np.where(ras < 0, ras + 360, ras)
+    decs = np.array(df2.DEJ2000)
 
-    if filename not in os.listdir(os.path.abspath(".")):
-        print('saving model"s RTS data products to csv file..')
-        df2.to_csv("%s" % (filename))
+    alphas = np.array([float(i) for i in df2.alpha])
+    print(len(alphas))
 
-        print(df2.shape)
-        ras = np.array(df2.RAJ2000)
-        decs = np.array(df2.DEJ2000)
-        fluxes = np.array(df2.Fp151)
+    ref_fluxes = np.array(df2.Fp151)
 
-        print("RAs range", ras.min(), ras.max())
-        print("Decs range", decs.min(), decs.max())
-        print("Fluxes range", fluxes.min(), fluxes.max())
-        return ras, decs, fluxes
+    return names, ras, decs, alphas, ref_fluxes
+
+
+@njit(parallel=True)
+def gleam_model(ras, decs, alphas, ref_fluxes, frequencies):
+    fluxes = np.zeros((len(ras), len(frequencies), 4), dtype=np.float32)
+    for source in prange(fluxes.shape[0]):
+        for freq_chan in prange(len(frequencies)):
+            fluxes[source, freq_chan, 0] = (
+                ref_fluxes[source] * (frequencies[freq_chan] / 151e6) ** alphas[source]
+            )
+            # fluxes[source, :, 0] = compute_channel_fluxes(
+            #     ref_fluxes[source], 151e6, alphas[source], frequencies
+            # )
+            fluxes[source, freq_chan, 3] = fluxes[
+                source, freq_chan, 0
+            ]  # Both XX and YY
+
+    return fluxes
 
 
 if __name__ == "__main__":
-    ras, decs, fluxes = random_sky_model(50, 0.0, -27.0, save=False)
-    print(np.max(fluxes))
+    frequencies = np.linspace(100, 130, 768) * 1e6
+    names, ras, decs, alphas, ref_fluxes = read_gleam(
+        csvfile="Gleam_low_band_catalogue_si.csv"
+    )
+    fluxes = gleam_model(ras, decs, alphas, ref_fluxes, frequencies)
+
+    print(fluxes.shape)
+    print(fluxes[0, -10:, 0])
+    print(fluxes[0, -10:, 3])

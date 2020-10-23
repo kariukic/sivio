@@ -26,19 +26,20 @@ def sim_prep(tbl, ras, decs):
     return data, lmbdas, uvw_lmbdas, dnu, ls, ms, ns
 
 
-@njit(
-    [
-        complex64[:, :, :](
-            complex64[:, :, :],
-            float64[:, :, :],
-            float64[:],
-            float64[:],
-            float64[:],
-            float64[:],
-        )
-    ],
-    parallel=True,
-)
+# @njit(
+#     [
+#         complex64[:, :, :](
+#             complex64[:, :, :],
+#             float64[:, :, :],
+#             float64[:, :, :],
+#             float64[:],
+#             float64[:],
+#             float64[:],
+#         )
+#     ],
+#     parallel=True,
+# )
+@njit(parallel=True)
 def true_vis_numba(data, uvw_lmbdas, fluxes, ls, ms, ns):
     data[:] = 0
     u = uvw_lmbdas[:, :, 0]
@@ -47,11 +48,14 @@ def true_vis_numba(data, uvw_lmbdas, fluxes, ls, ms, ns):
     source_count = 1
     for source in prange(len(fluxes)):
         print("True Source: ", source_count, "...")
-        source_visibilities = fluxes[source] * np.exp(
+        xx_source_visibilities = fluxes[source, :, 0] * np.exp(
             2j * np.pi * (u * ls[source] + v * ms[source] + w * ns[source])
         )
-        data[:, :, 0] += source_visibilities  # feed xx data
-        data[:, :, 3] += source_visibilities  # feed yy data
+        yy_source_visibilities = fluxes[source, :, 3] * np.exp(
+            2j * np.pi * (u * ls[source] + v * ms[source] + w * ns[source])
+        )
+        data[:, :, 0] += xx_source_visibilities  # feed xx data
+        data[:, :, 3] += yy_source_visibilities  # feed yy data
         source_count += 1
 
     return data
@@ -387,7 +391,7 @@ def single_source_offset_vis(args):
             + uvw_lmbdas[:, :, 2] * nn
         )
     )
-    return flux * offset_phase
+    return flux[:, 0] * offset_phase, flux[:, 1] * offset_phase
 
 
 @njit(parallel=True)
@@ -418,10 +422,10 @@ def compute_offset_vis_parallel(
             ns[source],
             initial_setup_params,
         )
-        offset_data = single_source_offset_vis(params)
+        xx_offset_data, yy_offset_data = single_source_offset_vis(params)
         source_num += 1
-        data[:, :, 0] += offset_data  # feed xx data
-        data[:, :, 3] += offset_data  # feed yy data
+        data[:, :, 0] += xx_offset_data  # feed xx data
+        data[:, :, 3] += yy_offset_data  # feed yy data
 
     return data
 

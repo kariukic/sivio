@@ -14,7 +14,7 @@ import mset_utils as mtls
 import plotting
 import sky_models
 import vis_sim_numba as numba_dance
-from beam import compute_mwa_beam_attenuation
+from beam import compute_attenuations
 from coordinates import MWAPOS, get_time, radec_to_altaz
 from cthulhu_analysis import cthulhu_analyse
 from match_catalogs import main_match
@@ -60,10 +60,7 @@ def main():
         help="Number of point sources to simulate",
     )
     parser.add_argument(
-        "--spar",
-        type=int,
-        default=20,
-        help="Number of point sources to simulate",
+        "--spar", type=int, default=20, help="Number of point sources to simulate",
     )
     parser.add_argument(
         "--offset_vis",
@@ -141,11 +138,7 @@ def main():
         obsid = args.ms_template.split(".")[0]
     print("obsid:", obsid)
 
-    mset = "%s_sources_%s_%stec.ms" % (
-        args.n_sources,
-        obsid,
-        args.tec_type,
-    )
+    mset = "%s_sources_%s_%stec.ms" % (args.n_sources, obsid, args.tec_type,)
     prefix = mset.split(".")[0]
     output_dir = "sivio_output/" + prefix + "_spar" + str(args.spar)
     print(output_dir)
@@ -161,6 +154,7 @@ def main():
 
         tbl = table(mset, readonly=False)
         ra0, dec0 = mtls.get_phase_center(tbl)
+        frequencies = mtls.get_channels(tbl, ls=False)
         print(f"The phase center is at ra={np.degrees(ra0)}, dec={np.degrees(dec0)}")
 
         if args.modelpath is not None:
@@ -191,23 +185,41 @@ def main():
                 #     np.rad2deg(dec0),
                 #     filename=model_textfile,
                 # )
-                ras, decs, fluxes = sky_models.gleam_model(
-                    csvfile="Gleam_low_band_catalogue_si.csv",
-                    filename=model_textfile,
+                # ras, decs, fluxes = sky_models.gleam_model(
+                #     frequencies,
+                #     csvfile="/home/kariuki/databases/Gleam_low_band_catalogue_si.csv",
+                #     filename=model_textfile,
+                #     metafits=metafitspath,
+                # )
+                names, ras, decs, alphas, ref_fluxes = sky_models.read_gleam(
+                    csvfile="/home/kariuki/databases/Gleam_low_band_catalogue_si.csv"
                 )
-
-        frequencies = mtls.get_channels(tbl, ls=False)
-        mid_frequency = frequencies[len(frequencies) // 2]
-        print(
-            f"Applying MWA beam attenuation using mid-frequency value: {mid_frequency} Hz"
-        )
-        xx_attenuations, _ = compute_mwa_beam_attenuation(
-            ras, decs, freq=mid_frequency, metafits=metafitspath
-        )
-        fluxes *= xx_attenuations
-
+        fluxes = sky_models.gleam_model(ras, decs, alphas, ref_fluxes, frequencies)
         ras = np.radians(ras)
         decs = np.radians(decs)
+        # get beam stuff
+        time, lst = get_time(metafitspath, MWAPOS)
+        alts, azimuths = radec_to_altaz(ras, decs, time, MWAPOS)
+        zen_angles = np.pi / 2.0 - alts
+        # compute XX, YY beam attenuations for all sources and each frequency channel
+        attenuations = compute_attenuations(
+            zen_angles, azimuths, frequencies, metafits=metafitspath
+        )
+        beam_file = prefix + "beam.npz"
+        if beam_file not in os.listdir(os.path.abspath(".")):
+            np.savez(beam_file, beam=attenuations)
+        # get apparent fluxes
+        fluxes *= attenuations
+        # if model_textfile not in os.listdir(os.path.abspath(".")):
+        #     df3 = pd.DataFrame(
+        #         list(zip(names, ras, decs, fluxes)),
+        #         columns=["name", "ra", "dec", "flux"],
+        #     )
+        #     print('saving model"s RTS data products to csv file..')
+        #     df3.to_csv(
+        #         f"{model_textfile}", index=False,
+        #     )
+
         # assert len(ras) == len(decs) == len(fluxes)
         print(f"The sky model has {len(ras)} sources")
         data, lmbdas, uvw_lmbdas, dnu, ls, ms, ns = numba_dance.sim_prep(tbl, ras, decs)
@@ -237,10 +249,6 @@ def main():
                 )
                 tecnpz = prefix + "_phase_screen.npz"
                 np.savez(tecnpz, tecscreen=phs_screen)
-
-            time, lst = get_time(metafitspath, MWAPOS)
-            alts, azimuths = radec_to_altaz(ras, decs, time, MWAPOS)
-            zen_angles = np.pi / 2.0 - alts
 
             us, vs, _ = numba_dance.get_antenna_in_uvw(mset, tbl, lst)
             ant1, ant2 = mtls.get_ant12(mset)

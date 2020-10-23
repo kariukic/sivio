@@ -215,7 +215,7 @@ def make_phase_screen(scale=100, size=110000, tec_type="l"):
 
     phs_screen = scale_to_pi_range(phs_screen)
     if apply_filter:
-        sigma = [20, 20]
+        sigma = [30, 30]
         phs_screen = sp.gaussian_filter(phs_screen, sigma, mode="constant")
 
     return phs_screen
