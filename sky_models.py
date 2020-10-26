@@ -7,6 +7,8 @@ import pandas as pd
 import yaml
 from yaml import SafeLoader as SafeLoader
 from numba import prange, njit
+from astroquery.vizier import Vizier
+from astropy.coordinates import Angle
 
 
 def great_circle_dist1(r1, d1, r2, d2):
@@ -231,23 +233,36 @@ def stochastic_sky(
     return source_fluxes
 
 
-def read_gleam(csvfile="Gleam_low_band_catalogue_si.csv"):
-    df = pd.read_csv(csvfile, sep=";")
-    df2 = df[df["Fp151"] > 4]
-    df2 = df2.dropna(axis=0)
+def read_gleam():
+    catalog = Vizier.query_region(
+        "0.0 -27", radius=Angle(20, "deg"), catalog="VIII/100/gleamegc"
+    )
 
-    print(df2.shape)
-    names = np.array(df2.GLEAM)
-    ras = np.array(df2.RAJ2000)
-    ras = np.where(ras < 0, ras + 360, ras)
-    decs = np.array(df2.DEJ2000)
+    names = catalog[0]["GLEAM"]
+    ras = catalog[0]["RAJ2000"]
+    decs = catalog[0]["DEJ2000"]
+    alphas = catalog[0]["alpha"]
+    ref_fluxes = catalog[0]["Fp151"]
 
-    alphas = np.array([float(i) for i in df2.alpha])
+    # df = pd.read_csv(csvfile, sep=";")
+    # df2 = df[df["Fp151"] > 4]
+    # df2 = df2.dropna(axis=0)
+
+    # print(df2.shape)
+    # names = np.array(df2.GLEAM)
+    # ras = np.array(df2.RAJ2000)
+    # ras = np.where(ras < 0, ras + 360, ras)
+    # decs = np.array(df2.DEJ2000)
+
+    # alphas = np.array([float(i) for i in df2.alpha])
     print(len(alphas))
 
-    ref_fluxes = np.array(df2.Fp151)
+    # ref_fluxes = np.array(df2.Fp151)
+    mask = ~np.isnan(alphas)
+    ras = ras[mask]
+    ras = np.where(ras < 0, ras + 360, ras)
 
-    return names, ras, decs, alphas, ref_fluxes
+    return names[mask], ras, decs[mask], alphas[mask], ref_fluxes[mask]
 
 
 @njit(parallel=True)
@@ -270,11 +285,13 @@ def gleam_model(ras, decs, alphas, ref_fluxes, frequencies):
 
 if __name__ == "__main__":
     frequencies = np.linspace(100, 130, 768) * 1e6
-    names, ras, decs, alphas, ref_fluxes = read_gleam(
-        csvfile="Gleam_low_band_catalogue_si.csv"
-    )
-    fluxes = gleam_model(ras, decs, alphas, ref_fluxes, frequencies)
+    names, ras, decs, alphas, ref_fluxes = read_gleam()
 
-    print(fluxes.shape)
-    print(fluxes[0, -10:, 0])
-    print(fluxes[0, -10:, 3])
+    print([x.shape for x in [names, ras, decs, alphas, ref_fluxes]])
+    mask = ~np.isnan(alphas)
+    print(len(alphas[mask]))
+    # fluxes = gleam_model(ras, decs, alphas, ref_fluxes, frequencies)
+
+    # print(fluxes.shape)
+    # print(fluxes[0, -10:, 0])
+    # print(fluxes[0, -10:, 3])
