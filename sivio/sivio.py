@@ -9,7 +9,8 @@ from argparse import ArgumentParser
 import numpy as np
 import psutil
 from casacore.tables import table
-from numba import set_num_threads
+
+# from numba import set_num_threads
 
 import mset_utils as mtls
 import plotting
@@ -46,8 +47,15 @@ def main():
         "--sim",
         required=False,
         action="store_true",
-        help="States you want to run the simulation. If not, \
+        help="Run in simulation mode. Otherwise, \
             you can just opt to image or plot already simulated data",
+    )
+    parser.add_argument(
+        "--radius",
+        "-r",
+        type=float,
+        default=20.0,
+        help="Radius of the GLEAM sky area to obtain sources from, centered at phase center",
     )
     parser.add_argument(
         "--n_sources",
@@ -55,6 +63,13 @@ def main():
         type=int,
         default=10,
         help="Number of point sources to simulate",
+    )
+    parser.add_argument(
+        "--flux_cutoff",
+        "-c",
+        type=float,
+        default=0.0,
+        help="The sky model minimum flux density",
     )
     parser.add_argument(
         "--spar", type=int, default=20, help="Number of point sources to simulate",
@@ -71,11 +86,11 @@ def main():
         "--true_vis",
         "-t",
         action="store_true",
-        help="Simulate the true (un-corrupted) visibilities too",
+        help="Simulate the true (un-corrupted) visibilities",
     )
-    parser.add_argument(
-        "--size", type=int, default=140000, help="TEC field size per side [m]"
-    )
+    # parser.add_argument(
+    #     "--size", type=int, default=140000, help="TEC field size per side [m]"
+    # )
     parser.add_argument(
         "--scale", type=int, default=100, help="pixel to distance scaling [m]"
     )
@@ -98,7 +113,7 @@ def main():
     parser.add_argument(
         "--match_done",
         action="store_true",
-        help="States you already have matched catalogues, go straight to cthulhu plotting",
+        help="You already have matched catalogues, go straight to cthulhu plotting",
     )
     parser.add_argument(
         "--image",
@@ -141,7 +156,7 @@ def main():
 
     mset = "%s_sources_%s_%stec.ms" % (args.n_sources, obsid, args.tec_type,)
     prefix = mset.split(".")[0]
-    output_dir = "/home/kariuki/sivio_output/" + prefix + "_spar" + str(args.spar)
+    output_dir = os.path.abspath(".") + "/" + prefix + "_spar" + str(args.spar)
     print(output_dir)
     if not os.path.exists(output_dir):
         os.makedirs(output_dir, exist_ok=True)
@@ -193,7 +208,11 @@ def main():
                 #     metafits=metafitspath,
                 # )
                 names, ras, decs, alphas, ref_fluxes = sky_models.read_gleam(
-                    np.degrees(ra0), np.degrees(dec0), radius=20
+                    np.degrees(ra0),
+                    np.degrees(dec0),
+                    radius=args.radius,
+                    n_sources=args.n_sources,
+                    min_flux_cutoff=args.flux_cutoff,
                 )
         fluxes = sky_models.gleam_model(ras, decs, alphas, ref_fluxes, frequencies)
         ras = np.radians(ras)
@@ -238,7 +257,16 @@ def main():
             mtls.put_col(tbl, "DATA", true_data)
 
         if args.offset_vis:
-            set_num_threads(5)
+            us, vs, _ = numba_dance.get_antenna_in_uvw(mset, tbl, lst)
+            print("Calculating optimum phase screen size...")
+            screensize = numba_dance.screen_size(
+                args.height, args.radius, ra0, dec0, us, vs, MWAPOS, time,
+            )
+
+            print(
+                f"The phase screen is a square, {round(screensize/1000, 1)} km per side."
+            )
+            # set_num_threads(5)
             print("Simulating offset visibilities...")
             # logger.info("Simulating offset visibilities...")
             # "Get the phase screen"
@@ -247,17 +275,15 @@ def main():
                 phs_screen = loaded_tecpath["tecscreen"]
             else:
                 phs_screen = make_phase_screen(
-                    scale=args.scale, size=args.size, tec_type=args.tec_type
+                    scale=args.scale, size=screensize, tec_type=args.tec_type
                 )
                 tecnpz = prefix + "_phase_screen.npz"
                 np.savez(tecnpz, tecscreen=phs_screen)
 
-            us, vs, _ = numba_dance.get_antenna_in_uvw(mset, tbl, lst)
-            ant1, ant2 = mtls.get_ant12(mset)
-
             initial_setup_params = numba_dance.compute_initial_setup_params(
                 phs_screen, us, vs, args.height, args.scale, ra0, dec0, time
             )
+            ant1, ant2 = mtls.get_ant12(mset)
             initial_setup_params = list(initial_setup_params) + list(
                 (ant1, ant2, args.spar)
             )
@@ -362,7 +388,7 @@ def main():
         npz = prefix + "_pierce_points.npz"
         tecdata = np.load(npz)
         ppoints = tecdata["ppoints"]
-        fieldcenter = (args.size / args.scale) // 2
+        fieldcenter = (phs_screen.shape[0] / args.scale) // 2
         print(fieldcenter, phs_screen.shape)
 
         # params = np.rad2deg(tecdata["params"])

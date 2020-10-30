@@ -168,7 +168,7 @@ def linear_tec(npix, sine=False):
     return tec
 
 
-def make_phase_screen(scale=100, size=110000, tec_type="l"):
+def make_phase_screen(scale=100, size=170000, tec_type="l"):
     """
     produces a phase offset screen.
 

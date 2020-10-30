@@ -9,6 +9,7 @@ from yaml import SafeLoader as SafeLoader
 from numba import prange, njit
 from astroquery.vizier import Vizier
 from astropy.coordinates import Angle
+import sys
 
 
 def great_circle_dist1(r1, d1, r2, d2):
@@ -233,7 +234,14 @@ def stochastic_sky(
     return source_fluxes
 
 
-def read_gleam(ra0, dec0, radius=20, min_flux_cutoff=0.4, catalog="VIII/100/gleamegc"):
+def read_gleam(
+    ra0,
+    dec0,
+    radius=20,
+    n_sources=None,
+    min_flux_cutoff=None,
+    catalog="VIII/100/gleamegc",
+):
     Vizier.ROW_LIMIT = -1
     catalog = Vizier.query_region(
         f"{ra0} {dec0}", radius=Angle(radius, "deg"), catalog=catalog
@@ -263,10 +271,35 @@ def read_gleam(ra0, dec0, radius=20, min_flux_cutoff=0.4, catalog="VIII/100/glea
     names, ras, decs, alphas, ref_fluxes = [
         x[nan_mask] for x in [names, ras, decs, alphas, ref_fluxes]
     ]
-    flux_mask = ref_fluxes > min_flux_cutoff
-    names, ras, decs, alphas, ref_fluxes = [
-        x[flux_mask] for x in [names, ras, decs, alphas, ref_fluxes]
-    ]
+
+    if n_sources:
+        if len(ref_fluxes) < n_sources:
+            print(
+                f"Warning: You asked for {n_sources} sources. \
+                The GLEAM catalogue has only {len(ref_fluxes)} sources in the specified sky area.\
+                Using all available sources."
+            )
+        else:
+            n_brightest_mask = (-ref_fluxes).argsort()[:n_sources]
+            names, ras, decs, alphas, ref_fluxes = [
+                x[n_brightest_mask] for x in [names, ras, decs, alphas, ref_fluxes]
+            ]
+            print(f"Obtained the {n_sources} brightest sources")
+
+    if min_flux_cutoff:
+        flux_cutoff_mask = ref_fluxes > min_flux_cutoff
+        if not np.any(flux_cutoff_mask):
+            print(
+                "Sorry. No sources with flux density above the specified minimum cutoff. Exiting."
+            )
+            sys.exit()
+        else:
+            names, ras, decs, alphas, ref_fluxes = [
+                x[flux_cutoff_mask] for x in [names, ras, decs, alphas, ref_fluxes]
+            ]
+            print(
+                f"Found {len(ras)} sources above minimum flux density cuttoff. Using those."
+            )
 
     ras = np.where(ras < 0, ras + 360, ras)
 
@@ -293,11 +326,15 @@ def gleam_model(ras, decs, alphas, ref_fluxes, frequencies):
 
 if __name__ == "__main__":
     frequencies = np.linspace(100, 130, 768) * 1e6
-    names, ras, decs, alphas, ref_fluxes = read_gleam(0.0, -27.0, min_flux_cutoff=5)
+    names, ras, decs, alphas, ref_fluxes = read_gleam(
+        0.0, -27.0, radius=20, n_sources=9000, min_flux_cutoff=0.4
+    )
 
     print([x.shape for x in [names, ras, decs, alphas, ref_fluxes]])
     fluxes = gleam_model(ras, decs, alphas, ref_fluxes, frequencies)
 
+    print(ras)
+    print(decs)
     print(fluxes.shape)
-    print(fluxes[:, 0, 1].min())
-    print(fluxes[:, -1, 3].min())
+    # print(fluxes[:, 0, 1])
+    print(fluxes[:, -1, 3])

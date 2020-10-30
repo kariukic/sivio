@@ -265,6 +265,26 @@ def single_source_pierce_point(
         )
 
 
+def screen_size(height, radius, ra0, dec0, us, vs, MWAPOS, time):
+    max_ra = ra0 + np.deg2rad(radius)
+    max_dec = dec0 + np.deg2rad(radius)
+
+    max_uv = max(max(us), max(vs))
+    new_u0 = max_uv - us[0]
+    new_v0 = max_uv - vs[0]
+
+    alt, max_az = radec_to_altaz(max_ra, max_dec, time, MWAPOS)
+    max_zen = np.pi / 2.0 - alt
+
+    zen_angle_radius = height * np.tan(max_zen)
+
+    pp_u_coord = zen_angle_radius * np.sin(max_az) + new_u0
+    pp_v_coord = zen_angle_radius * np.cos(max_az) + new_v0
+
+    # the 1000 is a 1km padding just to make sure no pierce point falls outside the phase screen
+    return 2 * max(pp_u_coord, pp_v_coord) + 1000
+
+
 def collective_pierce_points(zenith_angles, azimuths, initial_setup_params):
     (
         du,
