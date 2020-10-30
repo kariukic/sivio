@@ -10,7 +10,7 @@ import numpy as np
 import psutil
 from casacore.tables import table
 
-# from numba import set_num_threads
+from numba import set_num_threads
 
 import mset_utils as mtls
 import plotting
@@ -21,6 +21,10 @@ from coordinates import MWAPOS, get_time, radec_to_altaz
 from cthulhu_analysis import cthulhu_analyse
 from match_catalogs import main_match
 from phase_screen import make_phase_screen
+
+__author__ = "Kariuki Chege"
+__version__ = "0.0.0"
+__date__ = "2020-10-30"
 
 
 def main():
@@ -123,21 +127,21 @@ def main():
             '-abs-mem 40 -size 4096 4096 -scale 30asec -niter 1000000 -auto-threshold 3'",
     )
     parser.add_argument("--plot", "-p", action="store_true", help="Make plots")
-    parser.add_argument(
-        "--mp",
-        action="store_true",
-        help="run multiprocessing. not yet fully implemented",
-    )
     parser.add_argument("--debug", action="store_true", help="Run in debug mode")
     args = parser.parse_args()
 
-    logger = logging.getLogger(__name__)
-    if args.debug:
-        logger.setLevel("DEBUG")
-    else:
-        logger.setLevel("INFO")
+    # logging configuration
+    logging.basicConfig(
+        stream=sys.stdout,
+        level=logging.INFO,
+        format="%(module)s:%(levelname)s %(message)s",
+    )
+    log = logging.getLogger("sivio")
+    logging_level = logging.DEBUG if args.debug else logging.INFO
+    log.setLevel(logging_level)
+    log.info("This is SIVIO {0}-({1})".format(__version__, __date__))
 
-    print(
+    log.info(
         f"No. of CPUS: {multiprocessing.cpu_count()}: Total memory: ~{psutil.virtual_memory().total/1e9} GB"
     )
 
@@ -152,26 +156,25 @@ def main():
         obsid = args.ms_template.split("/")[-1].split(".")[0]
     else:
         obsid = args.ms_template.split(".")[0]
-    print("obsid:", obsid)
 
     mset = "%s_sources_%s_%stec.ms" % (args.n_sources, obsid, args.tec_type,)
     prefix = mset.split(".")[0]
     output_dir = os.path.abspath(".") + "/" + prefix + "_spar" + str(args.spar)
-    print(output_dir)
+    log.info(f"Output path is {output_dir}")
     if not os.path.exists(output_dir):
         os.makedirs(output_dir, exist_ok=True)
     os.chdir(output_dir)
 
     if args.sim:
         if mset not in os.listdir(os.path.abspath(".")):
-            print("Making the simulation measurement set..")
+            log.info("Making the simulation measurement set..")
             os.system("mkdir %s" % (mset))
             os.system("cp -r %s/* %s" % (ms_template_path, mset))
 
         tbl = table(mset, readonly=False)
         ra0, dec0 = mtls.get_phase_center(tbl)
         frequencies = mtls.get_channels(tbl, ls=False)
-        print(f"The phase center is at ra={np.degrees(ra0)}, dec={np.degrees(dec0)}")
+        log.info(f"The phase center is at ra={np.degrees(ra0)}, dec={np.degrees(dec0)}")
 
         if args.modelpath is not None:
             ras, decs, fluxes = [], [], []
@@ -235,13 +238,13 @@ def main():
         #         list(zip(names, ras, decs, fluxes)),
         #         columns=["name", "ra", "dec", "flux"],
         #     )
-        #     print('saving model"s RTS data products to csv file..')
+        #     log.info('saving model"s RTS data products to csv file..')
         #     df3.to_csv(
         #         f"{model_textfile}", index=False,
         #     )
 
         # assert len(ras) == len(decs) == len(fluxes)
-        print(f"The sky model has {len(ras)} sources")
+        log.info(f"The sky model has {len(ras)} sources")
         data, lmbdas, uvw_lmbdas, dnu, ls, ms, ns = numba_dance.sim_prep(tbl, ras, decs)
 
         if args.true_vis:
@@ -249,25 +252,27 @@ def main():
             # set_num_threads(5)
             start = tm.time()
             true_data = numba_dance.true_vis_numba(data, uvw_lmbdas, fluxes, ls, ms, ns)
-            print("Adding thermal noise to model visibilities...")
+            log.info("Adding thermal noise to model visibilities...")
             true_data[:, :, 0] = numba_dance.add_thermal_noise(true_data[:, :, 0], dnu)
             true_data[:, :, 3] = true_data[:, :, 0]
-            print("Time elapsed simulating model visibilities: %g", tm.time() - start)
+            log.info(
+                "Time elapsed simulating model visibilities: %g", tm.time() - start
+            )
 
             mtls.put_col(tbl, "DATA", true_data)
 
         if args.offset_vis:
             us, vs, _ = numba_dance.get_antenna_in_uvw(mset, tbl, lst)
-            print("Calculating optimum phase screen size...")
+            log.info("Calculating optimum phase screen size...")
             screensize = numba_dance.screen_size(
                 args.height, args.radius, ra0, dec0, us, vs, MWAPOS, time,
             )
 
-            print(
+            log.info(
                 f"The phase screen is a square, {round(screensize/1000, 1)} km per side."
             )
-            # set_num_threads(5)
-            print("Simulating offset visibilities...")
+            set_num_threads(5)
+            log.info("Simulating offset visibilities...")
             # logger.info("Simulating offset visibilities...")
             # "Get the phase screen"
             if args.tecpath is not None:
@@ -292,7 +297,7 @@ def main():
             source_ppoints = numba_dance.collective_pierce_points(
                 zen_angles, azimuths, initial_setup_params
             )
-            print("collective_pierce_points elapsed: %g", tm.time() - start)
+            log.info("collective_pierce_points elapsed: %g", tm.time() - start)
             npz = mset.split(".")[0] + "_pierce_points.npz"
             np.savez(npz, ppoints=source_ppoints)
             start = tm.time()
@@ -308,15 +313,17 @@ def main():
                 ms,
                 ns,
             )
-            print("Adding thermal noise to offset visibilities...")
+            log.info("Adding thermal noise to offset visibilities...")
             offset_data[:, :, 0] = numba_dance.add_thermal_noise(
                 offset_data[:, :, 0], dnu
             )
             offset_data[:, :, 3] = offset_data[:, :, 0]
-            print("Time elapsed simulating offset visibilities: %g", tm.time() - start)
+            log.info(
+                "Time elapsed simulating offset visibilities: %g", tm.time() - start
+            )
 
             if "OFFSET_DATA" not in tbl.colnames():
-                print("Adding OFFSET_DATA column in MS with offset visibilities...")
+                log.info("Adding OFFSET_DATA column in MS with offset visibilities...")
                 mtls.add_col(tbl, "OFFSET_DATA")
             mtls.put_col(tbl, "OFFSET_DATA", offset_data)
         # """
@@ -325,7 +332,7 @@ def main():
         #         mset, data, uvw_lmbdas, fluxes, ls, ms, ns, args.rdiff
         #     )
         #     if "SCINT_DATA" not in tbl.colnames():
-        #         print(
+        #         log.info(
         #             "Adding SCINT_DATA column in MS with simulated visibilities... ..."
         #         )
         #         mtls.add_col(tbl, "SCINT_DATA")
@@ -345,7 +352,7 @@ def main():
             wsclean_imager = True
         except Exception:
             wsclean_imager = False
-            print("Unexpected wsclean error.")
+            log.info("Unexpected wsclean error.")
 
         if args.offset_vis:
             if wsclean_imager:
@@ -388,8 +395,9 @@ def main():
         npz = prefix + "_pierce_points.npz"
         tecdata = np.load(npz)
         ppoints = tecdata["ppoints"]
-        fieldcenter = (phs_screen.shape[0] / args.scale) // 2
-        print(fieldcenter, phs_screen.shape)
+        # log.info(phs_screen.shape[0])
+        # fieldcenter = (phs_screen.shape[0]) // 2
+        # log.info(fieldcenter, phs_screen.shape)
 
         # params = np.rad2deg(tecdata["params"])
         # max_bl = mtls.get_bl_lens(mset).max()
@@ -402,10 +410,10 @@ def main():
                 pname = prefix + "_cthulhu_plots.png"
                 obj = cthulhu_analyse(sorted_df_true_sky, sorted_df_offset_sky)
                 plotting.cthulhu_plots(
-                    obj, phs_screen, ppoints, fieldcenter, args.scale, plotname=pname
+                    obj, phs_screen, ppoints, args.scale, plotname=pname
                 )
             except AssertionError:
-                print("No matching sources in both catalogs.")
+                log.info("No matching sources in both catalogs.")
 
         elif args.match_done:
             try:
@@ -414,12 +422,12 @@ def main():
                 sorted_offset_sky_cat = "sorted_" + prefix + "_offsetvis-image.csv"
                 obj = cthulhu_analyse(sorted_true_sky_cat, sorted_offset_sky_cat)
                 plotting.cthulhu_plots(
-                    obj, phs_screen, ppoints, fieldcenter, args.scale, plotname=pname
+                    obj, phs_screen, ppoints, args.scale, plotname=pname
                 )
             except FileNotFoundError:
-                print("No catalog files found to match.")
+                log.info("No catalog files found to match.")
 
-    print("Wrapping up")
+    log.info("Wrapping up")
 
 
 if __name__ == "__main__":

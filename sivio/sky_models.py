@@ -1,6 +1,7 @@
 import os
 import random
 from math import sin, cos, acos
+import logging
 
 import numpy as np
 import pandas as pd
@@ -10,6 +11,8 @@ from numba import prange, njit
 from astroquery.vizier import Vizier
 from astropy.coordinates import Angle
 import sys
+
+log = logging.getLogger(__name__)
 
 
 def great_circle_dist1(r1, d1, r2, d2):
@@ -46,9 +49,9 @@ def random_sky_model(
     decs = np.array(decs)
     fluxes = np.array(fluxes)
 
-    # print("RAs range", ras.min(), ras.max())
-    # print("Decs range", decs.min(), decs.max())
-    # print("Fluxes range", fluxes.min(), fluxes.max())
+    # log.info("RAs range", ras.min(), ras.max())
+    # log.info("Decs range", decs.min(), decs.max())
+    # log.info("Fluxes range", fluxes.min(), fluxes.max())
 
     df = pd.DataFrame(
         list(zip(list(ras), list(decs), list(fluxes))), columns=["ra", "dec", "flux"],
@@ -93,10 +96,10 @@ def make_fluxes(
 #     if dist == "normal":
 #         d = np.random.normal(loc=mean, scale=sigma, size=size)
 #         if type == "ra":
-#             print("RAs range", d.min(), d.max())
+#             log.info("RAs range", d.min(), d.max())
 #             d = np.where(d < 0, d + 360, d)
 #         elif type == "dec":
-#             print("Decs range", d.min(), d.max())
+#             log.info("Decs range", d.min(), d.max())
 #         else:
 #             d = np.random.normal(loc=mean, scale=sigma, size=size)
 #         return d
@@ -117,7 +120,7 @@ def loadfile(data_file, n_sources, ra0, dec0, filename="sky_model.csv"):
     stds = []
     sourcelist = unpacked["sources"]
     for source in sourcelist:
-        # print(unpacked['sources'][source]['name'])
+        # log.info(unpacked['sources'][source]['name'])
         names.append(unpacked["sources"][source]["name"])
         dec.append(unpacked["sources"][source]["dec"])
         ra.append(unpacked["sources"][source]["ra"])
@@ -138,21 +141,21 @@ def loadfile(data_file, n_sources, ra0, dec0, filename="sky_model.csv"):
         & (df2.dec > dec0 - 8.1)
         & (df2.dec < dec0 + 8.9)
     ]
-    print(df3.shape, df3.ra.max(), df3.ra.min(), df3.dec.max(), df3.dec.min())
+    log.info(df3.shape, df3.ra.max(), df3.ra.min(), df3.dec.max(), df3.dec.min())
     df3 = df3.nlargest(n_sources, "flux", keep="all")
 
     if filename not in os.listdir(os.path.abspath(".")):
-        print('saving model"s RTS data products to csv file..')
+        log.info('saving model"s RTS data products to csv file..')
         df3.to_csv("%s" % (filename))
 
-        print(df3.shape)
+        log.info(df3.shape)
         ras = np.array(df3.ra)
         decs = np.array(df3.dec)
         fluxes = np.array(df3.flux)
 
-        print("RAs range", ras.min(), ras.max())
-        print("Decs range", decs.min(), decs.max())
-        print("Fluxes range", fluxes.min(), fluxes.max())
+        log.info("RAs range", ras.min(), ras.max())
+        log.info("Decs range", decs.min(), decs.max())
+        log.info("Fluxes range", fluxes.min(), fluxes.max())
         return ras, decs, fluxes
 
 
@@ -257,14 +260,16 @@ def read_gleam(
     # df2 = df[df["Fp151"] > 4]
     # df2 = df2.dropna(axis=0)
 
-    # print(df2.shape)
+    # log.info(df2.shape)
     # names = np.array(df2.GLEAM)
     # ras = np.array(df2.RAJ2000)
     # ras = np.where(ras < 0, ras + 360, ras)
     # decs = np.array(df2.DEJ2000)
 
     # alphas = np.array([float(i) for i in df2.alpha])
-    print(len(alphas))
+    log.info(
+        f"Found {len(names)} sources in total from the {radius} degrees radius sky patch."
+    )
 
     # ref_fluxes = np.array(df2.Fp151)
     nan_mask = ~np.isnan(alphas)
@@ -274,7 +279,7 @@ def read_gleam(
 
     if n_sources:
         if len(ref_fluxes) < n_sources:
-            print(
+            log.info(
                 f"Warning: You asked for {n_sources} sources. \
                 The GLEAM catalogue has only {len(ref_fluxes)} sources in the specified sky area.\
                 Using all available sources."
@@ -284,12 +289,12 @@ def read_gleam(
             names, ras, decs, alphas, ref_fluxes = [
                 x[n_brightest_mask] for x in [names, ras, decs, alphas, ref_fluxes]
             ]
-            print(f"Obtained the {n_sources} brightest sources")
+            log.info(f"Obtained the {n_sources} brightest sources")
 
     if min_flux_cutoff:
         flux_cutoff_mask = ref_fluxes > min_flux_cutoff
         if not np.any(flux_cutoff_mask):
-            print(
+            log.info(
                 "Sorry. No sources with flux density above the specified minimum cutoff. Exiting."
             )
             sys.exit()
@@ -297,7 +302,7 @@ def read_gleam(
             names, ras, decs, alphas, ref_fluxes = [
                 x[flux_cutoff_mask] for x in [names, ras, decs, alphas, ref_fluxes]
             ]
-            print(
+            log.info(
                 f"Found {len(ras)} sources above minimum flux density cuttoff. Using those."
             )
 
@@ -330,11 +335,11 @@ if __name__ == "__main__":
         0.0, -27.0, radius=20, n_sources=9000, min_flux_cutoff=0.4
     )
 
-    print([x.shape for x in [names, ras, decs, alphas, ref_fluxes]])
+    log.info([x.shape for x in [names, ras, decs, alphas, ref_fluxes]])
     fluxes = gleam_model(ras, decs, alphas, ref_fluxes, frequencies)
 
-    print(ras)
-    print(decs)
-    print(fluxes.shape)
-    # print(fluxes[:, 0, 1])
-    print(fluxes[:, -1, 3])
+    log.info(ras)
+    log.info(decs)
+    log.info(fluxes.shape)
+    # log.info(fluxes[:, 0, 1])
+    log.info(fluxes[:, -1, 3])

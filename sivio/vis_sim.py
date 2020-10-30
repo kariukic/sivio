@@ -282,7 +282,7 @@ def screen_size(height, radius, ra0, dec0, us, vs, MWAPOS, time):
     pp_v_coord = zen_angle_radius * np.cos(max_az) + new_v0
 
     # the 1000 is a 1km padding just to make sure no pierce point falls outside the phase screen
-    return 2 * max(pp_u_coord, pp_v_coord) + 1000
+    return 2 * max(pp_u_coord, pp_v_coord)  # + 1000
 
 
 def collective_pierce_points(zenith_angles, azimuths, initial_setup_params):

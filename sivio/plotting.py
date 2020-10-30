@@ -59,9 +59,10 @@ def plot_antennas_on_tec_field(tec, u_tec_list, v_tec_list):
     plt.savefig("zenith_test_source_antennas_on_linear_tec.png")
 
 
-def ppoints_on_tec_field(tec, ppoints, params, fieldcenter, prefix, max_bl, scale):
+def ppoints_on_tec_field(tec, ppoints, params, prefix, max_bl, scale):
     fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(10, 12))
-    fieldcenter = int(fieldcenter)
+    fieldcenter = tec.shape[0] // 2
+
     # fig = plt.figure(figsize=(7, 7))
     # yy1 = int(fieldcenter // 2)
     # yy2 = int(fieldcenter + yy1)
@@ -133,17 +134,13 @@ def ppoints_on_tec_field(tec, ppoints, params, fieldcenter, prefix, max_bl, scal
     plt.close()
 
 
-def ppoints_on_tec_field_v2(tec, ppoints, fieldcenter, scale):
-    fieldcenter = int(fieldcenter)
-
-    xnymin = fieldcenter - tec.shape[0] // 2
-    xnymax = fieldcenter + tec.shape[0] // 2
+def ppoints_on_tec_field_v2(tec, ppoints, scale):
+    xnymin = 0
+    xnymax = tec.shape[0]
     extent = (xnymin, xnymax, xnymin, xnymax)
     s = plt.imshow(tec, cmap="plasma", extent=extent)
 
-    count = 1
     for source in range(ppoints.shape[1]):
-        # print("SOURCE %s ORIGIN POINT" % (count), uvlist[0, 0], uvlist[1, 0])
         plt.scatter(
             ppoints[0, source, :],
             ppoints[1, source, :],
@@ -152,8 +149,7 @@ def ppoints_on_tec_field_v2(tec, ppoints, fieldcenter, scale):
             s=1,
             label="antenna positions",
         )
-        count += 1
-    print(count)
+
     cbar = colorbar(s)
     cbar.ax.set_ylabel("phase [deg]", rotation=270, fontsize=f)
     # ax1.legend()
@@ -163,9 +159,7 @@ def ppoints_on_tec_field_v2(tec, ppoints, fieldcenter, scale):
     plt.title("Pierce points coverage", fontsize=f)
 
 
-def cthulhu_plots(
-    o, tecscreen, ppoints, fieldcenter, scale, plotname="tec_reconstruction.png"
-):
+def cthulhu_plots(o, tecscreen, ppoints, scale, plotname="tec_reconstruction.png"):
     # extent = [-9, 9, -35, -18]
 
     fig = plt.figure(figsize=(12, 9))
@@ -187,7 +181,7 @@ def cthulhu_plots(
     ax2.set_title("Full phase screen", fontsize=f)
 
     fig.add_subplot(222)
-    ppoints_on_tec_field_v2(np.rot90(tecscreen), ppoints, fieldcenter, scale)
+    ppoints_on_tec_field_v2(np.rot90(tecscreen), ppoints, scale)
 
     ax4 = fig.add_subplot(223)
     setup_subplot(axis=ax4)
