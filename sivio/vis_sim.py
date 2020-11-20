@@ -47,7 +47,7 @@ def true_vis_numba(data, uvw_lmbdas, fluxes, ls, ms, ns):
     w = uvw_lmbdas[:, :, 2]
     source_count = 1
     for source in prange(len(fluxes)):
-        print("True Source: ", source_count, "...")
+        print(f"True Source {source_count}")
         xx_source_visibilities = fluxes[source, :, 0] * np.exp(
             2j * np.pi * (u * ls[source] + v * ms[source] + w * ns[source])
         )
@@ -337,8 +337,8 @@ def add_phase_offsets(lmbdas, antenna1, antenna2, uparams, vparams, spar):
     u_phasediffs = uparams[antenna1] - uparams[antenna2]
     v_phasediffs = vparams[antenna1] - vparams[antenna2]
 
-    u_phasediffs = float(spar) * np.expand_dims(u_phasediffs, axis=1) * lmbdas ** 2
-    v_phasediffs = float(spar) * np.expand_dims(v_phasediffs, axis=1) * lmbdas ** 2
+    u_phasediffs = float(spar) * np.expand_dims(u_phasediffs, axis=1) * lmbdas
+    v_phasediffs = float(spar) * np.expand_dims(v_phasediffs, axis=1) * lmbdas
 
     return u_phasediffs, v_phasediffs
 
@@ -430,7 +430,7 @@ def compute_offset_vis_parallel(
     data[:] = 0
     source_num = 0
     for source in prange(len(fluxes)):
-        print("source: ", source_num)
+        print(f"offsetting source {source_num}")
         params = (
             lmbdas,
             uvw_lmbdas,

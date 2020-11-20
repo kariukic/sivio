@@ -59,8 +59,7 @@ def add_col(tbl, colnme):
     shape = tbl.getcell("DATA", 0).shape
     tbl.addcols(
         maketabdesc(
-            makearrcoldesc(colnme, 0.0 + 0.0j,
-                           valuetype="complex", shape=shape)
+            makearrcoldesc(colnme, 0.0 + 0.0j, valuetype="complex", shape=shape)
         ),
         col_dmi,
         addtoparent=True,

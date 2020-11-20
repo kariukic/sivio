@@ -16,14 +16,14 @@ import mset_utils as mtls
 import plotting
 import sky_models
 import vis_sim as numba_dance
-from beam import compute_attenuations
+from beam import hyperbeam
 from coordinates import MWAPOS, get_time, radec_to_altaz
 from cthulhu_analysis import cthulhu_analyse
 from match_catalogs import main_match
 from phase_screen import make_phase_screen
 
 __author__ = "Kariuki Chege"
-__version__ = "0.0.0"
+__version__ = "0.1.0"
 __date__ = "2020-10-30"
 
 
@@ -217,22 +217,27 @@ def main():
                     n_sources=args.n_sources,
                     min_flux_cutoff=args.flux_cutoff,
                 )
-        fluxes = sky_models.gleam_model(ras, decs, alphas, ref_fluxes, frequencies)
+        fluxes = sky_models.gleam_model(
+            ras, decs, alphas, ref_fluxes, frequencies
+        ).astype(complex)
+
         ras = np.radians(ras)
         decs = np.radians(decs)
+
+        log.info(f"The sky model has {len(ras)} sources")
         # get beam stuff
         time, lst = get_time(metafitspath, MWAPOS)
         alts, azimuths = radec_to_altaz(ras, decs, time, MWAPOS)
         zen_angles = np.pi / 2.0 - alts
-        # compute XX, YY beam attenuations for all sources and each frequency channel
-        attenuations = compute_attenuations(
-            zen_angles, azimuths, frequencies, metafits=metafitspath
+
+        # compute apparent fluxes for all sources and each frequency channel
+        start = tm.time()
+        fluxes = hyperbeam(
+            zen_angles, azimuths, frequencies, fluxes, metafits=metafitspath
         )
-        beam_file = prefix + "beam.npz"
-        if beam_file not in os.listdir(os.path.abspath(".")):
-            np.savez(beam_file, beam=attenuations)
-        # get apparent fluxes
-        fluxes *= attenuations
+        print(fluxes.shape, fluxes[:, 0, :])
+        log.info("hyperbeam elapsed: %g", tm.time() - start)
+
         # if model_textfile not in os.listdir(os.path.abspath(".")):
         #     df3 = pd.DataFrame(
         #         list(zip(names, ras, decs, fluxes)),
@@ -293,13 +298,13 @@ def main():
                 (ant1, ant2, args.spar)
             )
             initial_setup_params = tuple(initial_setup_params)
-            start = tm.time()
-            source_ppoints = numba_dance.collective_pierce_points(
-                zen_angles, azimuths, initial_setup_params
-            )
-            log.info("collective_pierce_points elapsed: %g", tm.time() - start)
-            npz = mset.split(".")[0] + "_pierce_points.npz"
-            np.savez(npz, ppoints=source_ppoints)
+            # start = tm.time()
+            # source_ppoints = numba_dance.collective_pierce_points(
+            #     zen_angles, azimuths, initial_setup_params
+            # )
+            # log.info("collective_pierce_points elapsed: %g", tm.time() - start)
+            # npz = mset.split(".")[0] + "_pierce_points.npz"
+            # np.savez(npz, ppoints=source_ppoints)
             start = tm.time()
             offset_data = numba_dance.compute_offset_vis_parallel(
                 data,

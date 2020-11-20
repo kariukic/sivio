@@ -21,13 +21,16 @@ def colorbar(mappable):
 
 def plotuv(tbl):
     """Take a look at the uv plane"""
+    ff = mpl.rcParams["font.size"] + 6
     uvw = get_uvw(tbl)
-    plt.figure
+    plt.close()
+    plt.figure(figsize=(8, 6))
     plt.plot(uvw[:, 0], uvw[:, 1], "k.")
     # uncomment to plot the complex conjugates
     # plt.plot(-1.*uvw[:,0], -1.*uvw[:,1], 'b.')
-    plt.xlabel("u (m)")
-    plt.ylabel("v (m)")
+    plt.gcf().subplots_adjust(bottom=0.18, left=0.2)
+    plt.xlabel("u (m)", fontsize=ff)
+    plt.ylabel("v (m)", fontsize=ff)
     plt.savefig("uuvv.png")
 
 
