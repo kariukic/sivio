@@ -189,7 +189,8 @@ def cthulhu_plots(o, tecscreen, ppoints, scale, plotname="tec_reconstruction.png
     ax4 = fig.add_subplot(223)
     setup_subplot(axis=ax4)
     plot_vector_arrows(axis=ax4, obsid=o, scale=60)
-    plot_title = f"Median offsets: {round(o.metrics[0][0], 4)}, PCA eigenvalue: {round(o.metrics[1][0], 4)} \n Metric: {round(o.metric, 4)}"
+    plot_title = f"""Median offsets: {round(o.metrics[0][0], 4)},
+    PCA eigenvalue: {round(o.metrics[1][0], 4)} \n Metric: {round(o.metric, 4)}"""
     ax4.set_title(plot_title, fontsize=f)
     ax4.set_xlabel("RA [deg]", fontsize=f)
     ax4.set_ylabel("Dec [deg]", fontsize=f)

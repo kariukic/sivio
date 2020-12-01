@@ -244,6 +244,8 @@ def read_gleam(
     n_sources=None,
     min_flux_cutoff=None,
     catalog="VIII/100/gleamegc",
+    filename="unnamed_sky_model.txt",
+    write=True,
 ):
     Vizier.ROW_LIMIT = -1
     catalog = Vizier.query_region(
@@ -307,12 +309,13 @@ def read_gleam(
             )
 
     ras = np.where(ras < 0, ras + 360, ras)
-
+    if write:
+        write_model(names, ras, decs, alphas, ref_fluxes, filename)
     return names, ras, decs, alphas, ref_fluxes
 
 
 @njit(parallel=True)
-def gleam_model(ras, decs, alphas, ref_fluxes, frequencies):
+def gleam_model_spectrum(ras, decs, alphas, ref_fluxes, frequencies):
     fluxes = np.zeros((len(ras), len(frequencies), 4), dtype=np.float32)
     for source in prange(fluxes.shape[0]):
         for freq_chan in prange(len(frequencies)):
@@ -329,6 +332,40 @@ def gleam_model(ras, decs, alphas, ref_fluxes, frequencies):
     return fluxes
 
 
+def write_model(names, ras, decs, alphas, ref_fluxes, filename):
+    fname = open(filename, "w")
+    faa = np.pi ** 2.0
+    fbb = 2.0 * np.log(2.0)
+    factor = np.sqrt(faa / fbb)
+
+    mfreqs = np.arange(100, 243, 13)
+    # print("mfreqs", mfreqs)
+    for name, ra, dec, alpha, ref_flux in zip(names, ras, decs, alphas, ref_fluxes):
+        maj = float(0)
+        mnr = float(0)
+        pa = float(0)
+        line0 = f"SOURCE {name} {str(ra / 15.0)} {str(dec)}"
+
+        fname.write(line0 + "\n")
+        if maj != 0 or mnr != 0:  # Gaussian simulation not implemented yet
+            line1 = f"GAUSSIAN {str(pa)} {str(maj * factor * 60.0)} {str(mnr * factor * 60.0)}"
+            fname.write(line1 + "\n")
+
+        for ff in range(len(mfreqs)):
+            mod_flx = power_law(ref_flux, alpha, mfreqs[ff])
+            line2 = f"FREQ {str(mfreqs[ff])}e+6 {str(mod_flx)} 0 0 0"
+            fname.write(line2 + "\n")
+        line3 = "ENDSOURCE"
+        fname.write(line3 + "\n")
+
+    fname.close()
+    return
+
+
+def power_law(norm, alpha, nu):
+    return norm * (nu / 151.0) ** alpha
+
+
 if __name__ == "__main__":
     frequencies = np.linspace(100, 130, 768) * 1e6
     names, ras, decs, alphas, ref_fluxes = read_gleam(
@@ -336,10 +373,10 @@ if __name__ == "__main__":
     )
 
     log.info([x.shape for x in [names, ras, decs, alphas, ref_fluxes]])
-    fluxes = gleam_model(ras, decs, alphas, ref_fluxes, frequencies)
+    fluxes = gleam_model_spectrum(ras, decs, alphas, ref_fluxes, frequencies)
 
     log.info(ras)
     log.info(decs)
     log.info(fluxes.shape)
     # log.info(fluxes[:, 0, 1])
-    log.info(fluxes[:, -1, 3])
+    print(fluxes[:, -1, 3])

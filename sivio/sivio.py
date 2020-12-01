@@ -139,16 +139,12 @@ def main():
     log = logging.getLogger("sivio")
     logging_level = logging.DEBUG if args.debug else logging.INFO
     log.setLevel(logging_level)
-    log.info("This is SIVIO {0}-({1})".format(__version__, __date__))
+    log.info("Karibu. This is SIVIO {0}-({1})".format(__version__, __date__))
 
     log.info(
         f"No. of CPUS: {multiprocessing.cpu_count()}: Total memory: ~{psutil.virtual_memory().total/1e9} GB"
     )
 
-    if args.modelpath is not None:
-        modelpath = os.path.abspath(args.modelpath)
-    if args.tecpath is not None:
-        tecpath = os.path.abspath(args.tecpath)
     ms_template_path = os.path.abspath(args.ms_template)
     metafitspath = os.path.abspath(args.metafits)
 
@@ -157,7 +153,7 @@ def main():
     else:
         obsid = args.ms_template.split(".")[0]
 
-    mset = "%s_sources_%s_%stec.ms" % (args.n_sources, obsid, args.tec_type,)
+    mset = "%s_sources_%s_%stec.ms" % (args.n_sources, obsid, args.tec_type)
     prefix = mset.split(".")[0]
     output_dir = os.path.abspath(".") + "/" + prefix + "_spar" + str(args.spar)
     log.info(f"Output path is {output_dir}")
@@ -177,17 +173,19 @@ def main():
         log.info(f"The phase center is at ra={np.degrees(ra0)}, dec={np.degrees(dec0)}")
 
         if args.modelpath is not None:
-            ras, decs, fluxes = [], [], []
-            with open(modelpath, "r") as file:
-                reader = csv.reader(file, delimiter=",")
-                next(reader)
-                for row in reader:
-                    ras.append(float(row[1]))
-                    decs.append(float(row[2]))
-                    fluxes.append(float(row[3]))
-            ras, decs, fluxes = np.array(ras), np.array(decs), np.array(fluxes)
-        else:
-            if args.yfile is not None:
+            modelpath = os.path.abspath(args.modelpath)
+            filetype = modelpath.split(".")[-1]
+            if filetype == "csv" or filetype == "txt":
+                ras, decs, fluxes = [], [], []
+                with open(modelpath, "r") as file:
+                    reader = csv.reader(file, delimiter=",")
+                    next(reader)
+                    for row in reader:
+                        ras.append(float(row[1]))
+                        decs.append(float(row[2]))
+                        fluxes.append(float(row[3]))
+                ras, decs, fluxes = np.array(ras), np.array(decs), np.array(fluxes)
+            elif filetype == "yaml":
                 model_textfile = prefix + "yaml_sky_model.csv"
                 ras, decs, fluxes = sky_models.loadfile(
                     args.yfile,
@@ -197,29 +195,30 @@ def main():
                     filename=model_textfile,
                 )
             else:
-                model_textfile = prefix + "_sky_model.csv"
-                # ras, decs, fluxes = sky_models.random_sky_model(
-                #     args.n_sources,
-                #     np.rad2deg(ra0),
-                #     np.rad2deg(dec0),
-                #     filename=model_textfile,
-                # )
-                # ras, decs, fluxes = sky_models.gleam_model(
-                #     frequencies,
-                #     csvfile="/home/kariuki/databases/Gleam_low_band_catalogue_si.csv",
-                #     filename=model_textfile,
-                #     metafits=metafitspath,
-                # )
-                names, ras, decs, alphas, ref_fluxes = sky_models.read_gleam(
-                    np.degrees(ra0),
-                    np.degrees(dec0),
-                    radius=args.radius,
-                    n_sources=args.n_sources,
-                    min_flux_cutoff=args.flux_cutoff,
+                logging.info(
+                    f"""Unrecognized file type: {modelpath}.
+                    Provide a .csv or .txt sky model. Or don't then GLEAM will used."""
                 )
-        fluxes = sky_models.gleam_model(
-            ras, decs, alphas, ref_fluxes, frequencies
-        ).astype(complex)
+                sys.exit()
+        else:
+            model_textfile = prefix + "_sky_model.csv"
+            # ras, decs, fluxes = sky_models.random_sky_model(
+            #     args.n_sources,
+            #     np.rad2deg(ra0),
+            #     np.rad2deg(dec0),
+            #     filename=model_textfile,
+            # )
+            names, ras, decs, alphas, ref_fluxes = sky_models.read_gleam(
+                np.degrees(ra0),
+                np.degrees(dec0),
+                radius=args.radius,
+                n_sources=args.n_sources,
+                min_flux_cutoff=args.flux_cutoff,
+                filename=model_textfile,
+            )
+            fluxes = sky_models.gleam_model_spectrum(
+                ras, decs, alphas, ref_fluxes, frequencies
+            ).astype(complex)
 
         ras = np.radians(ras)
         decs = np.radians(decs)
@@ -235,7 +234,6 @@ def main():
         fluxes = hyperbeam(
             zen_angles, azimuths, frequencies, fluxes, metafits=metafitspath
         )
-        print(fluxes.shape, fluxes[:, 0, :])
         log.info("hyperbeam elapsed: %g", tm.time() - start)
 
         # if model_textfile not in os.listdir(os.path.abspath(".")):
@@ -247,24 +245,20 @@ def main():
         #     df3.to_csv(
         #         f"{model_textfile}", index=False,
         #     )
-
-        # assert len(ras) == len(decs) == len(fluxes)
-        log.info(f"The sky model has {len(ras)} sources")
         data, lmbdas, uvw_lmbdas, dnu, ls, ms, ns = numba_dance.sim_prep(tbl, ras, decs)
 
         if args.true_vis:
-            # logger.info("Simulating the true visibilities...")
+            logging.info("Simulating the true visibilities.")
             # set_num_threads(5)
             start = tm.time()
             true_data = numba_dance.true_vis_numba(data, uvw_lmbdas, fluxes, ls, ms, ns)
-            log.info("Adding thermal noise to model visibilities...")
+            log.info("Adding thermal noise to model visibilities.")
             true_data[:, :, 0] = numba_dance.add_thermal_noise(true_data[:, :, 0], dnu)
             true_data[:, :, 3] = true_data[:, :, 0]
-            log.info(
-                "Time elapsed simulating model visibilities: %g", tm.time() - start
-            )
+            log.info(f"{tm.time() - start}s elapsed simulating model visibilities")
 
             mtls.put_col(tbl, "DATA", true_data)
+            log.info("Wrote the visibilities into MS 'DATA' column.")
 
         if args.offset_vis:
             us, vs, _ = numba_dance.get_antenna_in_uvw(mset, tbl, lst)
@@ -281,6 +275,7 @@ def main():
             # logger.info("Simulating offset visibilities...")
             # "Get the phase screen"
             if args.tecpath is not None:
+                tecpath = os.path.abspath(args.tecpath)
                 loaded_tecpath = np.load(tecpath)
                 phs_screen = loaded_tecpath["tecscreen"]
             else:
@@ -389,11 +384,11 @@ def main():
         if args.offset_vis:
             phs_screen = np.rad2deg(phs_screen)
         elif args.tecpath:
-            phscrn = np.load(tecpath)
+            phscrn = np.load(args.tecpath)
             phs_screen = np.rad2deg(phscrn["tecscreen"])
         else:
+            phscrn_path = prefix + "_phase_screen.npz"
             try:
-                phscrn_path = prefix + "_phase_screen.npz"
                 phs_screen = np.rad2deg(np.load(phscrn_path)["tecscreen"])
             except FileNotFoundError:
                 sys.exit(f"Phase screen not found at {phscrn_path}. Exiting.")
@@ -432,7 +427,7 @@ def main():
             except FileNotFoundError:
                 log.info("No catalog files found to match.")
 
-    log.info("Wrapping up")
+    log.info("Nimemaliza (Swahili for 'finished')")
 
 
 if __name__ == "__main__":

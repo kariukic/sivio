@@ -1,5 +1,5 @@
 import numpy as np
-from numba import complex64, float64, njit, prange
+from numba import njit, prange  # , complex64, float64
 from scipy import constants
 
 import mset_utils as mtls
@@ -47,7 +47,7 @@ def true_vis_numba(data, uvw_lmbdas, fluxes, ls, ms, ns):
     w = uvw_lmbdas[:, :, 2]
     source_count = 1
     for source in prange(len(fluxes)):
-        print(f"True Source {source_count}")
+        print("True Source:", source_count)
         xx_source_visibilities = fluxes[source, :, 0] * np.exp(
             2j * np.pi * (u * ls[source] + v * ms[source] + w * ns[source])
         )
@@ -170,6 +170,32 @@ def phase_center_offset(ra0, dec0, h_pix, time):
 
 
 def compute_initial_setup_params(tec, us, vs, height, scale, ra0, dec0, time):
+    """Computes general utility parameters for the system.
+
+    Parameters
+    ----------
+    tec : 2D array
+        [description]
+    us : [type]
+        [description]
+    vs : [type]
+        [description]
+    height : [type]
+        [description]
+    scale : [type]
+        [description]
+    ra0 : [type]
+        [description]
+    dec0 : [type]
+        [description]
+    time : [type]
+        [description]
+
+    Returns
+    -------
+    [type]
+        [description]
+    """
     # Lets first get the gradient of all pixels in the tecscreen
     du, dv = np.gradient(tec)
     # Apply scaling to the array field and height
@@ -430,7 +456,7 @@ def compute_offset_vis_parallel(
     data[:] = 0
     source_num = 0
     for source in prange(len(fluxes)):
-        print(f"offsetting source {source_num}")
+        print("offsetting source:", source_num)
         params = (
             lmbdas,
             uvw_lmbdas,

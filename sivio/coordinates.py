@@ -33,9 +33,11 @@ def radec_to_altaz(ra, dec, time, pos):
 
 
 if __name__ == "__main__":
-    metafits = "/home/kariuki/scint_sims/1068395232.metafits"
+    metafits = "/home/kariuki/mset_data/1098108248.metafits"
     # metafits = "/home/kariuki/scint_sims/1065880128.metafits"
-    time, lst = get_time(metafits, MWAPOS)
+    x = get_time(metafits, MWAPOS)
+    print(x[0].value)
+    time, lst = x
     alt, az = radec_to_altaz(np.radians(60), np.radians(-30), time, MWAPOS)
     zen_angle = np.pi / 2.0 - alt
 
