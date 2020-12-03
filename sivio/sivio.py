@@ -293,13 +293,13 @@ def main():
                 (ant1, ant2, args.spar)
             )
             initial_setup_params = tuple(initial_setup_params)
-            # start = tm.time()
-            # source_ppoints = numba_dance.collective_pierce_points(
-            #     zen_angles, azimuths, initial_setup_params
-            # )
-            # log.info("collective_pierce_points elapsed: %g", tm.time() - start)
-            # npz = mset.split(".")[0] + "_pierce_points.npz"
-            # np.savez(npz, ppoints=source_ppoints)
+            start = tm.time()
+            source_ppoints = numba_dance.collective_pierce_points(
+                zen_angles, azimuths, initial_setup_params
+            )
+            pps_path = mset.split(".")[0] + "_pierce_points.npz"
+            np.savez(pps_path, ppoints=source_ppoints)
+            log.info("collective_pierce_points elapsed: %g", tm.time() - start)
             start = tm.time()
             offset_data = numba_dance.compute_offset_vis_parallel(
                 data,
@@ -383,18 +383,24 @@ def main():
     if args.plot:
         if args.offset_vis:
             phs_screen = np.rad2deg(phs_screen)
+            pierce_points = np.load(pps_path)
+            ppoints = pierce_points["ppoints"]
         elif args.tecpath:
             phscrn = np.load(args.tecpath)
             phs_screen = np.rad2deg(phscrn["tecscreen"])
         else:
             phscrn_path = prefix + "_phase_screen.npz"
+            pps_path = prefix + "_pierce_points.npz"
             try:
                 phs_screen = np.rad2deg(np.load(phscrn_path)["tecscreen"])
             except FileNotFoundError:
                 sys.exit(f"Phase screen not found at {phscrn_path}. Exiting.")
-        npz = prefix + "_pierce_points.npz"
-        tecdata = np.load(npz)
-        ppoints = tecdata["ppoints"]
+
+            try:
+                pierce_points = np.load(pps_path)
+                ppoints = pierce_points["ppoints"]
+            except FileNotFoundError:
+                sys.exit(f"pierce points file not found at {pps_path}. Exiting.")
         # log.info(phs_screen.shape[0])
         # fieldcenter = (phs_screen.shape[0]) // 2
         # log.info(fieldcenter, phs_screen.shape)
@@ -409,9 +415,7 @@ def main():
             try:
                 pname = prefix + "_cthulhu_plots.png"
                 obj = cthulhu_analyse(sorted_df_true_sky, sorted_df_offset_sky)
-                plotting.cthulhu_plots(
-                    obj, phs_screen, ppoints, args.scale, plotname=pname
-                )
+                plotting.cthulhu_plots(obj, phs_screen, ppoints, plotname=pname)
             except AssertionError:
                 log.info("No matching sources in both catalogs.")
 
@@ -421,9 +425,7 @@ def main():
                 sorted_true_sky_cat = "sorted_" + prefix + "_truevis-image.csv"
                 sorted_offset_sky_cat = "sorted_" + prefix + "_offsetvis-image.csv"
                 obj = cthulhu_analyse(sorted_true_sky_cat, sorted_offset_sky_cat)
-                plotting.cthulhu_plots(
-                    obj, phs_screen, ppoints, args.scale, plotname=pname
-                )
+                plotting.cthulhu_plots(obj, phs_screen, ppoints, plotname=pname)
             except FileNotFoundError:
                 log.info("No catalog files found to match.")
 

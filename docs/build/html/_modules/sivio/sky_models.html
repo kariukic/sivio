@@ -1,0 +1,585 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>sivio.sky_models &mdash; sivio 0.1.0 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+
+  
+  
+  
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../index.html" class="icon icon-home" alt="Documentation Home"> sivio
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../intro.html">Introduction</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorial.html">Tutorial</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../modules.html">Modules Documentation</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">sivio</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+      <li>sivio.sky_models</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for sivio.sky_models</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">random</span>
+<span class="kn">from</span> <span class="nn">math</span> <span class="kn">import</span> <span class="n">sin</span><span class="p">,</span> <span class="n">cos</span><span class="p">,</span> <span class="n">acos</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">import</span> <span class="nn">yaml</span>
+<span class="kn">from</span> <span class="nn">yaml</span> <span class="kn">import</span> <span class="n">SafeLoader</span> <span class="k">as</span> <span class="n">SafeLoader</span>
+<span class="kn">from</span> <span class="nn">numba</span> <span class="kn">import</span> <span class="n">prange</span><span class="p">,</span> <span class="n">njit</span>
+<span class="kn">from</span> <span class="nn">astroquery.vizier</span> <span class="kn">import</span> <span class="n">Vizier</span>
+<span class="kn">from</span> <span class="nn">astropy.coordinates</span> <span class="kn">import</span> <span class="n">Angle</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+
+<span class="n">log</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="great_circle_dist1"><a class="viewcode-back" href="../../sivio.html#sivio.sky_models.great_circle_dist1">[docs]</a><span class="k">def</span> <span class="nf">great_circle_dist1</span><span class="p">(</span><span class="n">r1</span><span class="p">,</span> <span class="n">d1</span><span class="p">,</span> <span class="n">r2</span><span class="p">,</span> <span class="n">d2</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">acos</span><span class="p">(</span><span class="n">sin</span><span class="p">(</span><span class="n">d1</span><span class="p">)</span> <span class="o">*</span> <span class="n">sin</span><span class="p">(</span><span class="n">d2</span><span class="p">)</span> <span class="o">+</span> <span class="n">cos</span><span class="p">(</span><span class="n">d1</span><span class="p">)</span> <span class="o">*</span> <span class="n">cos</span><span class="p">(</span><span class="n">d2</span><span class="p">)</span> <span class="o">*</span> <span class="n">cos</span><span class="p">(</span><span class="n">r1</span> <span class="o">-</span> <span class="n">r2</span><span class="p">))</span></div>
+
+
+<span class="c1"># def deg2rad(x):</span>
+<span class="c1">#     return x * np.pi / 180.0</span>
+
+
+<div class="viewcode-block" id="precise_dist"><a class="viewcode-back" href="../../sivio.html#sivio.sky_models.precise_dist">[docs]</a><span class="k">def</span> <span class="nf">precise_dist</span><span class="p">(</span><span class="n">ra1</span><span class="p">,</span> <span class="n">dec1</span><span class="p">,</span> <span class="n">ra2</span><span class="p">,</span> <span class="n">dec2</span><span class="p">):</span>
+    <span class="n">d1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">deg2rad</span><span class="p">(</span><span class="n">dec1</span><span class="p">)</span>
+    <span class="n">d2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">deg2rad</span><span class="p">(</span><span class="n">dec2</span><span class="p">)</span>
+    <span class="n">r1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">deg2rad</span><span class="p">(</span><span class="n">ra1</span><span class="p">)</span>
+    <span class="n">r2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">deg2rad</span><span class="p">(</span><span class="n">ra2</span><span class="p">)</span>
+    <span class="n">dist</span> <span class="o">=</span> <span class="n">great_circle_dist1</span><span class="p">(</span><span class="n">r1</span><span class="p">,</span> <span class="n">d1</span><span class="p">,</span> <span class="n">r2</span><span class="p">,</span> <span class="n">d2</span><span class="p">)</span>
+    <span class="n">dist</span> <span class="o">=</span> <span class="n">dist</span> <span class="o">*</span> <span class="mf">180.0</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span>
+    <span class="k">return</span> <span class="n">dist</span></div>
+
+
+<div class="viewcode-block" id="random_sky_model"><a class="viewcode-back" href="../../sivio.html#sivio.sky_models.random_sky_model">[docs]</a><span class="k">def</span> <span class="nf">random_sky_model</span><span class="p">(</span>
+    <span class="n">N</span><span class="p">,</span> <span class="n">ra0</span><span class="p">,</span> <span class="n">dec0</span><span class="p">,</span> <span class="n">ra_radius</span><span class="o">=</span><span class="mi">24</span><span class="p">,</span> <span class="n">dec_radius</span><span class="o">=</span><span class="mi">18</span><span class="p">,</span> <span class="n">save</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">filename</span><span class="o">=</span><span class="s2">&quot;sky_model.csv&quot;</span>
+<span class="p">):</span>
+    <span class="n">ras</span> <span class="o">=</span> <span class="n">sample_floats</span><span class="p">(</span><span class="n">ra0</span> <span class="o">-</span> <span class="n">ra_radius</span><span class="p">,</span> <span class="n">ra0</span> <span class="o">+</span> <span class="n">ra_radius</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">N</span><span class="p">)</span>
+    <span class="n">decs</span> <span class="o">=</span> <span class="n">sample_floats</span><span class="p">(</span><span class="n">dec0</span> <span class="o">-</span> <span class="n">dec_radius</span><span class="p">,</span> <span class="n">dec0</span> <span class="o">+</span> <span class="n">dec_radius</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">N</span><span class="p">)</span>
+
+    <span class="c1"># fluxes = sample_floats(0.5, 15, size=N)</span>
+    <span class="c1"># make proper source  count fluxes and pick N fluxes randomly</span>
+    <span class="n">sky_fluxes</span> <span class="o">=</span> <span class="n">make_fluxes</span><span class="p">(</span><span class="n">sky_type</span><span class="o">=</span><span class="s2">&quot;random&quot;</span><span class="p">)</span>
+    <span class="n">fluxes</span> <span class="o">=</span> <span class="n">sky_fluxes</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">sky_fluxes</span><span class="p">),</span> <span class="n">size</span><span class="o">=</span><span class="n">N</span><span class="p">,</span> <span class="n">replace</span><span class="o">=</span><span class="kc">False</span><span class="p">)]</span>
+
+    <span class="n">ras</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">ras</span><span class="p">)</span>
+    <span class="n">ras</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">ras</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">,</span> <span class="n">ras</span> <span class="o">+</span> <span class="mi">360</span><span class="p">,</span> <span class="n">ras</span><span class="p">)</span>
+    <span class="n">decs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">decs</span><span class="p">)</span>
+    <span class="n">fluxes</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">fluxes</span><span class="p">)</span>
+
+    <span class="c1"># log.info(&quot;RAs range&quot;, ras.min(), ras.max())</span>
+    <span class="c1"># log.info(&quot;Decs range&quot;, decs.min(), decs.max())</span>
+    <span class="c1"># log.info(&quot;Fluxes range&quot;, fluxes.min(), fluxes.max())</span>
+
+    <span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
+        <span class="nb">list</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">ras</span><span class="p">),</span> <span class="nb">list</span><span class="p">(</span><span class="n">decs</span><span class="p">),</span> <span class="nb">list</span><span class="p">(</span><span class="n">fluxes</span><span class="p">))),</span> <span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;ra&quot;</span><span class="p">,</span> <span class="s2">&quot;dec&quot;</span><span class="p">,</span> <span class="s2">&quot;flux&quot;</span><span class="p">],</span>
+    <span class="p">)</span>
+    <span class="k">if</span> <span class="n">save</span><span class="p">:</span>
+        <span class="n">df</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">filename</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">ras</span><span class="p">,</span> <span class="n">decs</span><span class="p">,</span> <span class="n">fluxes</span></div>
+
+
+<div class="viewcode-block" id="make_fluxes"><a class="viewcode-back" href="../../sivio.html#sivio.sky_models.make_fluxes">[docs]</a><span class="k">def</span> <span class="nf">make_fluxes</span><span class="p">(</span>
+    <span class="n">sky_type</span><span class="p">,</span>
+    <span class="n">fluxes</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+    <span class="n">seed</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+    <span class="n">k1</span><span class="o">=</span><span class="mi">4100</span><span class="p">,</span>
+    <span class="n">gamma1</span><span class="o">=</span><span class="mf">1.59</span><span class="p">,</span>
+    <span class="n">k2</span><span class="o">=</span><span class="mi">4100</span><span class="p">,</span>
+    <span class="n">gamma2</span><span class="o">=</span><span class="mf">2.5</span><span class="p">,</span>
+    <span class="n">flux_low</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>  <span class="c1"># 40e-3,</span>
+    <span class="n">flux_mid</span><span class="o">=</span><span class="mf">5.0</span><span class="p">,</span>  <span class="c1"># 1,</span>
+    <span class="n">flux_high</span><span class="o">=</span><span class="mf">15.0</span><span class="p">,</span>  <span class="c1"># 5.0,</span>
+<span class="p">):</span>
+    <span class="k">if</span> <span class="n">sky_type</span> <span class="o">==</span> <span class="s2">&quot;random&quot;</span><span class="p">:</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
+        <span class="n">fluxes</span> <span class="o">=</span> <span class="n">stochastic_sky</span><span class="p">(</span>
+            <span class="n">seed</span><span class="p">,</span> <span class="n">k1</span><span class="p">,</span> <span class="n">gamma1</span><span class="p">,</span> <span class="n">k2</span><span class="p">,</span> <span class="n">gamma2</span><span class="p">,</span> <span class="n">flux_low</span><span class="p">,</span> <span class="n">flux_mid</span><span class="p">,</span> <span class="n">flux_high</span>
+        <span class="p">)</span>
+    <span class="k">elif</span> <span class="n">sky_type</span> <span class="o">==</span> <span class="s2">&quot;point&quot;</span><span class="p">:</span>
+        <span class="n">fluxes</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">fluxes</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">fluxes</span></div>
+
+
+<span class="c1"># def generate_distribution(mean, sigma, size, dist, type=&quot;ra&quot;):</span>
+<span class="c1">#     &quot;&quot;&quot;</span>
+<span class="c1">#     #Other distribution types</span>
+<span class="c1">#     if dist == &quot;constant&quot;:</span>
+<span class="c1">#         return np.ones(size) * mean</span>
+<span class="c1">#     elif dist == &quot;lognormal&quot;:</span>
+<span class="c1">#         return np.random.lognormal(loc=mean,</span>
+<span class="c1">#                                    sigma=sigma,</span>
+<span class="c1">#                                    size=size)</span>
+<span class="c1">#     &quot;&quot;&quot;</span>
+<span class="c1">#     if dist == &quot;normal&quot;:</span>
+<span class="c1">#         d = np.random.normal(loc=mean, scale=sigma, size=size)</span>
+<span class="c1">#         if type == &quot;ra&quot;:</span>
+<span class="c1">#             log.info(&quot;RAs range&quot;, d.min(), d.max())</span>
+<span class="c1">#             d = np.where(d &lt; 0, d + 360, d)</span>
+<span class="c1">#         elif type == &quot;dec&quot;:</span>
+<span class="c1">#             log.info(&quot;Decs range&quot;, d.min(), d.max())</span>
+<span class="c1">#         else:</span>
+<span class="c1">#             d = np.random.normal(loc=mean, scale=sigma, size=size)</span>
+<span class="c1">#         return d</span>
+
+<span class="c1">#     else:</span>
+<span class="c1">#         raise ValueError(&quot;Unrecognised distribution ({}).&quot;.format(dist))</span>
+
+
+<div class="viewcode-block" id="loadfile"><a class="viewcode-back" href="../../sivio.html#sivio.sky_models.loadfile">[docs]</a><span class="k">def</span> <span class="nf">loadfile</span><span class="p">(</span><span class="n">data_file</span><span class="p">,</span> <span class="n">n_sources</span><span class="p">,</span> <span class="n">ra0</span><span class="p">,</span> <span class="n">dec0</span><span class="p">,</span> <span class="n">filename</span><span class="o">=</span><span class="s2">&quot;sky_model.csv&quot;</span><span class="p">):</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">data_file</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">unpacked</span> <span class="o">=</span> <span class="n">yaml</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">Loader</span><span class="o">=</span><span class="n">SafeLoader</span><span class="p">)</span>
+
+    <span class="n">flux</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">ra</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">dec</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">names</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">ampscales</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">stds</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">sourcelist</span> <span class="o">=</span> <span class="n">unpacked</span><span class="p">[</span><span class="s2">&quot;sources&quot;</span><span class="p">]</span>
+    <span class="k">for</span> <span class="n">source</span> <span class="ow">in</span> <span class="n">sourcelist</span><span class="p">:</span>
+        <span class="c1"># log.info(unpacked[&#39;sources&#39;][source][&#39;name&#39;])</span>
+        <span class="n">names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">unpacked</span><span class="p">[</span><span class="s2">&quot;sources&quot;</span><span class="p">][</span><span class="n">source</span><span class="p">][</span><span class="s2">&quot;name&quot;</span><span class="p">])</span>
+        <span class="n">dec</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">unpacked</span><span class="p">[</span><span class="s2">&quot;sources&quot;</span><span class="p">][</span><span class="n">source</span><span class="p">][</span><span class="s2">&quot;dec&quot;</span><span class="p">])</span>
+        <span class="n">ra</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">unpacked</span><span class="p">[</span><span class="s2">&quot;sources&quot;</span><span class="p">][</span><span class="n">source</span><span class="p">][</span><span class="s2">&quot;ra&quot;</span><span class="p">])</span>
+        <span class="n">flux</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">unpacked</span><span class="p">[</span><span class="s2">&quot;sources&quot;</span><span class="p">][</span><span class="n">source</span><span class="p">][</span><span class="s2">&quot;flux_density&quot;</span><span class="p">])</span>
+        <span class="n">ampscales</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">nanmedian</span><span class="p">(</span><span class="n">unpacked</span><span class="p">[</span><span class="s2">&quot;sources&quot;</span><span class="p">][</span><span class="n">source</span><span class="p">][</span><span class="s2">&quot;amp_scales&quot;</span><span class="p">]))</span>
+        <span class="n">stds</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">nanstd</span><span class="p">(</span><span class="n">unpacked</span><span class="p">[</span><span class="s2">&quot;sources&quot;</span><span class="p">][</span><span class="n">source</span><span class="p">][</span><span class="s2">&quot;amp_scales&quot;</span><span class="p">]))</span>
+    <span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
+        <span class="nb">list</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">ra</span><span class="p">,</span> <span class="n">dec</span><span class="p">,</span> <span class="n">ampscales</span><span class="p">,</span> <span class="n">stds</span><span class="p">,</span> <span class="n">flux</span><span class="p">,</span> <span class="n">names</span><span class="p">)),</span>
+        <span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;ra&quot;</span><span class="p">,</span> <span class="s2">&quot;dec&quot;</span><span class="p">,</span> <span class="s2">&quot;ampscales&quot;</span><span class="p">,</span> <span class="s2">&quot;stds&quot;</span><span class="p">,</span> <span class="s2">&quot;flux&quot;</span><span class="p">,</span> <span class="s2">&quot;names&quot;</span><span class="p">],</span>
+    <span class="p">)</span>
+    <span class="n">df2</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">dropna</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+    <span class="n">ra0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">rad2deg</span><span class="p">(</span><span class="n">ra0</span><span class="p">)</span>
+    <span class="n">dec0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">rad2deg</span><span class="p">(</span><span class="n">dec0</span><span class="p">)</span>
+    <span class="n">df3</span> <span class="o">=</span> <span class="n">df2</span><span class="p">[</span>
+        <span class="p">(</span><span class="n">df2</span><span class="o">.</span><span class="n">ra</span> <span class="o">&lt;</span> <span class="n">ra0</span> <span class="o">+</span> <span class="mi">9</span><span class="p">)</span>
+        <span class="o">&amp;</span> <span class="p">(</span><span class="n">df2</span><span class="o">.</span><span class="n">ra</span> <span class="o">&gt;</span> <span class="n">ra0</span> <span class="o">-</span> <span class="mi">9</span><span class="p">)</span>
+        <span class="o">&amp;</span> <span class="p">(</span><span class="n">df2</span><span class="o">.</span><span class="n">dec</span> <span class="o">&gt;</span> <span class="n">dec0</span> <span class="o">-</span> <span class="mf">8.1</span><span class="p">)</span>
+        <span class="o">&amp;</span> <span class="p">(</span><span class="n">df2</span><span class="o">.</span><span class="n">dec</span> <span class="o">&lt;</span> <span class="n">dec0</span> <span class="o">+</span> <span class="mf">8.9</span><span class="p">)</span>
+    <span class="p">]</span>
+    <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">df3</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">df3</span><span class="o">.</span><span class="n">ra</span><span class="o">.</span><span class="n">max</span><span class="p">(),</span> <span class="n">df3</span><span class="o">.</span><span class="n">ra</span><span class="o">.</span><span class="n">min</span><span class="p">(),</span> <span class="n">df3</span><span class="o">.</span><span class="n">dec</span><span class="o">.</span><span class="n">max</span><span class="p">(),</span> <span class="n">df3</span><span class="o">.</span><span class="n">dec</span><span class="o">.</span><span class="n">min</span><span class="p">())</span>
+    <span class="n">df3</span> <span class="o">=</span> <span class="n">df3</span><span class="o">.</span><span class="n">nlargest</span><span class="p">(</span><span class="n">n_sources</span><span class="p">,</span> <span class="s2">&quot;flux&quot;</span><span class="p">,</span> <span class="n">keep</span><span class="o">=</span><span class="s2">&quot;all&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">filename</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">)):</span>
+        <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;saving model&quot;s RTS data products to csv file..&#39;</span><span class="p">)</span>
+        <span class="n">df3</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">filename</span><span class="p">))</span>
+
+        <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">df3</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+        <span class="n">ras</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">df3</span><span class="o">.</span><span class="n">ra</span><span class="p">)</span>
+        <span class="n">decs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">df3</span><span class="o">.</span><span class="n">dec</span><span class="p">)</span>
+        <span class="n">fluxes</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">df3</span><span class="o">.</span><span class="n">flux</span><span class="p">)</span>
+
+        <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;RAs range&quot;</span><span class="p">,</span> <span class="n">ras</span><span class="o">.</span><span class="n">min</span><span class="p">(),</span> <span class="n">ras</span><span class="o">.</span><span class="n">max</span><span class="p">())</span>
+        <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Decs range&quot;</span><span class="p">,</span> <span class="n">decs</span><span class="o">.</span><span class="n">min</span><span class="p">(),</span> <span class="n">decs</span><span class="o">.</span><span class="n">max</span><span class="p">())</span>
+        <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Fluxes range&quot;</span><span class="p">,</span> <span class="n">fluxes</span><span class="o">.</span><span class="n">min</span><span class="p">(),</span> <span class="n">fluxes</span><span class="o">.</span><span class="n">max</span><span class="p">())</span>
+        <span class="k">return</span> <span class="n">ras</span><span class="p">,</span> <span class="n">decs</span><span class="p">,</span> <span class="n">fluxes</span></div>
+
+
+<div class="viewcode-block" id="sample_floats"><a class="viewcode-back" href="../../sivio.html#sivio.sky_models.sample_floats">[docs]</a><span class="k">def</span> <span class="nf">sample_floats</span><span class="p">(</span><span class="n">low</span><span class="p">,</span> <span class="n">high</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Return a k-length list of unique random floats</span>
+<span class="sd">    in the range of low &lt;= x &lt;= high</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">seen</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">size</span><span class="p">):</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="n">low</span><span class="p">,</span> <span class="n">high</span><span class="p">)</span>
+        <span class="k">while</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">seen</span><span class="p">:</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="n">low</span><span class="p">,</span> <span class="n">high</span><span class="p">)</span>
+        <span class="n">seen</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">result</span></div>
+
+
+<div class="viewcode-block" id="stochastic_sky"><a class="viewcode-back" href="../../sivio.html#sivio.sky_models.stochastic_sky">[docs]</a><span class="k">def</span> <span class="nf">stochastic_sky</span><span class="p">(</span>
+    <span class="n">seed</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">k1</span><span class="o">=</span><span class="mi">4100</span><span class="p">,</span> <span class="n">gamma1</span><span class="o">=</span><span class="mf">1.59</span><span class="p">,</span> <span class="n">k2</span><span class="o">=</span><span class="mi">4100</span><span class="p">,</span> <span class="n">gamma2</span><span class="o">=</span><span class="mf">2.5</span><span class="p">,</span> <span class="n">S_low</span><span class="o">=</span><span class="mf">400e-3</span><span class="p">,</span> <span class="n">S_mid</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">S_high</span><span class="o">=</span><span class="mf">5.0</span>
+<span class="p">):</span>
+    <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
+
+    <span class="c1"># Franzen et al. 2016</span>
+    <span class="c1"># k1 = 6998, gamma1 = 1.54, k2=6998, gamma2=1.54</span>
+    <span class="c1"># S_low = 0.1e-3, S_mid = 6.0e-3, S_high= 400e-3 Jy</span>
+
+    <span class="c1"># Cath&#39;s parameters</span>
+    <span class="c1"># k1=4100, gamma1 =1.59, k2=4100, gamma2 =2.5</span>
+    <span class="c1"># S_low = 0.400e-3, S_mid = 1, S_high= 5 Jy</span>
+
+    <span class="k">if</span> <span class="n">S_low</span> <span class="o">&gt;</span> <span class="n">S_mid</span><span class="p">:</span>
+        <span class="n">norm</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">k2</span> <span class="o">*</span> <span class="p">(</span><span class="n">S_high</span> <span class="o">**</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">gamma2</span><span class="p">)</span> <span class="o">-</span> <span class="n">S_low</span> <span class="o">**</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">gamma2</span><span class="p">))</span> <span class="o">/</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">gamma2</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="n">n_sources</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">poisson</span><span class="p">(</span><span class="n">norm</span> <span class="o">*</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span>
+        <span class="c1"># generate uniform distribution</span>
+        <span class="n">uniform_distr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="n">n_sources</span><span class="p">)</span>
+        <span class="c1"># initialize empty array for source fluxes</span>
+        <span class="n">source_fluxes</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n_sources</span><span class="p">)</span>
+        <span class="n">source_fluxes</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">uniform_distr</span> <span class="o">*</span> <span class="n">norm</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">gamma2</span><span class="p">)</span> <span class="o">/</span> <span class="n">k2</span> <span class="o">+</span> <span class="n">S_low</span> <span class="o">**</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">gamma2</span><span class="p">)</span>
+        <span class="p">)</span> <span class="o">**</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">/</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">gamma2</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># normalisation</span>
+        <span class="n">norm</span> <span class="o">=</span> <span class="n">k1</span> <span class="o">*</span> <span class="p">(</span><span class="n">S_mid</span> <span class="o">**</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">gamma1</span><span class="p">)</span> <span class="o">-</span> <span class="n">S_low</span> <span class="o">**</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">gamma1</span><span class="p">))</span> <span class="o">/</span> <span class="p">(</span>
+            <span class="mf">1.0</span> <span class="o">-</span> <span class="n">gamma1</span>
+        <span class="p">)</span> <span class="o">+</span> <span class="n">k2</span> <span class="o">*</span> <span class="p">(</span><span class="n">S_high</span> <span class="o">**</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">gamma2</span><span class="p">)</span> <span class="o">-</span> <span class="n">S_mid</span> <span class="o">**</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">gamma2</span><span class="p">))</span> <span class="o">/</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">gamma2</span><span class="p">)</span>
+        <span class="c1"># transition between the one power law to the other</span>
+        <span class="n">mid_fraction</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">k1</span>
+            <span class="o">/</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">gamma1</span><span class="p">)</span>
+            <span class="o">*</span> <span class="p">(</span><span class="n">S_mid</span> <span class="o">**</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">gamma1</span><span class="p">)</span> <span class="o">-</span> <span class="n">S_low</span> <span class="o">**</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">gamma1</span><span class="p">))</span>
+            <span class="o">/</span> <span class="n">norm</span>
+        <span class="p">)</span>
+        <span class="n">n_sources</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">poisson</span><span class="p">(</span><span class="n">norm</span> <span class="o">*</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span>
+
+        <span class="c1">#########################</span>
+        <span class="c1"># n_sources = 1e5</span>
+        <span class="c1">#########################</span>
+
+        <span class="c1"># generate uniform distribution</span>
+        <span class="n">uniform_distr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="n">n_sources</span><span class="p">)</span>
+        <span class="c1"># initialize empty array for source fluxes</span>
+        <span class="n">source_fluxes</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n_sources</span><span class="p">)</span>
+
+        <span class="n">source_fluxes</span><span class="p">[</span><span class="n">uniform_distr</span> <span class="o">&lt;</span> <span class="n">mid_fraction</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">uniform_distr</span><span class="p">[</span><span class="n">uniform_distr</span> <span class="o">&lt;</span> <span class="n">mid_fraction</span><span class="p">]</span> <span class="o">*</span> <span class="n">norm</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">gamma1</span><span class="p">)</span> <span class="o">/</span> <span class="n">k1</span>
+            <span class="o">+</span> <span class="n">S_low</span> <span class="o">**</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">gamma1</span><span class="p">)</span>
+        <span class="p">)</span> <span class="o">**</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">/</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">gamma1</span><span class="p">))</span>
+
+        <span class="n">source_fluxes</span><span class="p">[</span><span class="n">uniform_distr</span> <span class="o">&gt;=</span> <span class="n">mid_fraction</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="p">(</span><span class="n">uniform_distr</span><span class="p">[</span><span class="n">uniform_distr</span> <span class="o">&gt;=</span> <span class="n">mid_fraction</span><span class="p">]</span> <span class="o">-</span> <span class="n">mid_fraction</span><span class="p">)</span>
+            <span class="o">*</span> <span class="n">norm</span>
+            <span class="o">*</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">gamma2</span><span class="p">)</span>
+            <span class="o">/</span> <span class="n">k2</span>
+            <span class="o">+</span> <span class="n">S_mid</span> <span class="o">**</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">gamma2</span><span class="p">)</span>
+        <span class="p">)</span> <span class="o">**</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">/</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">gamma2</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">source_fluxes</span></div>
+
+
+<div class="viewcode-block" id="read_gleam"><a class="viewcode-back" href="../../sivio.html#sivio.sky_models.read_gleam">[docs]</a><span class="k">def</span> <span class="nf">read_gleam</span><span class="p">(</span>
+    <span class="n">ra0</span><span class="p">,</span>
+    <span class="n">dec0</span><span class="p">,</span>
+    <span class="n">radius</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span>
+    <span class="n">n_sources</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">min_flux_cutoff</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">catalog</span><span class="o">=</span><span class="s2">&quot;VIII/100/gleamegc&quot;</span><span class="p">,</span>
+    <span class="n">filename</span><span class="o">=</span><span class="s2">&quot;unnamed_sky_model.txt&quot;</span><span class="p">,</span>
+    <span class="n">write</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">):</span>
+    <span class="n">Vizier</span><span class="o">.</span><span class="n">ROW_LIMIT</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+    <span class="n">catalog</span> <span class="o">=</span> <span class="n">Vizier</span><span class="o">.</span><span class="n">query_region</span><span class="p">(</span>
+        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">ra0</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">dec0</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">radius</span><span class="o">=</span><span class="n">Angle</span><span class="p">(</span><span class="n">radius</span><span class="p">,</span> <span class="s2">&quot;deg&quot;</span><span class="p">),</span> <span class="n">catalog</span><span class="o">=</span><span class="n">catalog</span>
+    <span class="p">)</span>
+
+    <span class="n">names</span> <span class="o">=</span> <span class="n">catalog</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;GLEAM&quot;</span><span class="p">]</span>
+    <span class="n">ras</span> <span class="o">=</span> <span class="n">catalog</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;RAJ2000&quot;</span><span class="p">]</span>
+    <span class="n">decs</span> <span class="o">=</span> <span class="n">catalog</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;DEJ2000&quot;</span><span class="p">]</span>
+    <span class="n">alphas</span> <span class="o">=</span> <span class="n">catalog</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;alpha&quot;</span><span class="p">]</span>
+    <span class="n">ref_fluxes</span> <span class="o">=</span> <span class="n">catalog</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;Fp151&quot;</span><span class="p">]</span>
+
+    <span class="c1"># df = pd.read_csv(csvfile, sep=&quot;;&quot;)</span>
+    <span class="c1"># df2 = df[df[&quot;Fp151&quot;] &gt; 4]</span>
+    <span class="c1"># df2 = df2.dropna(axis=0)</span>
+
+    <span class="c1"># log.info(df2.shape)</span>
+    <span class="c1"># names = np.array(df2.GLEAM)</span>
+    <span class="c1"># ras = np.array(df2.RAJ2000)</span>
+    <span class="c1"># ras = np.where(ras &lt; 0, ras + 360, ras)</span>
+    <span class="c1"># decs = np.array(df2.DEJ2000)</span>
+
+    <span class="c1"># alphas = np.array([float(i) for i in df2.alpha])</span>
+    <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+        <span class="sa">f</span><span class="s2">&quot;Found </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">names</span><span class="p">)</span><span class="si">}</span><span class="s2"> sources in total from the </span><span class="si">{</span><span class="n">radius</span><span class="si">}</span><span class="s2"> degrees radius sky patch.&quot;</span>
+    <span class="p">)</span>
+
+    <span class="c1"># ref_fluxes = np.array(df2.Fp151)</span>
+    <span class="n">nan_mask</span> <span class="o">=</span> <span class="o">~</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">alphas</span><span class="p">)</span>
+    <span class="n">names</span><span class="p">,</span> <span class="n">ras</span><span class="p">,</span> <span class="n">decs</span><span class="p">,</span> <span class="n">alphas</span><span class="p">,</span> <span class="n">ref_fluxes</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">x</span><span class="p">[</span><span class="n">nan_mask</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="p">[</span><span class="n">names</span><span class="p">,</span> <span class="n">ras</span><span class="p">,</span> <span class="n">decs</span><span class="p">,</span> <span class="n">alphas</span><span class="p">,</span> <span class="n">ref_fluxes</span><span class="p">]</span>
+    <span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">n_sources</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">ref_fluxes</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">n_sources</span><span class="p">:</span>
+            <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Warning: You asked for </span><span class="si">{</span><span class="n">n_sources</span><span class="si">}</span><span class="s2"> sources. </span><span class="se">\</span>
+<span class="s2">                The GLEAM catalogue has only </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">ref_fluxes</span><span class="p">)</span><span class="si">}</span><span class="s2"> sources in the specified sky area.</span><span class="se">\</span>
+<span class="s2">                Using all available sources.&quot;</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">n_brightest_mask</span> <span class="o">=</span> <span class="p">(</span><span class="o">-</span><span class="n">ref_fluxes</span><span class="p">)</span><span class="o">.</span><span class="n">argsort</span><span class="p">()[:</span><span class="n">n_sources</span><span class="p">]</span>
+            <span class="n">names</span><span class="p">,</span> <span class="n">ras</span><span class="p">,</span> <span class="n">decs</span><span class="p">,</span> <span class="n">alphas</span><span class="p">,</span> <span class="n">ref_fluxes</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">x</span><span class="p">[</span><span class="n">n_brightest_mask</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="p">[</span><span class="n">names</span><span class="p">,</span> <span class="n">ras</span><span class="p">,</span> <span class="n">decs</span><span class="p">,</span> <span class="n">alphas</span><span class="p">,</span> <span class="n">ref_fluxes</span><span class="p">]</span>
+            <span class="p">]</span>
+            <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Obtained the </span><span class="si">{</span><span class="n">n_sources</span><span class="si">}</span><span class="s2"> brightest sources&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">min_flux_cutoff</span><span class="p">:</span>
+        <span class="n">flux_cutoff_mask</span> <span class="o">=</span> <span class="n">ref_fluxes</span> <span class="o">&gt;</span> <span class="n">min_flux_cutoff</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">flux_cutoff_mask</span><span class="p">):</span>
+            <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                <span class="s2">&quot;Sorry. No sources with flux density above the specified minimum cutoff. Exiting.&quot;</span>
+            <span class="p">)</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">names</span><span class="p">,</span> <span class="n">ras</span><span class="p">,</span> <span class="n">decs</span><span class="p">,</span> <span class="n">alphas</span><span class="p">,</span> <span class="n">ref_fluxes</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">x</span><span class="p">[</span><span class="n">flux_cutoff_mask</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="p">[</span><span class="n">names</span><span class="p">,</span> <span class="n">ras</span><span class="p">,</span> <span class="n">decs</span><span class="p">,</span> <span class="n">alphas</span><span class="p">,</span> <span class="n">ref_fluxes</span><span class="p">]</span>
+            <span class="p">]</span>
+            <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Found </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">ras</span><span class="p">)</span><span class="si">}</span><span class="s2"> sources above minimum flux density cuttoff. Using those.&quot;</span>
+            <span class="p">)</span>
+
+    <span class="n">ras</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">ras</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">,</span> <span class="n">ras</span> <span class="o">+</span> <span class="mi">360</span><span class="p">,</span> <span class="n">ras</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">write</span><span class="p">:</span>
+        <span class="n">write_model</span><span class="p">(</span><span class="n">names</span><span class="p">,</span> <span class="n">ras</span><span class="p">,</span> <span class="n">decs</span><span class="p">,</span> <span class="n">alphas</span><span class="p">,</span> <span class="n">ref_fluxes</span><span class="p">,</span> <span class="n">filename</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">names</span><span class="p">,</span> <span class="n">ras</span><span class="p">,</span> <span class="n">decs</span><span class="p">,</span> <span class="n">alphas</span><span class="p">,</span> <span class="n">ref_fluxes</span></div>
+
+
+<div class="viewcode-block" id="gleam_model_spectrum"><a class="viewcode-back" href="../../sivio.html#sivio.sky_models.gleam_model_spectrum">[docs]</a><span class="nd">@njit</span><span class="p">(</span><span class="n">parallel</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">gleam_model_spectrum</span><span class="p">(</span><span class="n">ras</span><span class="p">,</span> <span class="n">decs</span><span class="p">,</span> <span class="n">alphas</span><span class="p">,</span> <span class="n">ref_fluxes</span><span class="p">,</span> <span class="n">frequencies</span><span class="p">):</span>
+    <span class="n">fluxes</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">ras</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">frequencies</span><span class="p">),</span> <span class="mi">4</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">source</span> <span class="ow">in</span> <span class="n">prange</span><span class="p">(</span><span class="n">fluxes</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+        <span class="k">for</span> <span class="n">freq_chan</span> <span class="ow">in</span> <span class="n">prange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">frequencies</span><span class="p">)):</span>
+            <span class="n">fluxes</span><span class="p">[</span><span class="n">source</span><span class="p">,</span> <span class="n">freq_chan</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">ref_fluxes</span><span class="p">[</span><span class="n">source</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="n">frequencies</span><span class="p">[</span><span class="n">freq_chan</span><span class="p">]</span> <span class="o">/</span> <span class="mf">151e6</span><span class="p">)</span> <span class="o">**</span> <span class="n">alphas</span><span class="p">[</span><span class="n">source</span><span class="p">]</span>
+            <span class="p">)</span>
+            <span class="c1"># fluxes[source, :, 0] = compute_channel_fluxes(</span>
+            <span class="c1">#     ref_fluxes[source], 151e6, alphas[source], frequencies</span>
+            <span class="c1"># )</span>
+            <span class="n">fluxes</span><span class="p">[</span><span class="n">source</span><span class="p">,</span> <span class="n">freq_chan</span><span class="p">,</span> <span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="n">fluxes</span><span class="p">[</span>
+                <span class="n">source</span><span class="p">,</span> <span class="n">freq_chan</span><span class="p">,</span> <span class="mi">0</span>
+            <span class="p">]</span>  <span class="c1"># Both XX and YY</span>
+
+    <span class="k">return</span> <span class="n">fluxes</span></div>
+
+
+<div class="viewcode-block" id="write_model"><a class="viewcode-back" href="../../sivio.html#sivio.sky_models.write_model">[docs]</a><span class="k">def</span> <span class="nf">write_model</span><span class="p">(</span><span class="n">names</span><span class="p">,</span> <span class="n">ras</span><span class="p">,</span> <span class="n">decs</span><span class="p">,</span> <span class="n">alphas</span><span class="p">,</span> <span class="n">ref_fluxes</span><span class="p">,</span> <span class="n">filename</span><span class="p">):</span>
+    <span class="n">fname</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span>
+    <span class="n">faa</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">**</span> <span class="mf">2.0</span>
+    <span class="n">fbb</span> <span class="o">=</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="mf">2.0</span><span class="p">)</span>
+    <span class="n">factor</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">faa</span> <span class="o">/</span> <span class="n">fbb</span><span class="p">)</span>
+
+    <span class="n">mfreqs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">100</span><span class="p">,</span> <span class="mi">243</span><span class="p">,</span> <span class="mi">13</span><span class="p">)</span>
+    <span class="c1"># print(&quot;mfreqs&quot;, mfreqs)</span>
+    <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">ra</span><span class="p">,</span> <span class="n">dec</span><span class="p">,</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">ref_flux</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">names</span><span class="p">,</span> <span class="n">ras</span><span class="p">,</span> <span class="n">decs</span><span class="p">,</span> <span class="n">alphas</span><span class="p">,</span> <span class="n">ref_fluxes</span><span class="p">):</span>
+        <span class="n">maj</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">mnr</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">pa</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">line0</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;SOURCE </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">ra</span> <span class="o">/</span> <span class="mf">15.0</span><span class="p">)</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">dec</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+
+        <span class="n">fname</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">line0</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">maj</span> <span class="o">!=</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">mnr</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>  <span class="c1"># Gaussian simulation not implemented yet</span>
+            <span class="n">line1</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;GAUSSIAN </span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">pa</span><span class="p">)</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">maj</span> <span class="o">*</span> <span class="n">factor</span> <span class="o">*</span> <span class="mf">60.0</span><span class="p">)</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">mnr</span> <span class="o">*</span> <span class="n">factor</span> <span class="o">*</span> <span class="mf">60.0</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="n">fname</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">line1</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">ff</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">mfreqs</span><span class="p">)):</span>
+            <span class="n">mod_flx</span> <span class="o">=</span> <span class="n">power_law</span><span class="p">(</span><span class="n">ref_flux</span><span class="p">,</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">mfreqs</span><span class="p">[</span><span class="n">ff</span><span class="p">])</span>
+            <span class="n">line2</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;FREQ </span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">mfreqs</span><span class="p">[</span><span class="n">ff</span><span class="p">])</span><span class="si">}</span><span class="s2">e+6 </span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">mod_flx</span><span class="p">)</span><span class="si">}</span><span class="s2"> 0 0 0&quot;</span>
+            <span class="n">fname</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">line2</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">line3</span> <span class="o">=</span> <span class="s2">&quot;ENDSOURCE&quot;</span>
+        <span class="n">fname</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">line3</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="n">fname</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+    <span class="k">return</span></div>
+
+
+<div class="viewcode-block" id="power_law"><a class="viewcode-back" href="../../sivio.html#sivio.sky_models.power_law">[docs]</a><span class="k">def</span> <span class="nf">power_law</span><span class="p">(</span><span class="n">norm</span><span class="p">,</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">nu</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">norm</span> <span class="o">*</span> <span class="p">(</span><span class="n">nu</span> <span class="o">/</span> <span class="mf">151.0</span><span class="p">)</span> <span class="o">**</span> <span class="n">alpha</span></div>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="n">frequencies</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">100</span><span class="p">,</span> <span class="mi">130</span><span class="p">,</span> <span class="mi">768</span><span class="p">)</span> <span class="o">*</span> <span class="mf">1e6</span>
+    <span class="n">names</span><span class="p">,</span> <span class="n">ras</span><span class="p">,</span> <span class="n">decs</span><span class="p">,</span> <span class="n">alphas</span><span class="p">,</span> <span class="n">ref_fluxes</span> <span class="o">=</span> <span class="n">read_gleam</span><span class="p">(</span>
+        <span class="mf">0.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">27.0</span><span class="p">,</span> <span class="n">radius</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span> <span class="n">n_sources</span><span class="o">=</span><span class="mi">9000</span><span class="p">,</span> <span class="n">min_flux_cutoff</span><span class="o">=</span><span class="mf">0.4</span>
+    <span class="p">)</span>
+
+    <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">([</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="p">[</span><span class="n">names</span><span class="p">,</span> <span class="n">ras</span><span class="p">,</span> <span class="n">decs</span><span class="p">,</span> <span class="n">alphas</span><span class="p">,</span> <span class="n">ref_fluxes</span><span class="p">]])</span>
+    <span class="n">fluxes</span> <span class="o">=</span> <span class="n">gleam_model_spectrum</span><span class="p">(</span><span class="n">ras</span><span class="p">,</span> <span class="n">decs</span><span class="p">,</span> <span class="n">alphas</span><span class="p">,</span> <span class="n">ref_fluxes</span><span class="p">,</span> <span class="n">frequencies</span><span class="p">)</span>
+
+    <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">ras</span><span class="p">)</span>
+    <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">decs</span><span class="p">)</span>
+    <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">fluxes</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+    <span class="c1"># log.info(fluxes[:, 0, 1])</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">fluxes</span><span class="p">[:,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        
+        &copy; Copyright 2020, Kariuki Chege
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

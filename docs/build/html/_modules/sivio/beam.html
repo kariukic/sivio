@@ -1,0 +1,380 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>sivio.beam &mdash; sivio 0.1.0 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+
+  
+  
+  
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../index.html" class="icon icon-home" alt="Documentation Home"> sivio
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../intro.html">Introduction</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorial.html">Tutorial</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../modules.html">Modules Documentation</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">sivio</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+      <li>sivio.beam</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for sivio.beam</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">astropy.io</span> <span class="kn">import</span> <span class="n">fits</span>
+<span class="kn">from</span> <span class="nn">mwa_pb</span> <span class="kn">import</span> <span class="n">primary_beam</span>
+<span class="kn">from</span> <span class="nn">sivio.coordinates</span> <span class="kn">import</span> <span class="n">MWAPOS</span><span class="p">,</span> <span class="n">get_time</span><span class="p">,</span> <span class="n">radec_to_altaz</span>
+
+<span class="kn">import</span> <span class="nn">time</span>
+
+<span class="kn">import</span> <span class="nn">mwa_hyperbeam</span>
+
+
+<span class="c1"># # @njit</span>
+<span class="c1"># def compute_mwa_beam_attenuation(</span>
+<span class="c1">#     ras, decs, freq=150e6, pos=MWAPOS, metafits=None, zenith_pointing=False</span>
+<span class="c1"># ):</span>
+<span class="c1">#     &quot;&quot;&quot;Compute the beam attenuation</span>
+
+<span class="c1">#  Parameters</span>
+<span class="c1">#   ----------</span>
+<span class="c1">#    ras: float/array</span>
+<span class="c1">#      source RA</span>
+<span class="c1">#     decs: float/array</span>
+<span class="c1">#      source dec</span>
+<span class="c1">#     metafits: str</span>
+<span class="c1">#      path to observation</span>
+<span class="c1">#     pos: str</span>
+<span class="c1">#      Array longitude and latitude</span>
+<span class="c1">#     freq: float/int, optional</span>
+<span class="c1">#      frequency, by default 150e6</span>
+<span class="c1">#     zenith_pointing: bool, optional</span>
+<span class="c1">#      True if observation is zenith pointing, by default True</span>
+
+<span class="c1">#     Returns</span>
+<span class="c1">#     -------</span>
+<span class="c1">#     float/array, float/array</span>
+<span class="c1">#      XX, YY beam attenuation for the input direction and frequency.</span>
+<span class="c1">#     &quot;&quot;&quot;</span>
+<span class="c1">#     if not metafits:</span>
+<span class="c1">#         assert_error_message = &quot;A metafits file is needed for non-zenith observations&quot;</span>
+<span class="c1">#         raise AssertionError(assert_error_message)</span>
+<span class="c1">#     # for a zenith pointing all delays are zero, and,</span>
+<span class="c1">#     # you need delays for both XX and YY so need to give it 2 sets of 16 delays</span>
+<span class="c1">#     elif zenith_pointing:</span>
+<span class="c1">#         delays = np.zeros((2, 16))</span>
+<span class="c1">#     else:</span>
+<span class="c1">#         with fits.open(metafits) as hdu:</span>
+<span class="c1">#             # print(&quot;getting delays from metafits&quot;)</span>
+<span class="c1">#             delays = list(map(int, hdu[0].header[&quot;DELAYS&quot;].split(&quot;,&quot;)))</span>
+<span class="c1">#             delays = [delays, delays]</span>
+<span class="c1">#     # print(f&quot;delays: {delays}&quot;)</span>
+
+<span class="c1">#     ttime, _ = get_time(metafits, pos)</span>
+<span class="c1">#     alt, az = radec_to_altaz(np.deg2rad(ras), np.deg2rad(decs), ttime, pos)</span>
+<span class="c1">#     za = np.pi / 2.0 - alt</span>
+
+<span class="c1">#     # print(f&quot;zenith angle: {np.radians(za)} azimuth: {np.radians(az)}&quot;)</span>
+<span class="c1">#     XX, YY = primary_beam.MWA_Tile_full_EE(</span>
+<span class="c1">#         za, az, freq=freq, delays=delays, zenithnorm=True, power=True, interp=False,</span>
+<span class="c1">#     )</span>
+<span class="c1">#     return XX, YY</span>
+
+
+<div class="viewcode-block" id="mwapbeam"><a class="viewcode-back" href="../../sivio.html#sivio.beam.mwapbeam">[docs]</a><span class="k">def</span> <span class="nf">mwapbeam</span><span class="p">(</span><span class="n">za</span><span class="p">,</span> <span class="n">az</span><span class="p">,</span> <span class="n">frequencies</span><span class="p">,</span> <span class="n">fluxes</span><span class="p">,</span> <span class="n">metafits</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">jones</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="k">with</span> <span class="n">fits</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">metafits</span><span class="p">)</span> <span class="k">as</span> <span class="n">hdu</span><span class="p">:</span>
+        <span class="n">delays</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">hdu</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s2">&quot;DELAYS&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;,&quot;</span><span class="p">)))</span>
+        <span class="n">delays</span> <span class="o">=</span> <span class="p">[</span><span class="n">delays</span><span class="p">,</span> <span class="n">delays</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">jones</span><span class="p">:</span>
+        <span class="n">pjones</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">za</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">frequencies</span><span class="p">),</span> <span class="mi">4</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">complex64</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">chan</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">frequencies</span><span class="p">)):</span>
+            <span class="n">pjones</span><span class="p">[:,</span> <span class="n">chan</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+                <span class="n">primary_beam</span><span class="o">.</span><span class="n">MWA_Tile_full_EE</span><span class="p">(</span>
+                    <span class="n">za</span><span class="p">,</span> <span class="n">az</span><span class="p">,</span> <span class="n">freq</span><span class="o">=</span><span class="n">frequencies</span><span class="p">[</span><span class="n">chan</span><span class="p">],</span> <span class="n">delays</span><span class="o">=</span><span class="n">delays</span><span class="p">,</span> <span class="n">jones</span><span class="o">=</span><span class="kc">True</span>
+                <span class="p">),</span>
+                <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">az</span><span class="p">),</span> <span class="mi">4</span><span class="p">),</span>
+            <span class="p">)</span>
+        <span class="n">fluxes</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">pjones</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">conj</span><span class="p">(</span><span class="n">pjones</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">0</span><span class="p">])</span> <span class="o">*</span> <span class="n">fluxes</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">0</span><span class="p">]</span>
+            <span class="o">+</span> <span class="n">pjones</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">conj</span><span class="p">(</span><span class="n">pjones</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">1</span><span class="p">])</span> <span class="o">*</span> <span class="n">fluxes</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">0</span><span class="p">]</span>
+        <span class="p">)</span>
+        <span class="n">fluxes</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">pjones</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">2</span><span class="p">]</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">conj</span><span class="p">(</span><span class="n">pjones</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">2</span><span class="p">])</span> <span class="o">*</span> <span class="n">fluxes</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">3</span><span class="p">]</span>
+            <span class="o">+</span> <span class="n">pjones</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">3</span><span class="p">]</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">conj</span><span class="p">(</span><span class="n">pjones</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">3</span><span class="p">])</span> <span class="o">*</span> <span class="n">fluxes</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">3</span><span class="p">]</span>
+        <span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">attenuations</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">za</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">frequencies</span><span class="p">),</span> <span class="mi">4</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">chan</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">frequencies</span><span class="p">)):</span>
+            <span class="n">XX</span><span class="p">,</span> <span class="n">YY</span> <span class="o">=</span> <span class="n">primary_beam</span><span class="o">.</span><span class="n">MWA_Tile_full_EE</span><span class="p">(</span>
+                <span class="n">za</span><span class="p">,</span>
+                <span class="n">az</span><span class="p">,</span>
+                <span class="n">freq</span><span class="o">=</span><span class="n">frequencies</span><span class="p">[</span><span class="n">chan</span><span class="p">],</span>
+                <span class="n">delays</span><span class="o">=</span><span class="n">delays</span><span class="p">,</span>
+                <span class="n">zenithnorm</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="n">power</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="n">interp</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="p">)</span>
+
+            <span class="n">attenuations</span><span class="p">[:,</span> <span class="n">chan</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">XX</span>
+            <span class="n">attenuations</span><span class="p">[:,</span> <span class="n">chan</span><span class="p">,</span> <span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="n">YY</span>
+        <span class="n">fluxes</span> <span class="o">*=</span> <span class="n">attenuations</span>
+    <span class="k">return</span> <span class="n">fluxes</span></div>
+
+
+<div class="viewcode-block" id="hyperbeam"><a class="viewcode-back" href="../../sivio.html#sivio.beam.hyperbeam">[docs]</a><span class="k">def</span> <span class="nf">hyperbeam</span><span class="p">(</span><span class="n">za</span><span class="p">,</span> <span class="n">az</span><span class="p">,</span> <span class="n">frequencies</span><span class="p">,</span> <span class="n">fluxes</span><span class="p">,</span> <span class="n">metafits</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="n">hbeam</span> <span class="o">=</span> <span class="n">mwa_hyperbeam</span><span class="o">.</span><span class="n">FEEBeam</span><span class="p">(</span>
+        <span class="s2">&quot;/home/kariuki/mwa_pb/mwa_full_embedded_element_pattern.h5&quot;</span>
+    <span class="p">)</span>
+    <span class="k">with</span> <span class="n">fits</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">metafits</span><span class="p">)</span> <span class="k">as</span> <span class="n">hdu</span><span class="p">:</span>
+        <span class="n">delays</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">hdu</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s2">&quot;DELAYS&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;,&quot;</span><span class="p">)))</span>
+    <span class="n">amps</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="mi">16</span>
+    <span class="n">beam_norm</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="n">hjones</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">za</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">frequencies</span><span class="p">),</span> <span class="mi">4</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">complex64</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">chan</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">frequencies</span><span class="p">)):</span>
+        <span class="n">hjones</span><span class="p">[:,</span> <span class="n">chan</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">hbeam</span><span class="o">.</span><span class="n">calc_jones_array</span><span class="p">(</span>
+            <span class="n">az</span><span class="p">,</span> <span class="n">za</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">frequencies</span><span class="p">[</span><span class="n">chan</span><span class="p">]),</span> <span class="n">delays</span><span class="p">,</span> <span class="n">amps</span><span class="p">,</span> <span class="n">beam_norm</span>
+        <span class="p">)</span>
+
+    <span class="n">fluxes</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">hjones</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">conj</span><span class="p">(</span><span class="n">hjones</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">0</span><span class="p">])</span> <span class="o">*</span> <span class="n">fluxes</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">0</span><span class="p">]</span>
+        <span class="o">+</span> <span class="n">hjones</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">conj</span><span class="p">(</span><span class="n">hjones</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">1</span><span class="p">])</span> <span class="o">*</span> <span class="n">fluxes</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">0</span><span class="p">]</span>
+    <span class="p">)</span>
+
+    <span class="n">fluxes</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">hjones</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">2</span><span class="p">]</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">conj</span><span class="p">(</span><span class="n">hjones</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">2</span><span class="p">])</span> <span class="o">*</span> <span class="n">fluxes</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">3</span><span class="p">]</span>
+        <span class="o">+</span> <span class="n">hjones</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">3</span><span class="p">]</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">conj</span><span class="p">(</span><span class="n">hjones</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">3</span><span class="p">])</span> <span class="o">*</span> <span class="n">fluxes</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">3</span><span class="p">]</span>
+    <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">fluxes</span></div>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="n">metafits</span> <span class="o">=</span> <span class="s2">&quot;../mset_data/1098108248.metafits&quot;</span>
+    <span class="n">ras</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">20</span><span class="p">,</span> <span class="mi">30</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+    <span class="n">decs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="o">-</span><span class="mf">27.0</span><span class="p">,</span> <span class="o">-</span><span class="mi">45</span><span class="p">,</span> <span class="o">-</span><span class="mi">20</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+
+    <span class="n">pos</span> <span class="o">=</span> <span class="n">MWAPOS</span>
+    <span class="n">ttime</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">get_time</span><span class="p">(</span><span class="n">metafits</span><span class="p">,</span> <span class="n">pos</span><span class="p">)</span>
+    <span class="n">alt</span><span class="p">,</span> <span class="n">az</span> <span class="o">=</span> <span class="n">radec_to_altaz</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">deg2rad</span><span class="p">(</span><span class="n">ras</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">deg2rad</span><span class="p">(</span><span class="n">decs</span><span class="p">),</span> <span class="n">ttime</span><span class="p">,</span> <span class="n">pos</span><span class="p">)</span>
+    <span class="n">za</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mf">2.0</span> <span class="o">-</span> <span class="n">alt</span>
+
+    <span class="n">fluxes</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">([</span><span class="nb">len</span><span class="p">(</span><span class="n">za</span><span class="p">),</span> <span class="mi">768</span><span class="p">,</span> <span class="mi">4</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">complex64</span><span class="p">)</span>
+    <span class="n">fluxes</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">1</span><span class="p">:</span><span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">frequencies</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">100</span><span class="p">,</span> <span class="mi">200</span><span class="p">,</span> <span class="mi">768</span><span class="p">)</span> <span class="o">*</span> <span class="mf">1e6</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;###############################################################&quot;</span><span class="p">)</span>
+    <span class="n">start_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+    <span class="n">apparent_mwapb</span> <span class="o">=</span> <span class="n">mwapbeam</span><span class="p">(</span>
+        <span class="n">za</span><span class="p">,</span> <span class="n">az</span><span class="p">,</span> <span class="n">frequencies</span><span class="p">,</span> <span class="n">fluxes</span><span class="p">,</span> <span class="n">metafits</span><span class="o">=</span><span class="n">metafits</span><span class="p">,</span> <span class="n">jones</span><span class="o">=</span><span class="kc">True</span>
+    <span class="p">)</span>
+    <span class="n">mduration</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">start_time</span>
+    <span class="nb">print</span><span class="p">(</span>
+        <span class="sa">f</span><span class="s2">&quot;mwapb jones took </span><span class="si">{</span><span class="n">mduration</span><span class="si">}</span><span class="s2">s for </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">za</span><span class="p">)</span><span class="si">}</span><span class="s2"> pointings and </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">frequencies</span><span class="p">)</span><span class="si">}</span><span class="s2"> channels&quot;</span>
+    <span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">apparent_mwapb</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="p">:]))</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;###############################################################&quot;</span><span class="p">)</span>
+
+    <span class="n">fluxes</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">([</span><span class="nb">len</span><span class="p">(</span><span class="n">za</span><span class="p">),</span> <span class="mi">768</span><span class="p">,</span> <span class="mi">4</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">complex64</span><span class="p">)</span>
+    <span class="n">fluxes</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">1</span><span class="p">:</span><span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">start_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+    <span class="n">apparent_mwapbxy</span> <span class="o">=</span> <span class="n">mwapbeam</span><span class="p">(</span>
+        <span class="n">za</span><span class="p">,</span> <span class="n">az</span><span class="p">,</span> <span class="n">frequencies</span><span class="p">,</span> <span class="n">fluxes</span><span class="p">,</span> <span class="n">metafits</span><span class="o">=</span><span class="n">metafits</span><span class="p">,</span> <span class="n">jones</span><span class="o">=</span><span class="kc">False</span>
+    <span class="p">)</span>
+    <span class="n">mjduration</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">start_time</span>
+    <span class="nb">print</span><span class="p">(</span>
+        <span class="sa">f</span><span class="s2">&quot;mwapb xxyy took </span><span class="si">{</span><span class="n">mjduration</span><span class="si">}</span><span class="s2">s to for </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">za</span><span class="p">)</span><span class="si">}</span><span class="s2"> pointings and </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">frequencies</span><span class="p">)</span><span class="si">}</span><span class="s2"> channels&quot;</span>
+    <span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">apparent_mwapbxy</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="p">:]))</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;###############################################################&quot;</span><span class="p">)</span>
+
+    <span class="n">fluxes</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">([</span><span class="nb">len</span><span class="p">(</span><span class="n">za</span><span class="p">),</span> <span class="mi">768</span><span class="p">,</span> <span class="mi">4</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">complex64</span><span class="p">)</span>
+    <span class="n">fluxes</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">1</span><span class="p">:</span><span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">start_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+    <span class="n">apparent_hyper</span> <span class="o">=</span> <span class="n">hyperbeam</span><span class="p">(</span><span class="n">za</span><span class="p">,</span> <span class="n">az</span><span class="p">,</span> <span class="n">frequencies</span><span class="p">,</span> <span class="n">fluxes</span><span class="p">,</span> <span class="n">metafits</span><span class="o">=</span><span class="n">metafits</span><span class="p">)</span>
+    <span class="n">hduration</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">start_time</span>
+    <span class="nb">print</span><span class="p">(</span>
+        <span class="sa">f</span><span class="s2">&quot;Hyper took </span><span class="si">{</span><span class="n">hduration</span><span class="si">}</span><span class="s2">s to for </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">za</span><span class="p">)</span><span class="si">}</span><span class="s2"> pointings and </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">frequencies</span><span class="p">)</span><span class="si">}</span><span class="s2"> channels&quot;</span>
+    <span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">apparent_hyper</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="p">:]))</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;###############################################################&quot;</span><span class="p">)</span>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        
+        &copy; Copyright 2020, Kariuki Chege
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

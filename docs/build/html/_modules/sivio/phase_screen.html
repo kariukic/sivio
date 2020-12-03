@@ -1,0 +1,620 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>sivio.phase_screen &mdash; sivio 0.1.0 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+
+  
+  
+  
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../index.html" class="icon icon-home" alt="Documentation Home"> sivio
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../intro.html">Introduction</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorial.html">Tutorial</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../modules.html">Modules Documentation</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">sivio</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+      <li>sivio.phase_screen</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for sivio.phase_screen</h1><div class="highlight"><pre>
+<span></span><span class="ch">#! /usr/bin/env python</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">absolute_import</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">division</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">print_function</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">scipy.fftpack</span>
+
+<span class="c1"># from powerbox import PowerBox</span>
+<span class="kn">import</span> <span class="nn">scipy.ndimage.filters</span> <span class="k">as</span> <span class="nn">sp</span>
+
+<span class="c1"># from scipy.constants import c</span>
+
+<span class="c1"># 1/(8*np.pi**2)*k.elementary_charge**2/(k.epsilon_0*k.electron_mass)</span>
+<span class="c1"># k=scipy.constants</span>
+<span class="n">constant</span> <span class="o">=</span> <span class="mf">40.30819300005713</span>
+<span class="n">tecu</span> <span class="o">=</span> <span class="mf">1e16</span>
+<span class="n">kolmogorov_index</span> <span class="o">=</span> <span class="o">-</span><span class="mi">11</span> <span class="o">/</span> <span class="mi">3</span>  <span class="c1"># -1.66667</span>
+
+<span class="c1"># Fron Bruno Sciolla github</span>
+
+
+<div class="viewcode-block" id="fftind"><a class="viewcode-back" href="../../sivio.html#sivio.phase_screen.fftind">[docs]</a><span class="k">def</span> <span class="nf">fftind</span><span class="p">(</span><span class="n">size</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns a numpy array of shifted Fourier coordinates k_x k_y.</span>
+
+<span class="sd">    Input args:</span>
+<span class="sd">        size (integer): The size of the coordinate array to create</span>
+<span class="sd">    Returns:</span>
+<span class="sd">        k_ind, numpy array of shape (2, size, size) with:</span>
+<span class="sd">            k_ind[0,:,:]:  k_x components</span>
+<span class="sd">            k_ind[1,:,:]:  k_y components</span>
+
+<span class="sd">    Example:</span>
+
+<span class="sd">        print(fftind(5))</span>
+
+<span class="sd">        [[[ 0  1 -3 -2 -1]</span>
+<span class="sd">        [ 0  1 -3 -2 -1]</span>
+<span class="sd">        [ 0  1 -3 -2 -1]</span>
+<span class="sd">        [ 0  1 -3 -2 -1]</span>
+<span class="sd">        [ 0  1 -3 -2 -1]]</span>
+
+<span class="sd">        [[ 0  0  0  0  0]</span>
+<span class="sd">        [ 1  1  1  1  1]</span>
+<span class="sd">        [-3 -3 -3 -3 -3]</span>
+<span class="sd">        [-2 -2 -2 -2 -2]</span>
+<span class="sd">        [-1 -1 -1 -1 -1]]]</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">k_ind</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mgrid</span><span class="p">[:</span><span class="n">size</span><span class="p">,</span> <span class="p">:</span><span class="n">size</span><span class="p">]</span> <span class="o">-</span> <span class="nb">int</span><span class="p">((</span><span class="n">size</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="n">k_ind</span> <span class="o">=</span> <span class="n">scipy</span><span class="o">.</span><span class="n">fftpack</span><span class="o">.</span><span class="n">fftshift</span><span class="p">(</span><span class="n">k_ind</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">k_ind</span></div>
+
+
+<div class="viewcode-block" id="gaussian_random_field"><a class="viewcode-back" href="../../sivio.html#sivio.phase_screen.gaussian_random_field">[docs]</a><span class="k">def</span> <span class="nf">gaussian_random_field</span><span class="p">(</span><span class="n">alpha</span><span class="o">=</span><span class="mi">11</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="mi">128</span><span class="p">,</span> <span class="n">flag_normalize</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns a numpy array of shifted Fourier coordinates k_x k_y.</span>
+
+<span class="sd">    Input args:</span>
+<span class="sd">        alpha (double, default = 3.0):</span>
+<span class="sd">            The power of the power-law momentum distribution</span>
+<span class="sd">        size (integer, default = 128):</span>
+<span class="sd">            The size of the square output Gaussian Random Fields</span>
+<span class="sd">        flag_normalize (boolean, default = True):</span>
+<span class="sd">            Normalizes the Gaussian Field:</span>
+<span class="sd">                - to have an average of 0.0</span>
+<span class="sd">                - to have a standard deviation of 1.0</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        gfield (numpy array of shape (size, size)):</span>
+
+<span class="sd">    Example:</span>
+<span class="sd">    import matplotlib</span>
+<span class="sd">    import matplotlib.pyplot as plt</span>
+<span class="sd">    example = gaussian_random_field()</span>
+<span class="sd">    plt.imshow(example)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># Defines momentum indices</span>
+    <span class="n">k_idx</span> <span class="o">=</span> <span class="n">fftind</span><span class="p">(</span><span class="n">size</span><span class="p">)</span>
+
+    <span class="c1"># Defines the amplitude as a power law 1/|k|^(alpha/2)</span>
+    <span class="c1"># amplitude = np.power(k_idx[0] ** 2 + k_idx[1] ** 2 + 1e-10, -alpha / 4.0)</span>
+    <span class="n">amplitude</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">power</span><span class="p">(</span><span class="n">k_idx</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">+</span> <span class="n">k_idx</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">+</span> <span class="mf">1e-10</span><span class="p">,</span> <span class="o">-</span><span class="n">alpha</span> <span class="o">/</span> <span class="mf">3.0</span><span class="p">)</span>
+    <span class="n">amplitude</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="c1"># Draws a complex gaussian random noise with normal</span>
+    <span class="c1"># (circular) distribution</span>
+    <span class="n">noise</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="n">size</span><span class="p">,</span> <span class="n">size</span><span class="p">))</span> <span class="o">+</span> <span class="mi">1</span><span class="n">j</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span>
+        <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="n">size</span><span class="p">,</span> <span class="n">size</span><span class="p">)</span>
+    <span class="p">)</span>
+
+    <span class="c1"># To real space</span>
+    <span class="n">gfield</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">ifft2</span><span class="p">(</span><span class="n">noise</span> <span class="o">*</span> <span class="n">amplitude</span><span class="p">)</span><span class="o">.</span><span class="n">real</span>
+
+    <span class="c1"># Sets the standard deviation to one</span>
+    <span class="k">if</span> <span class="n">flag_normalize</span><span class="p">:</span>
+        <span class="n">gfield</span> <span class="o">=</span> <span class="n">gfield</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">gfield</span><span class="p">)</span>
+        <span class="n">gfield</span> <span class="o">=</span> <span class="n">gfield</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">gfield</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">gfield</span></div>
+
+
+<div class="viewcode-block" id="convert_to_tecu"><a class="viewcode-back" href="../../sivio.html#sivio.phase_screen.convert_to_tecu">[docs]</a><span class="k">def</span> <span class="nf">convert_to_tecu</span><span class="p">(</span><span class="n">frequency</span><span class="p">,</span> <span class="n">phscreen</span><span class="p">):</span>
+    <span class="n">frequency</span> <span class="o">*=</span> <span class="mf">1e6</span>
+    <span class="n">stec</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">constant</span> <span class="o">*</span> <span class="n">phscreen</span> <span class="o">*</span> <span class="n">frequency</span> <span class="o">**</span> <span class="mi">2</span>
+    <span class="n">stec</span> <span class="o">/=</span> <span class="mf">1e16</span>
+    <span class="k">return</span> <span class="n">stec</span>  <span class="c1"># slant TEC</span></div>
+
+
+<div class="viewcode-block" id="scale_to_pi_range"><a class="viewcode-back" href="../../sivio.html#sivio.phase_screen.scale_to_pi_range">[docs]</a><span class="k">def</span> <span class="nf">scale_to_pi_range</span><span class="p">(</span><span class="n">phscreen</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Scaling our produced phase screen to between [0, 180] degrees</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    phscreen : array.</span>
+<span class="sd">        The phase screen to be scaled.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    array.</span>
+<span class="sd">        Scaled array.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="p">(</span>
+        <span class="p">(</span><span class="n">phscreen</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">phscreen</span><span class="p">))</span> <span class="o">/</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">phscreen</span><span class="p">)</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">phscreen</span><span class="p">))</span>
+    <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="linear_tec"><a class="viewcode-back" href="../../sivio.html#sivio.phase_screen.linear_tec">[docs]</a><span class="k">def</span> <span class="nf">linear_tec</span><span class="p">(</span><span class="n">npix</span><span class="p">,</span> <span class="n">sine</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Generate linear TEC plane increasing uniformly in one direction.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    npix : int</span>
+<span class="sd">        Number of pixels per side</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    array.</span>
+<span class="sd">        2D npix by npix tec array.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">sine</span><span class="p">:</span>
+        <span class="n">xs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span> <span class="n">npix</span><span class="p">)</span>
+        <span class="n">ys</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span> <span class="n">npix</span><span class="p">)</span>
+        <span class="n">tau</span><span class="p">,</span> <span class="n">phi</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">meshgrid</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">ys</span><span class="p">)</span>
+
+        <span class="n">tec</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="mi">7</span> <span class="o">*</span> <span class="p">(</span><span class="o">-</span><span class="mf">0.1</span> <span class="o">*</span> <span class="n">tau</span> <span class="o">+</span> <span class="mf">0.8</span> <span class="o">*</span> <span class="n">phi</span><span class="p">))</span>
+        <span class="c1"># np.fliplr(tec)[np.triu_indices(npix, npix / 3.5)] = np.pi * 1e-6</span>
+        <span class="n">tec</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">triu_indices</span><span class="p">(</span><span class="n">npix</span><span class="p">,</span> <span class="n">npix</span> <span class="o">/</span> <span class="mi">4</span><span class="p">)]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="mf">1e-6</span>
+        <span class="c1"># np.rot90(tec)[np.triu_indices(npix, npix / 2)] = np.pi * 1e-6</span>
+        <span class="n">tec</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">tril_indices</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">npix</span> <span class="o">/</span> <span class="mi">4</span><span class="p">)]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="mf">1e-6</span>
+        <span class="n">tec</span> <span class="o">+=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="mf">1e-6</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="n">npix</span><span class="p">,</span> <span class="n">npix</span><span class="p">))</span>  <span class="c1"># noise</span>
+        <span class="c1"># for once lets change ridge orientation to along minor diagonal.</span>
+        <span class="c1"># tec = np.fliplr(tec)</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+
+<span class="sd">        tec = np.random.normal(loc=1e-6, scale=0.1, size=(npix, npix)) + np.sin(</span>
+<span class="sd">            10 * (0.9 * tau + 0.001 * phi)</span>
+<span class="sd">        )</span>
+<span class="sd">        pix = tec.shape[0]</span>
+<span class="sd">        lim = 2 * pix // 5</span>
+<span class="sd">        xlim = 4 * pix // 5</span>
+<span class="sd">        tec[:, 0:lim] = np.pi * 1e-6</span>
+<span class="sd">        tec[:, xlim:pix] = np.pi * 1e-6</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">tec</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">10</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span> <span class="n">npix</span><span class="p">),</span> <span class="p">(</span><span class="n">npix</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">tec</span></div>
+
+
+<div class="viewcode-block" id="make_phase_screen"><a class="viewcode-back" href="../../sivio.html#sivio.phase_screen.make_phase_screen">[docs]</a><span class="k">def</span> <span class="nf">make_phase_screen</span><span class="p">(</span><span class="n">scale</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="mi">170000</span><span class="p">,</span> <span class="n">tec_type</span><span class="o">=</span><span class="s2">&quot;l&quot;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    produces a phase offset screen.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    scale : int, optional.</span>
+<span class="sd">        Scaling factor. the number of metres represented by the side of a single pixel], by default 10. \n</span>
+<span class="sd">    size : int, optional.</span>
+<span class="sd">        Total length of each side, by default 150000.\n</span>
+<span class="sd">    tec_type : str, optional.</span>
+<span class="sd">        If k, the tec used follows kolmogorov turbulence, by default l for linear.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    2darray.</span>
+<span class="sd">        Phase offset values.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># \Delta STEC [1/m^3] = \Delta\theta [rad] * \nu^2 [(MHz)^2] / k</span>
+    <span class="c1"># k = 1/(8\pi^2) e^2/(\epsilon_0 m_e) [m^3 / s^2]</span>
+    <span class="c1"># 1 TECU = 10^16 [1/m^2]</span>
+
+    <span class="c1"># Hence: $\Delta\theta = 40.30819/1e16 * 1/\nu^2 * STEC</span>
+
+    <span class="c1"># the number of pixel per side of tec plane</span>
+    <span class="n">resolution</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">size</span> <span class="o">//</span> <span class="n">scale</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">tec_type</span> <span class="o">==</span> <span class="s2">&quot;k&quot;</span><span class="p">:</span>
+        <span class="n">apply_filter</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="c1"># pb = PowerBox(</span>
+        <span class="c1">#     resolution, lambda k: 10 * k ** kolmogorov_index, ensure_physical=True</span>
+        <span class="c1"># )</span>
+        <span class="c1"># phs_screen = pb.delta_x()</span>
+
+        <span class="n">phs_screen</span> <span class="o">=</span> <span class="n">gaussian_random_field</span><span class="p">(</span><span class="n">alpha</span><span class="o">=</span><span class="mf">1.6667</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">resolution</span><span class="p">)</span>
+
+    <span class="k">elif</span> <span class="n">tec_type</span> <span class="o">==</span> <span class="s2">&quot;s&quot;</span><span class="p">:</span>
+        <span class="n">apply_filter</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="n">phs_screen</span> <span class="o">=</span> <span class="n">linear_tec</span><span class="p">(</span><span class="n">resolution</span><span class="p">,</span> <span class="n">sine</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">apply_filter</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="n">phs_screen</span> <span class="o">=</span> <span class="n">linear_tec</span><span class="p">(</span><span class="n">resolution</span><span class="p">,</span> <span class="n">sine</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="n">phs_screen</span> <span class="o">=</span> <span class="n">scale_to_pi_range</span><span class="p">(</span><span class="n">phs_screen</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">apply_filter</span><span class="p">:</span>
+        <span class="n">sigma</span> <span class="o">=</span> <span class="p">[</span><span class="mi">30</span><span class="p">,</span> <span class="mi">30</span><span class="p">]</span>
+        <span class="n">phs_screen</span> <span class="o">=</span> <span class="n">sp</span><span class="o">.</span><span class="n">gaussian_filter</span><span class="p">(</span><span class="n">phs_screen</span><span class="p">,</span> <span class="n">sigma</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;constant&quot;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">phs_screen</span></div>
+
+
+<span class="c1"># def get_tec_value_old(</span>
+<span class="c1">#     tec, us, vs, zen_angles, azimuths, scale, h_pix, pp_u_offset, pp_v_offset, refant=0</span>
+<span class="c1"># ):</span>
+<span class="c1">#     &quot;&quot;&quot;</span>
+<span class="c1">#     OLD/DEPRECATED. HAS NO GRADIENT!</span>
+<span class="c1">#     Given a source position (zenith and azimuth angles) with reference to the reference antenna, this function obtains</span>
+<span class="c1">#     the tec phase offset value at the pierce point corresponding to each antenna. \n \n</span>
+
+<span class="c1">#     Function inspired by: https://stackoverflow.com/a/22778207/7905494 \n</span>
+<span class="c1">#     Plotting a point(s) of a circle laying on a plane given the origin, radius and angle(s).</span>
+
+<span class="c1">#     Parameters</span>
+<span class="c1">#     ----------</span>
+<span class="c1">#     tec : 2Darray.</span>
+<span class="c1">#         The TEC/phase screen. \n</span>
+<span class="c1">#     us : arraylike.</span>
+<span class="c1">#         x coordinates for each antenna. Named &#39;us&#39; bcause the array is projected into the uv space.\n</span>
+<span class="c1">#     vs : arraylike.</span>
+<span class="c1">#         y coordinates for each antenna. \n</span>
+<span class="c1">#     zen_angle : float.</span>
+<span class="c1">#         The zenith angle of the source as calculated from the array earth location and observation time. \n</span>
+<span class="c1">#     az : float.</span>
+<span class="c1">#         The azimuth angle.</span>
+<span class="c1">#     scale : int, optional</span>
+<span class="c1">#         Scaling factor. the number of metres represented by the side of a single pixel], by default 10. \n</span>
+<span class="c1">#     h : int, optional</span>
+<span class="c1">#         Height of the tec screen in metres, by default 200000. \n</span>
+<span class="c1">#     refant : int, optional</span>
+<span class="c1">#         Reference antenna ID, by default 0</span>
+
+<span class="c1">#     Returns</span>
+<span class="c1">#     -------</span>
+<span class="c1">#     1: array.</span>
+<span class="c1">#         x coordinates for the pierce points of each antenna.\n</span>
+<span class="c1">#     2: array.</span>
+<span class="c1">#         y coordinates for the pierce points of each antenna.\n</span>
+<span class="c1">#     3: array.</span>
+<span class="c1">#         The TEC/phase offset value at the piercepoint of each antenna.</span>
+<span class="c1">#     &quot;&quot;&quot;</span>
+<span class="c1">#     # print(</span>
+<span class="c1">#     #    &quot;tecscreen size:  %s by %s km. Height:  %s km.&quot;</span>
+<span class="c1">#     #    % (</span>
+<span class="c1">#     #        tec.shape[0] * scale / 1000,</span>
+<span class="c1">#     #        tec.shape[1] * scale / 1000,</span>
+<span class="c1">#     #        h_pix * scale / 1000,</span>
+<span class="c1">#     #    )</span>
+<span class="c1">#     # )</span>
+<span class="c1">#     # Apply scaling to the array field and tec height.</span>
+<span class="c1">#     us_scaled = scale_to_pixel_range(us, scale=scale)</span>
+<span class="c1">#     vs_scaled = scale_to_pixel_range(vs, scale=scale)</span>
+
+<span class="c1">#     u_tec_center = tec.shape[0] // 2  # + us_scaled[refant]</span>
+<span class="c1">#     v_tec_center = tec.shape[1] // 2  # + us_scaled[refant]</span>
+
+<span class="c1">#     u_per_source, v_per_source, tec_per_source = [], [], []</span>
+<span class="c1">#     for zen_angle, az in zip(zen_angles, azimuths):</span>
+<span class="c1">#         u_tec_list, v_tec_list, tec_per_ant = [], [], []</span>
+<span class="c1">#         for u, v in zip(us_scaled, vs_scaled):</span>
+<span class="c1">#             # For each antenna, the antenna position becomes a new origin</span>
+<span class="c1">#             # This antenna position first has to be in reference to the refant.</span>
+<span class="c1">#             new_u0 = u - us_scaled[refant]</span>
+<span class="c1">#             new_v0 = v - vs_scaled[refant]</span>
+<span class="c1">#             # For each antenna, the zenith angle projects a circle onto the tec screen.</span>
+<span class="c1">#             # the radius of the circle is given by:</span>
+<span class="c1">#             # zen_angle should be in radians</span>
+<span class="c1">#             zen_angle_radius = h_pix * np.tan(zen_angle)</span>
+<span class="c1">#             # The azimuth angle gives us the arc on this circle from some starting point</span>
+<span class="c1">#             # We can then obtain the u and v coordinates for the pierce point.</span>
+<span class="c1">#             pp_u = zen_angle_radius * np.sin(az) + new_u0</span>
+<span class="c1">#             pp_v = zen_angle_radius * np.cos(az) + new_v0</span>
+
+<span class="c1">#             # Collect pierce points for each antenna.</span>
+<span class="c1">#             uu = tec.shape[0] - (pp_u - pp_u_offset + u_tec_center)</span>
+<span class="c1">#             vv = pp_v - pp_v_offset + v_tec_center</span>
+<span class="c1">#             u_tec_list.append(uu)</span>
+<span class="c1">#             v_tec_list.append(vv)</span>
+<span class="c1">#             # phase offset value per pierce point.</span>
+<span class="c1">#             tec_per_ant.append(tec[int(round(uu)), int(round(vv))])</span>
+<span class="c1">#         u_per_source.append(u_tec_list)</span>
+<span class="c1">#         v_per_source.append(v_tec_list)</span>
+<span class="c1">#         tec_per_source.append(tec_per_ant)</span>
+
+<span class="c1">#     return np.array(u_per_source), np.array(v_per_source), np.array(tec_per_source)</span>
+
+
+<span class="c1"># def get_tec_value(</span>
+<span class="c1">#     tec, us, vs, zen_angles, azimuths, scale, h_pix, pp_u_offset, pp_v_offset, refant=0</span>
+<span class="c1"># ):</span>
+<span class="c1">#     &quot;&quot;&quot;</span>
+<span class="c1">#     Given a source position (zenith and azimuth angles) with reference to the reference antenna, this function obtains</span>
+<span class="c1">#     the tec phase offset value at the pierce point corresponding to each antenna. \n \n</span>
+
+<span class="c1">#     Function inspired by: https://stackoverflow.com/a/22778207/7905494 \n</span>
+<span class="c1">#     Plotting a point(s) of a circle laying on a plane given the origin, radius and angle(s).</span>
+
+<span class="c1">#     Parameters</span>
+<span class="c1">#     ----------</span>
+<span class="c1">#     tec : 2Darray.</span>
+<span class="c1">#         The TEC/phase screen. \n</span>
+<span class="c1">#     us : arraylike.</span>
+<span class="c1">#         x coordinates for each antenna. Named &#39;us&#39; because the array is projected into the &quot;uv&quot; space.\n</span>
+<span class="c1">#     vs : arraylike.</span>
+<span class="c1">#         y coordinates for each antenna. \n</span>
+<span class="c1">#     zen_angle : float.</span>
+<span class="c1">#         The zenith angle of the source as calculated from the array earth location and observation time. \n</span>
+<span class="c1">#     az : float.</span>
+<span class="c1">#         The azimuth angle.</span>
+<span class="c1">#     scale : int, optional</span>
+<span class="c1">#         Scaling factor. the number of metres represented by the side of a single pixel], by default 10. \n</span>
+<span class="c1">#     h : int, optional</span>
+<span class="c1">#         Height of the tec screen in metres, by default 200000. \n</span>
+<span class="c1">#     refant : int, optional</span>
+<span class="c1">#         Reference antenna ID, by default 0</span>
+
+<span class="c1">#     Returns</span>
+<span class="c1">#     -------</span>
+<span class="c1">#     1: array.</span>
+<span class="c1">#         x coordinates for the pierce points of each antenna.\n</span>
+<span class="c1">#     2: array.</span>
+<span class="c1">#         y coordinates for the pierce points of each antenna.\n</span>
+<span class="c1">#     3: array.</span>
+<span class="c1">#         The TEC/phase offset value at the piercepoint of each antenna.</span>
+<span class="c1">#     &quot;&quot;&quot;</span>
+<span class="c1">#     # print(</span>
+<span class="c1">#     #    &quot;tecscreen size:  %s by %s km. Height:  %s km.&quot;</span>
+<span class="c1">#     #    % (</span>
+<span class="c1">#     #        tec.shape[0] * scale / 1000,</span>
+<span class="c1">#     #        tec.shape[1] * scale / 1000,</span>
+<span class="c1">#     #        h_pix * scale / 1000,</span>
+<span class="c1">#     #    )</span>
+<span class="c1">#     # )</span>
+<span class="c1">#     # Lets first get the gradient of all pixwls in the tec</span>
+<span class="c1">#     du, dv = np.gradient(tec)</span>
+<span class="c1">#     # Apply scaling to the array field and tec height.</span>
+<span class="c1">#     us_scaled = scale_to_pixel_range(us, scale=scale)</span>
+<span class="c1">#     vs_scaled = scale_to_pixel_range(vs, scale=scale)</span>
+
+<span class="c1">#     u_tec_center = tec.shape[0] // 2  # + us_scaled[refant]</span>
+<span class="c1">#     v_tec_center = tec.shape[1] // 2  # + us_scaled[refant]</span>
+
+<span class="c1">#     u_per_source, v_per_source, u_vec_per_source, v_vec_per_source = [], [], [], []</span>
+<span class="c1">#     for zen_angle, az in zip(zen_angles, azimuths):</span>
+<span class="c1">#         u_tec_list, v_tec_list, u_vec_list, v_vec_list = [], [], [], []</span>
+<span class="c1">#         for u, v in zip(us_scaled, vs_scaled):</span>
+<span class="c1">#             # For each antenna, the antenna position becomes a new origin</span>
+<span class="c1">#             # This antenna position first has to be in reference to the refant.</span>
+<span class="c1">#             new_u0 = u - us_scaled[refant]</span>
+<span class="c1">#             new_v0 = v - vs_scaled[refant]</span>
+<span class="c1">#             # For each antenna, the zenith angle projects a circle onto the tec screen.</span>
+<span class="c1">#             # the radius of the circle is given by:</span>
+<span class="c1">#             # zen_angle should be in radians</span>
+<span class="c1">#             zen_angle_radius = h_pix * np.tan(zen_angle)</span>
+<span class="c1">#             # The azimuth angle gives us the arc on this circle from some starting point</span>
+<span class="c1">#             # We can then obtain the u and v coordinates for the pierce point.</span>
+<span class="c1">#             pp_u = zen_angle_radius * np.sin(az) + new_u0</span>
+<span class="c1">#             pp_v = zen_angle_radius * np.cos(az) + new_v0</span>
+
+<span class="c1">#             # Collect pierce points for each antenna.</span>
+<span class="c1">#             uu = tec.shape[0] - (pp_u - pp_u_offset + u_tec_center)</span>
+<span class="c1">#             vv = pp_v - pp_v_offset + v_tec_center</span>
+<span class="c1">#             u_tec_list.append(uu)</span>
+<span class="c1">#             v_tec_list.append(vv)</span>
+
+<span class="c1">#             # Get the gradient</span>
+
+<span class="c1">#             u_vec = du[int(round(uu)), int(round(vv))]</span>
+<span class="c1">#             v_vec = dv[int(round(uu)), int(round(vv))]</span>
+<span class="c1">#             u_vec_list.append(u_vec)</span>
+<span class="c1">#             v_vec_list.append(v_vec)</span>
+
+<span class="c1">#             # phase offset value per pierce point.</span>
+<span class="c1">#             # tec_per_ant.append(tec[int(round(uu)), int(round(vv))])</span>
+<span class="c1">#         u_per_source.append(u_tec_list)</span>
+<span class="c1">#         v_per_source.append(v_tec_list)</span>
+
+<span class="c1">#         # tec_per_source.append(tec_per_ant)</span>
+<span class="c1">#         u_vec_per_source.append(u_vec_list)</span>
+<span class="c1">#         v_vec_per_source.append(v_vec_list)</span>
+
+<span class="c1">#     return (</span>
+<span class="c1">#         np.array(u_per_source),</span>
+<span class="c1">#         np.array(v_per_source),</span>
+<span class="c1">#         np.array(u_vec_per_source),</span>
+<span class="c1">#         np.array(v_vec_per_source),</span>
+<span class="c1">#     )  # np.array(tec_per_source)</span>
+
+
+<span class="c1"># def get_xy_phase_vectors(tec, u_per_source, v_per_source):</span>
+<span class="c1">#     dx, dy = np.gradient(tec)</span>
+<span class="c1">#     vec_u, vec_v = [], []</span>
+<span class="c1">#     for u, v in zip(u_per_source, v_per_source):</span>
+<span class="c1">#         vec_u.append(dx[u, v])</span>
+<span class="c1">#         vec_v.append(dy[u, v])</span>
+<span class="c1">#     return vec_u, vec_v</span>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        
+        &copy; Copyright 2020, Kariuki Chege
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

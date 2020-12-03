@@ -162,7 +162,7 @@ def ppoints_on_tec_field_v2(tec, ppoints, scale):
     plt.title("Pierce points coverage", fontsize=f)
 
 
-def cthulhu_plots(o, tecscreen, ppoints, scale, plotname="tec_reconstruction.png"):
+def cthulhu_plots(o, tecscreen, ppoints, scale=60, plotname="tec_reconstruction.png"):
     # extent = [-9, 9, -35, -18]
 
     fig = plt.figure(figsize=(12, 9))

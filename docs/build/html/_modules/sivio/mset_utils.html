@@ -1,0 +1,347 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>sivio.mset_utils &mdash; sivio 0.1.0 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+
+  
+  
+  
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../index.html" class="icon icon-home" alt="Documentation Home"> sivio
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../intro.html">Introduction</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorial.html">Tutorial</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../modules.html">Modules Documentation</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">sivio</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+      <li>sivio.mset_utils</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for sivio.mset_utils</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Useful MS manipulation functions.</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">casacore.tables</span> <span class="kn">import</span> <span class="n">table</span><span class="p">,</span> <span class="n">maketabdesc</span><span class="p">,</span> <span class="n">makearrcoldesc</span>
+
+<span class="n">c</span> <span class="o">=</span> <span class="mi">299792458</span>
+
+
+<div class="viewcode-block" id="get_data"><a class="viewcode-back" href="../../sivio.html#sivio.mset_utils.get_data">[docs]</a><span class="k">def</span> <span class="nf">get_data</span><span class="p">(</span><span class="n">tbl</span><span class="p">,</span> <span class="n">col</span><span class="o">=</span><span class="s2">&quot;DATA&quot;</span><span class="p">):</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">tbl</span><span class="o">.</span><span class="n">getcol</span><span class="p">(</span><span class="n">col</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">data</span></div>
+
+
+<div class="viewcode-block" id="get_uvw"><a class="viewcode-back" href="../../sivio.html#sivio.mset_utils.get_uvw">[docs]</a><span class="k">def</span> <span class="nf">get_uvw</span><span class="p">(</span><span class="n">tbl</span><span class="p">):</span>
+    <span class="n">uvw</span> <span class="o">=</span> <span class="n">tbl</span><span class="o">.</span><span class="n">getcol</span><span class="p">(</span><span class="s2">&quot;UVW&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">uvw</span></div>
+
+
+<div class="viewcode-block" id="get_phase_center"><a class="viewcode-back" href="../../sivio.html#sivio.mset_utils.get_phase_center">[docs]</a><span class="k">def</span> <span class="nf">get_phase_center</span><span class="p">(</span><span class="n">tbl</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Grabs the phase centre of the observation in RA and Dec</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    tbl : casacore table.</span>
+<span class="sd">        The casacore mset table opened with readonly=False.\n</span>
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    float, float.</span>
+<span class="sd">        RA and Dec in radians.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">ra0</span><span class="p">,</span> <span class="n">dec0</span> <span class="o">=</span> <span class="n">tbl</span><span class="o">.</span><span class="n">FIELD</span><span class="o">.</span><span class="n">getcell</span><span class="p">(</span><span class="s2">&quot;PHASE_DIR&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">ra0</span><span class="p">,</span> <span class="n">dec0</span></div>
+
+
+<div class="viewcode-block" id="get_channels"><a class="viewcode-back" href="../../sivio.html#sivio.mset_utils.get_channels">[docs]</a><span class="k">def</span> <span class="nf">get_channels</span><span class="p">(</span><span class="n">tbl</span><span class="p">,</span> <span class="n">ls</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">ls</span><span class="p">:</span>
+        <span class="n">chans</span> <span class="o">=</span> <span class="n">c</span> <span class="o">/</span> <span class="n">tbl</span><span class="o">.</span><span class="n">SPECTRAL_WINDOW</span><span class="o">.</span><span class="n">getcell</span><span class="p">(</span><span class="s2">&quot;CHAN_FREQ&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">chans</span> <span class="o">=</span> <span class="n">tbl</span><span class="o">.</span><span class="n">SPECTRAL_WINDOW</span><span class="o">.</span><span class="n">getcell</span><span class="p">(</span><span class="s2">&quot;CHAN_FREQ&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">chans</span></div>
+
+
+<div class="viewcode-block" id="get_ant12"><a class="viewcode-back" href="../../sivio.html#sivio.mset_utils.get_ant12">[docs]</a><span class="k">def</span> <span class="nf">get_ant12</span><span class="p">(</span><span class="n">mset</span><span class="p">):</span>
+    <span class="n">ms</span> <span class="o">=</span> <span class="n">table</span><span class="p">(</span><span class="n">mset</span><span class="p">,</span> <span class="n">readonly</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">ack</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">antenna1</span> <span class="o">=</span> <span class="n">ms</span><span class="o">.</span><span class="n">getcol</span><span class="p">(</span><span class="s2">&quot;ANTENNA1&quot;</span><span class="p">)</span>
+    <span class="n">antenna2</span> <span class="o">=</span> <span class="n">ms</span><span class="o">.</span><span class="n">getcol</span><span class="p">(</span><span class="s2">&quot;ANTENNA2&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">antenna1</span><span class="p">,</span> <span class="n">antenna2</span></div>
+
+
+<div class="viewcode-block" id="put_col"><a class="viewcode-back" href="../../sivio.html#sivio.mset_utils.put_col">[docs]</a><span class="k">def</span> <span class="nf">put_col</span><span class="p">(</span><span class="n">tbl</span><span class="p">,</span> <span class="n">col</span><span class="p">,</span> <span class="n">dat</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;add data &#39;dat&#39; to the column &#39;col&#39;&quot;&quot;&quot;</span>
+    <span class="n">tbl</span><span class="o">.</span><span class="n">putcol</span><span class="p">(</span><span class="n">col</span><span class="p">,</span> <span class="n">dat</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="add_col"><a class="viewcode-back" href="../../sivio.html#sivio.mset_utils.add_col">[docs]</a><span class="k">def</span> <span class="nf">add_col</span><span class="p">(</span><span class="n">tbl</span><span class="p">,</span> <span class="n">colnme</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Add a column &#39;colnme&#39; to the MS&quot;&quot;&quot;</span>
+    <span class="n">col_dmi</span> <span class="o">=</span> <span class="n">tbl</span><span class="o">.</span><span class="n">getdminfo</span><span class="p">(</span><span class="s2">&quot;DATA&quot;</span><span class="p">)</span>
+    <span class="n">col_dmi</span><span class="p">[</span><span class="s2">&quot;NAME&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">colnme</span>
+    <span class="n">shape</span> <span class="o">=</span> <span class="n">tbl</span><span class="o">.</span><span class="n">getcell</span><span class="p">(</span><span class="s2">&quot;DATA&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">shape</span>
+    <span class="n">tbl</span><span class="o">.</span><span class="n">addcols</span><span class="p">(</span>
+        <span class="n">maketabdesc</span><span class="p">(</span>
+            <span class="n">makearrcoldesc</span><span class="p">(</span><span class="n">colnme</span><span class="p">,</span> <span class="mf">0.0</span> <span class="o">+</span> <span class="mf">0.0</span><span class="n">j</span><span class="p">,</span> <span class="n">valuetype</span><span class="o">=</span><span class="s2">&quot;complex&quot;</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="n">shape</span><span class="p">)</span>
+        <span class="p">),</span>
+        <span class="n">col_dmi</span><span class="p">,</span>
+        <span class="n">addtoparent</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="get_lmns"><a class="viewcode-back" href="../../sivio.html#sivio.mset_utils.get_lmns">[docs]</a><span class="k">def</span> <span class="nf">get_lmns</span><span class="p">(</span><span class="n">tbl</span><span class="p">,</span> <span class="n">ra_rad</span><span class="p">,</span> <span class="n">dec_rad</span><span class="p">,</span> <span class="n">phase_center_shift</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Calculating l, m, n values from ras,decs and phase centre.</span>
+<span class="sd">    𝑙 = cos 𝛿 * sin Δ𝛼</span>
+<span class="sd">    𝑚 = sin 𝛿 * cos 𝛿0 − cos 𝛿 * sin 𝛿0 * cos Δ𝛼</span>
+<span class="sd">    Δ𝛼 = 𝛼 − 𝛼0</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">ra0</span><span class="p">,</span> <span class="n">dec0</span> <span class="o">=</span> <span class="n">get_phase_center</span><span class="p">(</span><span class="n">tbl</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">phase_center_shift</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;shifting pahse center from </span><span class="si">{</span><span class="n">np</span><span class="o">.</span><span class="n">rad2deg</span><span class="p">(</span><span class="n">ra0</span><span class="p">)</span><span class="si">}</span><span class="s2">,</span><span class="si">{</span><span class="n">np</span><span class="o">.</span><span class="n">rad2deg</span><span class="p">(</span><span class="n">dec0</span><span class="p">)</span><span class="si">}</span><span class="s2"> </span><span class="se">\</span>
+<span class="s2">            to </span><span class="si">{</span><span class="n">np</span><span class="o">.</span><span class="n">rad2deg</span><span class="p">(</span><span class="n">ra0</span><span class="p">)</span><span class="o">+</span><span class="n">phase_center_shift</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="n">np</span><span class="o">.</span><span class="n">rad2deg</span><span class="p">(</span><span class="n">dec0</span><span class="p">)</span><span class="o">+</span><span class="n">phase_center_shift</span><span class="si">}</span><span class="s2"> for testing.</span><span class="se">\</span>
+<span class="s2">            Will ruin stuff!!!!!&quot;</span>
+        <span class="p">)</span>
+        <span class="n">ra0</span> <span class="o">+=</span> <span class="n">np</span><span class="o">.</span><span class="n">deg2rad</span><span class="p">(</span><span class="n">phase_center_shift</span><span class="p">)</span>
+        <span class="n">dec0</span> <span class="o">+=</span> <span class="n">np</span><span class="o">.</span><span class="n">deg2rad</span><span class="p">(</span><span class="n">phase_center_shift</span><span class="p">)</span>
+
+    <span class="n">ra_delta</span> <span class="o">=</span> <span class="n">ra_rad</span> <span class="o">-</span> <span class="n">ra0</span>
+    <span class="n">ls</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">dec_rad</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">ra_delta</span><span class="p">)</span>
+    <span class="n">ms</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">dec_rad</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">dec0</span><span class="p">)</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">dec_rad</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">dec0</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span>
+        <span class="n">ra_delta</span>
+    <span class="p">)</span>
+    <span class="n">ns</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">ls</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">-</span> <span class="n">ms</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>
+
+    <span class="k">return</span> <span class="n">ls</span><span class="p">,</span> <span class="n">ms</span><span class="p">,</span> <span class="n">ns</span></div>
+
+
+<div class="viewcode-block" id="get_bl_lens"><a class="viewcode-back" href="../../sivio.html#sivio.mset_utils.get_bl_lens">[docs]</a><span class="k">def</span> <span class="nf">get_bl_lens</span><span class="p">(</span><span class="n">mset</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Calculate the baseline length for each DATA row in the measurement set&quot;&quot;&quot;</span>
+    <span class="n">t</span> <span class="o">=</span> <span class="n">table</span><span class="p">(</span><span class="n">mset</span> <span class="o">+</span> <span class="s2">&quot;/ANTENNA&quot;</span><span class="p">,</span> <span class="n">ack</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">pos</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">getcol</span><span class="p">(</span><span class="s2">&quot;POSITION&quot;</span><span class="p">)</span>
+    <span class="n">t</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+    <span class="n">tt</span> <span class="o">=</span> <span class="n">table</span><span class="p">(</span><span class="n">mset</span><span class="p">)</span>
+    <span class="n">ant1</span> <span class="o">=</span> <span class="n">tt</span><span class="o">.</span><span class="n">getcol</span><span class="p">(</span><span class="s2">&quot;ANTENNA1&quot;</span><span class="p">)</span>
+    <span class="n">ant2</span> <span class="o">=</span> <span class="n">tt</span><span class="o">.</span><span class="n">getcol</span><span class="p">(</span><span class="s2">&quot;ANTENNA2&quot;</span><span class="p">)</span>
+    <span class="n">tt</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+    <span class="n">bls</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">ant1</span><span class="p">))</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">ant1</span><span class="p">)):</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">ant1</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+        <span class="n">q</span> <span class="o">=</span> <span class="n">ant2</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+        <span class="n">pos1</span><span class="p">,</span> <span class="n">pos2</span> <span class="o">=</span> <span class="n">pos</span><span class="p">[</span><span class="n">p</span><span class="p">],</span> <span class="n">pos</span><span class="p">[</span><span class="n">q</span><span class="p">]</span>
+        <span class="n">bls</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">((</span><span class="n">pos1</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">pos2</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">+</span> <span class="p">(</span><span class="n">pos1</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">pos2</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">bls</span></div>
+
+
+<div class="viewcode-block" id="get_bl_vectors"><a class="viewcode-back" href="../../sivio.html#sivio.mset_utils.get_bl_vectors">[docs]</a><span class="k">def</span> <span class="nf">get_bl_vectors</span><span class="p">(</span><span class="n">mset</span><span class="p">,</span> <span class="n">refant</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Gets the antenna XYZ position coordinates and recalculates them with the reference antenna as the origin.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    mset : Measurement set. \n</span>
+<span class="sd">    refant : int, optional</span>
+<span class="sd">        The reference antenna ID, by default 0. \n</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    XYZ coordinates of each antenna with respect to the reference antenna.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># First get the positions of each antenna recorded in XYZ coordinates from the MS</span>
+    <span class="n">t</span> <span class="o">=</span> <span class="n">table</span><span class="p">(</span><span class="n">mset</span> <span class="o">+</span> <span class="s2">&quot;/ANTENNA&quot;</span><span class="p">,</span> <span class="n">ack</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">pos</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">getcol</span><span class="p">(</span><span class="s2">&quot;POSITION&quot;</span><span class="p">)</span>
+    <span class="n">t</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+    <span class="n">no_ants</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">pos</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;The mset has </span><span class="si">%s</span><span class="s2"> antennas.&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">no_ants</span><span class="p">))</span>
+
+    <span class="n">bls</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">no_ants</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">no_ants</span><span class="p">):</span>  <span class="c1"># calculate and fill bls with distances from the refant</span>
+        <span class="n">pos1</span><span class="p">,</span> <span class="n">pos2</span> <span class="o">=</span> <span class="n">pos</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">pos</span><span class="p">[</span><span class="n">refant</span><span class="p">]</span>
+        <span class="n">bls</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">pos2</span> <span class="o">-</span> <span class="n">pos1</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">bls</span></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        
+        &copy; Copyright 2020, Kariuki Chege
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

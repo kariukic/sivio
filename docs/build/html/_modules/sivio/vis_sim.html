@@ -1,0 +1,731 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>sivio.vis_sim &mdash; sivio 0.1.0 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+
+  
+  
+  
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../index.html" class="icon icon-home" alt="Documentation Home"> sivio
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../intro.html">Introduction</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorial.html">Tutorial</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../modules.html">Modules Documentation</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">sivio</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+      <li>sivio.vis_sim</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for sivio.vis_sim</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">numba</span> <span class="kn">import</span> <span class="n">njit</span><span class="p">,</span> <span class="n">prange</span>  <span class="c1"># , complex64, float64</span>
+<span class="kn">from</span> <span class="nn">scipy</span> <span class="kn">import</span> <span class="n">constants</span>
+
+<span class="kn">import</span> <span class="nn">sivio.mset_utils</span> <span class="k">as</span> <span class="nn">mtls</span>
+<span class="kn">from</span> <span class="nn">sivio.coordinates</span> <span class="kn">import</span> <span class="n">radec_to_altaz</span><span class="p">,</span> <span class="n">MWAPOS</span>
+
+
+<div class="viewcode-block" id="sim_prep"><a class="viewcode-back" href="../../sivio.html#sivio.vis_sim.sim_prep">[docs]</a><span class="k">def</span> <span class="nf">sim_prep</span><span class="p">(</span><span class="n">tbl</span><span class="p">,</span> <span class="n">ras</span><span class="p">,</span> <span class="n">decs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Preparing the requiremnts before simulating&quot;&quot;&quot;</span>
+    <span class="c1"># grab uvw values from the ms and divide them with the wavelengths for each channel</span>
+    <span class="n">uvw</span> <span class="o">=</span> <span class="n">mtls</span><span class="o">.</span><span class="n">get_uvw</span><span class="p">(</span><span class="n">tbl</span><span class="p">)</span>
+    <span class="n">lmbdas</span> <span class="o">=</span> <span class="n">mtls</span><span class="o">.</span><span class="n">get_channels</span><span class="p">(</span><span class="n">tbl</span><span class="p">,</span> <span class="n">ls</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">uvw_lmbdas</span> <span class="o">=</span> <span class="n">uvw</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">,</span> <span class="p">:]</span> <span class="o">/</span> <span class="n">lmbdas</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:,</span> <span class="kc">None</span><span class="p">]</span>
+    <span class="c1"># Frequency resolution</span>
+    <span class="n">frequencies</span> <span class="o">=</span> <span class="n">mtls</span><span class="o">.</span><span class="n">get_channels</span><span class="p">(</span><span class="n">tbl</span><span class="p">,</span> <span class="n">ls</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">dnu</span> <span class="o">=</span> <span class="n">frequencies</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">frequencies</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="c1"># grab the data from the ms table</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">mtls</span><span class="o">.</span><span class="n">get_data</span><span class="p">(</span><span class="n">tbl</span><span class="p">)</span>
+    <span class="c1"># Delete all the data because we will put the simulated data there</span>
+    <span class="n">data</span><span class="p">[:]</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="c1"># Get the sources lmns</span>
+    <span class="n">ls</span><span class="p">,</span> <span class="n">ms</span><span class="p">,</span> <span class="n">ns</span> <span class="o">=</span> <span class="n">mtls</span><span class="o">.</span><span class="n">get_lmns</span><span class="p">(</span><span class="n">tbl</span><span class="p">,</span> <span class="n">ras</span><span class="p">,</span> <span class="n">decs</span><span class="p">,</span> <span class="n">phase_center_shift</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">data</span><span class="p">,</span> <span class="n">lmbdas</span><span class="p">,</span> <span class="n">uvw_lmbdas</span><span class="p">,</span> <span class="n">dnu</span><span class="p">,</span> <span class="n">ls</span><span class="p">,</span> <span class="n">ms</span><span class="p">,</span> <span class="n">ns</span></div>
+
+
+<span class="c1"># @njit(</span>
+<span class="c1">#     [</span>
+<span class="c1">#         complex64[:, :, :](</span>
+<span class="c1">#             complex64[:, :, :],</span>
+<span class="c1">#             float64[:, :, :],</span>
+<span class="c1">#             float64[:, :, :],</span>
+<span class="c1">#             float64[:],</span>
+<span class="c1">#             float64[:],</span>
+<span class="c1">#             float64[:],</span>
+<span class="c1">#         )</span>
+<span class="c1">#     ],</span>
+<span class="c1">#     parallel=True,</span>
+<span class="c1"># )</span>
+<div class="viewcode-block" id="true_vis_numba"><a class="viewcode-back" href="../../sivio.html#sivio.vis_sim.true_vis_numba">[docs]</a><span class="nd">@njit</span><span class="p">(</span><span class="n">parallel</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">true_vis_numba</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">uvw_lmbdas</span><span class="p">,</span> <span class="n">fluxes</span><span class="p">,</span> <span class="n">ls</span><span class="p">,</span> <span class="n">ms</span><span class="p">,</span> <span class="n">ns</span><span class="p">):</span>
+    <span class="n">data</span><span class="p">[:]</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">u</span> <span class="o">=</span> <span class="n">uvw_lmbdas</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">0</span><span class="p">]</span>
+    <span class="n">v</span> <span class="o">=</span> <span class="n">uvw_lmbdas</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">1</span><span class="p">]</span>
+    <span class="n">w</span> <span class="o">=</span> <span class="n">uvw_lmbdas</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">2</span><span class="p">]</span>
+    <span class="n">source_count</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="k">for</span> <span class="n">source</span> <span class="ow">in</span> <span class="n">prange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">fluxes</span><span class="p">)):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;True Source:&quot;</span><span class="p">,</span> <span class="n">source_count</span><span class="p">)</span>
+        <span class="n">xx_source_visibilities</span> <span class="o">=</span> <span class="n">fluxes</span><span class="p">[</span><span class="n">source</span><span class="p">,</span> <span class="p">:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span>
+            <span class="mi">2</span><span class="n">j</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="p">(</span><span class="n">u</span> <span class="o">*</span> <span class="n">ls</span><span class="p">[</span><span class="n">source</span><span class="p">]</span> <span class="o">+</span> <span class="n">v</span> <span class="o">*</span> <span class="n">ms</span><span class="p">[</span><span class="n">source</span><span class="p">]</span> <span class="o">+</span> <span class="n">w</span> <span class="o">*</span> <span class="n">ns</span><span class="p">[</span><span class="n">source</span><span class="p">])</span>
+        <span class="p">)</span>
+        <span class="n">yy_source_visibilities</span> <span class="o">=</span> <span class="n">fluxes</span><span class="p">[</span><span class="n">source</span><span class="p">,</span> <span class="p">:,</span> <span class="mi">3</span><span class="p">]</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span>
+            <span class="mi">2</span><span class="n">j</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="p">(</span><span class="n">u</span> <span class="o">*</span> <span class="n">ls</span><span class="p">[</span><span class="n">source</span><span class="p">]</span> <span class="o">+</span> <span class="n">v</span> <span class="o">*</span> <span class="n">ms</span><span class="p">[</span><span class="n">source</span><span class="p">]</span> <span class="o">+</span> <span class="n">w</span> <span class="o">*</span> <span class="n">ns</span><span class="p">[</span><span class="n">source</span><span class="p">])</span>
+        <span class="p">)</span>
+        <span class="n">data</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">+=</span> <span class="n">xx_source_visibilities</span>  <span class="c1"># feed xx data</span>
+        <span class="n">data</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">3</span><span class="p">]</span> <span class="o">+=</span> <span class="n">yy_source_visibilities</span>  <span class="c1"># feed yy data</span>
+        <span class="n">source_count</span> <span class="o">+=</span> <span class="mi">1</span>
+
+    <span class="k">return</span> <span class="n">data</span></div>
+
+
+<div class="viewcode-block" id="get_antenna_in_uvw"><a class="viewcode-back" href="../../sivio.html#sivio.vis_sim.get_antenna_in_uvw">[docs]</a><span class="k">def</span> <span class="nf">get_antenna_in_uvw</span><span class="p">(</span><span class="n">mset</span><span class="p">,</span> <span class="n">tbl</span><span class="p">,</span> <span class="n">lst</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Convert the antennas positions into some sort of uv plane with one antenna position as the center of the field.</span>
+<span class="sd">    [Old idea, now I just use the xyz values and they seem mixed up on MWA MS]</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    mset :</span>
+<span class="sd">        Measurement set.\n</span>
+<span class="sd">    tbl : casacore table.</span>
+<span class="sd">        The casacore mset table opened with readonly=False.\n</span>
+<span class="sd">    lst : Format: 00h00m00.0000s</span>
+<span class="sd">        Local sideral time.\n</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    3 lists/arrays.</span>
+<span class="sd">        u, v and w positions of the projected antennas in metres.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    from astropy.coordinates import Angle</span>
+<span class="sd">    from astropy import units as unit</span>
+<span class="sd">    ra0, dec0 = mtls.get_phase_center(tbl)</span>
+<span class="sd">    # ra0 = np.deg2rad(0)</span>
+<span class="sd">    print(&quot;lst&quot;, lst)</span>
+<span class="sd">    ra0 = Angle(ra0, unit.radian)</span>
+<span class="sd">    print(&quot;ra0&quot;, ra0)</span>
+<span class="sd">    ha = Angle(lst) - ra0  # HA = LST-RA</span>
+<span class="sd">    print(&quot;Hour angle&quot;, ra0)</span>
+
+<span class="sd">    xyz = mtls.get_bl_vectors(mset)</span>
+
+<span class="sd">    us = np.sin(ha) * xyz[:, 0] + np.cos(ha) * xyz[:, 1]</span>
+
+<span class="sd">    vs = (</span>
+<span class="sd">        -np.sin(dec0) * np.cos(ha) * xyz[:, 0]</span>
+<span class="sd">        + np.sin(dec0) * np.sin(ha) * xyz[:, 1]</span>
+<span class="sd">        + np.cos(dec0) * xyz[:, 2]</span>
+<span class="sd">    )</span>
+<span class="sd">    ws = (</span>
+<span class="sd">        np.cos(dec0) * np.cos(ha) * xyz[:, 0]</span>
+<span class="sd">        + -np.cos(dec0) * np.sin(ha) * xyz[:, 1]</span>
+<span class="sd">        + np.sin(dec0) * xyz[:, 2]</span>
+<span class="sd">    )</span>
+
+<span class="sd">    return us, vs, ws</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">xyz</span> <span class="o">=</span> <span class="n">mtls</span><span class="o">.</span><span class="n">get_bl_vectors</span><span class="p">(</span><span class="n">mset</span><span class="p">)</span>
+    <span class="c1"># return xyz[:, 0], xyz[:, 2], xyz[:, 1]</span>
+    <span class="k">return</span> <span class="n">xyz</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">xyz</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">xyz</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="scale_to_pixel_range"><a class="viewcode-back" href="../../sivio.html#sivio.vis_sim.scale_to_pixel_range">[docs]</a><span class="k">def</span> <span class="nf">scale_to_pixel_range</span><span class="p">(</span><span class="n">us</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="mi">10</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Scale antenna positions into the axis range of the tec field.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    us : list/array.</span>
+<span class="sd">        list of distances to be scaled. \n</span>
+<span class="sd">    scale : int, optional.</span>
+<span class="sd">        the pixel to distance scaling in metres, by default 10 \n</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    array.</span>
+<span class="sd">        scaled distances.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">pixel_max</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">us</span><span class="p">)</span> <span class="o">/</span> <span class="n">scale</span>
+    <span class="n">pixel_min</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="n">scaled</span> <span class="o">=</span> <span class="p">((</span><span class="n">us</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">us</span><span class="p">))</span> <span class="o">/</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">us</span><span class="p">)</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">us</span><span class="p">)))</span> <span class="o">*</span> <span class="p">(</span>
+        <span class="n">pixel_max</span> <span class="o">-</span> <span class="n">pixel_min</span>
+    <span class="p">)</span> <span class="o">+</span> <span class="n">pixel_min</span>
+
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">scaled</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="phase_center_offset"><a class="viewcode-back" href="../../sivio.html#sivio.vis_sim.phase_center_offset">[docs]</a><span class="k">def</span> <span class="nf">phase_center_offset</span><span class="p">(</span><span class="n">ra0</span><span class="p">,</span> <span class="n">dec0</span><span class="p">,</span> <span class="n">h_pix</span><span class="p">,</span> <span class="n">time</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Calculate the pixel coordinates for the phase center position.</span>
+<span class="sd">    This is the offset used to aligh the phase center to the center of the phase screen</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    tbl : casacore MS table.</span>
+<span class="sd">        The MS table to get the phase center from.\n</span>
+<span class="sd">    h_pix : int/float</span>
+<span class="sd">        The scaled height of the phase screen.\n</span>
+<span class="sd">    time : astropy time object.</span>
+<span class="sd">        The time of observation.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    float.</span>
+<span class="sd">        The pixel coordinates of the phase center on the phase screen.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">new_u0</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">new_v0</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">altt</span><span class="p">,</span> <span class="n">azz</span> <span class="o">=</span> <span class="n">radec_to_altaz</span><span class="p">(</span><span class="n">ra0</span><span class="p">,</span> <span class="n">dec0</span><span class="p">,</span> <span class="n">time</span><span class="p">,</span> <span class="n">MWAPOS</span><span class="p">)</span>
+    <span class="n">zen_angle</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mf">2.0</span> <span class="o">-</span> <span class="n">altt</span>
+    <span class="n">zen_angle_radius</span> <span class="o">=</span> <span class="n">h_pix</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">tan</span><span class="p">(</span><span class="n">zen_angle</span><span class="p">)</span>
+
+    <span class="n">pp_u_off</span> <span class="o">=</span> <span class="n">zen_angle_radius</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">azz</span><span class="p">)</span> <span class="o">+</span> <span class="n">new_u0</span>
+    <span class="n">pp_v_off</span> <span class="o">=</span> <span class="n">zen_angle_radius</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">azz</span><span class="p">)</span> <span class="o">+</span> <span class="n">new_v0</span>
+    <span class="k">return</span> <span class="n">pp_u_off</span><span class="p">,</span> <span class="n">pp_v_off</span></div>
+
+
+<div class="viewcode-block" id="compute_initial_setup_params"><a class="viewcode-back" href="../../sivio.html#sivio.vis_sim.compute_initial_setup_params">[docs]</a><span class="k">def</span> <span class="nf">compute_initial_setup_params</span><span class="p">(</span><span class="n">tec</span><span class="p">,</span> <span class="n">us</span><span class="p">,</span> <span class="n">vs</span><span class="p">,</span> <span class="n">height</span><span class="p">,</span> <span class="n">scale</span><span class="p">,</span> <span class="n">ra0</span><span class="p">,</span> <span class="n">dec0</span><span class="p">,</span> <span class="n">time</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Computes general utility parameters for the system.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    tec : 2D array</span>
+<span class="sd">        [description]</span>
+<span class="sd">    us : [type]</span>
+<span class="sd">        [description]</span>
+<span class="sd">    vs : [type]</span>
+<span class="sd">        [description]</span>
+<span class="sd">    height : [type]</span>
+<span class="sd">        [description]</span>
+<span class="sd">    scale : [type]</span>
+<span class="sd">        [description]</span>
+<span class="sd">    ra0 : [type]</span>
+<span class="sd">        [description]</span>
+<span class="sd">    dec0 : [type]</span>
+<span class="sd">        [description]</span>
+<span class="sd">    time : [type]</span>
+<span class="sd">        [description]</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    [type]</span>
+<span class="sd">        [description]</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Lets first get the gradient of all pixels in the tecscreen</span>
+    <span class="n">du</span><span class="p">,</span> <span class="n">dv</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">gradient</span><span class="p">(</span><span class="n">tec</span><span class="p">)</span>
+    <span class="c1"># Apply scaling to the array field and height</span>
+    <span class="n">scaled_u_axis_ants_pos</span> <span class="o">=</span> <span class="n">scale_to_pixel_range</span><span class="p">(</span><span class="n">us</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="n">scale</span><span class="p">)</span>
+    <span class="n">scaled_v_axis_ants_pos</span> <span class="o">=</span> <span class="n">scale_to_pixel_range</span><span class="p">(</span><span class="n">vs</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="n">scale</span><span class="p">)</span>
+
+    <span class="n">u_tec_center</span> <span class="o">=</span> <span class="n">tec</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">//</span> <span class="mi">2</span>  <span class="c1"># + us_scaled[refant]</span>
+    <span class="n">v_tec_center</span> <span class="o">=</span> <span class="n">tec</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">//</span> <span class="mi">2</span>
+
+    <span class="n">h_pix</span> <span class="o">=</span> <span class="n">height</span> <span class="o">/</span> <span class="n">scale</span>
+    <span class="n">ra0_pp_u_coord</span><span class="p">,</span> <span class="n">dec0_pp_v_coord</span> <span class="o">=</span> <span class="n">phase_center_offset</span><span class="p">(</span><span class="n">ra0</span><span class="p">,</span> <span class="n">dec0</span><span class="p">,</span> <span class="n">h_pix</span><span class="p">,</span> <span class="n">time</span><span class="p">)</span>
+
+    <span class="n">u_coord_shift_factor</span> <span class="o">=</span> <span class="n">tec</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">ra0_pp_u_coord</span> <span class="o">-</span> <span class="n">u_tec_center</span>
+    <span class="n">v_coord_shift_factor</span> <span class="o">=</span> <span class="n">v_tec_center</span> <span class="o">-</span> <span class="n">dec0_pp_v_coord</span>
+
+    <span class="c1"># And now at this point we have the set up parameters:</span>
+    <span class="n">initial_setup_params</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">du</span><span class="p">,</span>
+        <span class="n">dv</span><span class="p">,</span>
+        <span class="n">scaled_u_axis_ants_pos</span><span class="p">,</span>
+        <span class="n">scaled_v_axis_ants_pos</span><span class="p">,</span>
+        <span class="n">u_coord_shift_factor</span><span class="p">,</span>
+        <span class="n">v_coord_shift_factor</span><span class="p">,</span>
+        <span class="n">h_pix</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">initial_setup_params</span></div>
+
+
+<div class="viewcode-block" id="single_source_pierce_point"><a class="viewcode-back" href="../../sivio.html#sivio.vis_sim.single_source_pierce_point">[docs]</a><span class="nd">@njit</span>
+<span class="k">def</span> <span class="nf">single_source_pierce_point</span><span class="p">(</span>
+    <span class="n">du</span><span class="p">,</span>
+    <span class="n">dv</span><span class="p">,</span>
+    <span class="n">source_zenith_angle</span><span class="p">,</span>
+    <span class="n">source_azimuth_angle</span><span class="p">,</span>
+    <span class="n">scaled_u_axis_ants_pos</span><span class="p">,</span>
+    <span class="n">scaled_v_axis_ants_pos</span><span class="p">,</span>
+    <span class="n">h_pix</span><span class="p">,</span>
+    <span class="n">u_shift_factor</span><span class="p">,</span>
+    <span class="n">v_shift_factor</span><span class="p">,</span>
+    <span class="n">refant</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+    <span class="n">get_gradients</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">):</span>
+    <span class="n">ants_u_pierce_points</span><span class="p">,</span> <span class="n">ants_v_pierce_points</span><span class="p">,</span> <span class="n">ants_u_gradients</span><span class="p">,</span> <span class="n">ants_v_gradients</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">)],</span>
+        <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">)],</span>
+        <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">)],</span>
+        <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">)],</span>
+    <span class="p">)</span>
+    <span class="k">for</span> <span class="n">scaled_u_ant_pos</span><span class="p">,</span> <span class="n">scaled_v_ant_pos</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span>
+        <span class="n">scaled_u_axis_ants_pos</span><span class="p">,</span> <span class="n">scaled_v_axis_ants_pos</span>
+    <span class="p">):</span>
+        <span class="c1"># For each antenna, the antenna position becomes a new origin</span>
+        <span class="c1"># This antenna position first has to be in reference to the refant.</span>
+        <span class="n">new_u0</span> <span class="o">=</span> <span class="n">scaled_u_ant_pos</span> <span class="o">-</span> <span class="n">scaled_u_axis_ants_pos</span><span class="p">[</span><span class="n">refant</span><span class="p">]</span>
+        <span class="n">new_v0</span> <span class="o">=</span> <span class="n">scaled_v_ant_pos</span> <span class="o">-</span> <span class="n">scaled_v_axis_ants_pos</span><span class="p">[</span><span class="n">refant</span><span class="p">]</span>
+
+        <span class="c1"># For each antenna, the zenith angle projects a circle onto the tec screen.</span>
+        <span class="c1"># the radius of the circle is given by:</span>
+        <span class="c1"># zen_angle should be in radians</span>
+        <span class="n">zen_angle_radius</span> <span class="o">=</span> <span class="n">h_pix</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">tan</span><span class="p">(</span><span class="n">source_zenith_angle</span><span class="p">)</span>
+        <span class="c1"># The azimuth angle gives us the arc on this circle from some starting point</span>
+        <span class="c1"># We can then obtain the u and v coordinates for the pierce point.</span>
+        <span class="n">pp_u_coord</span> <span class="o">=</span> <span class="n">zen_angle_radius</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">source_azimuth_angle</span><span class="p">)</span> <span class="o">+</span> <span class="n">new_u0</span>
+        <span class="n">pp_v_coord</span> <span class="o">=</span> <span class="n">zen_angle_radius</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">source_azimuth_angle</span><span class="p">)</span> <span class="o">+</span> <span class="n">new_v0</span>
+        <span class="c1"># Shift the u and v piercepoint values in reference to the phase screen center</span>
+        <span class="n">u_axis_pierce_point</span> <span class="o">=</span> <span class="n">u_shift_factor</span> <span class="o">-</span> <span class="n">pp_u_coord</span>
+        <span class="n">v_axis_pierce_point</span> <span class="o">=</span> <span class="n">v_shift_factor</span> <span class="o">+</span> <span class="n">pp_v_coord</span>
+        <span class="c1"># Collect pierce points for each antenna for the source.</span>
+        <span class="n">ants_u_pierce_points</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">u_axis_pierce_point</span><span class="p">)</span>
+        <span class="n">ants_v_pierce_points</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">v_axis_pierce_point</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">get_gradients</span><span class="p">:</span>
+            <span class="c1"># get the u and v direction gradients at the antenna pierce point.</span>
+            <span class="n">u_gradient</span> <span class="o">=</span> <span class="n">du</span><span class="p">[</span>
+                <span class="nb">int</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">u_axis_pierce_point</span><span class="p">)),</span> <span class="nb">int</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">v_axis_pierce_point</span><span class="p">))</span>
+            <span class="p">]</span>
+            <span class="n">v_gradient</span> <span class="o">=</span> <span class="n">dv</span><span class="p">[</span>
+                <span class="nb">int</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">u_axis_pierce_point</span><span class="p">)),</span> <span class="nb">int</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">v_axis_pierce_point</span><span class="p">))</span>
+            <span class="p">]</span>
+
+            <span class="n">ants_u_gradients</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">u_gradient</span><span class="p">)</span>
+            <span class="n">ants_v_gradients</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">v_gradient</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">get_gradients</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">ants_u_gradients</span><span class="p">),</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">ants_v_gradients</span><span class="p">),</span>
+        <span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">ants_u_pierce_points</span><span class="p">),</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">ants_v_pierce_points</span><span class="p">),</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="screen_size"><a class="viewcode-back" href="../../sivio.html#sivio.vis_sim.screen_size">[docs]</a><span class="k">def</span> <span class="nf">screen_size</span><span class="p">(</span><span class="n">height</span><span class="p">,</span> <span class="n">radius</span><span class="p">,</span> <span class="n">ra0</span><span class="p">,</span> <span class="n">dec0</span><span class="p">,</span> <span class="n">us</span><span class="p">,</span> <span class="n">vs</span><span class="p">,</span> <span class="n">MWAPOS</span><span class="p">,</span> <span class="n">time</span><span class="p">):</span>
+    <span class="n">max_ra</span> <span class="o">=</span> <span class="n">ra0</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">deg2rad</span><span class="p">(</span><span class="n">radius</span><span class="p">)</span>
+    <span class="n">max_dec</span> <span class="o">=</span> <span class="n">dec0</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">deg2rad</span><span class="p">(</span><span class="n">radius</span><span class="p">)</span>
+
+    <span class="n">max_uv</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="n">us</span><span class="p">),</span> <span class="nb">max</span><span class="p">(</span><span class="n">vs</span><span class="p">))</span>
+    <span class="n">new_u0</span> <span class="o">=</span> <span class="n">max_uv</span> <span class="o">-</span> <span class="n">us</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">new_v0</span> <span class="o">=</span> <span class="n">max_uv</span> <span class="o">-</span> <span class="n">vs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="n">alt</span><span class="p">,</span> <span class="n">max_az</span> <span class="o">=</span> <span class="n">radec_to_altaz</span><span class="p">(</span><span class="n">max_ra</span><span class="p">,</span> <span class="n">max_dec</span><span class="p">,</span> <span class="n">time</span><span class="p">,</span> <span class="n">MWAPOS</span><span class="p">)</span>
+    <span class="n">max_zen</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mf">2.0</span> <span class="o">-</span> <span class="n">alt</span>
+
+    <span class="n">zen_angle_radius</span> <span class="o">=</span> <span class="n">height</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">tan</span><span class="p">(</span><span class="n">max_zen</span><span class="p">)</span>
+
+    <span class="n">pp_u_coord</span> <span class="o">=</span> <span class="n">zen_angle_radius</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">max_az</span><span class="p">)</span> <span class="o">+</span> <span class="n">new_u0</span>
+    <span class="n">pp_v_coord</span> <span class="o">=</span> <span class="n">zen_angle_radius</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">max_az</span><span class="p">)</span> <span class="o">+</span> <span class="n">new_v0</span>
+
+    <span class="c1"># the 1000 is a 1km padding just to make sure no pierce point falls outside the phase screen</span>
+    <span class="k">return</span> <span class="mi">2</span> <span class="o">*</span> <span class="nb">max</span><span class="p">(</span><span class="n">pp_u_coord</span><span class="p">,</span> <span class="n">pp_v_coord</span><span class="p">)</span>  <span class="c1"># + 1000</span></div>
+
+
+<div class="viewcode-block" id="collective_pierce_points"><a class="viewcode-back" href="../../sivio.html#sivio.vis_sim.collective_pierce_points">[docs]</a><span class="k">def</span> <span class="nf">collective_pierce_points</span><span class="p">(</span><span class="n">zenith_angles</span><span class="p">,</span> <span class="n">azimuths</span><span class="p">,</span> <span class="n">initial_setup_params</span><span class="p">):</span>
+    <span class="p">(</span>
+        <span class="n">du</span><span class="p">,</span>
+        <span class="n">dv</span><span class="p">,</span>
+        <span class="n">scaled_u_axis_ants_pos</span><span class="p">,</span>
+        <span class="n">scaled_v_axis_ants_pos</span><span class="p">,</span>
+        <span class="n">u_coord_shift_factor</span><span class="p">,</span>
+        <span class="n">v_coord_shift_factor</span><span class="p">,</span>
+        <span class="n">h_pix</span><span class="p">,</span>
+        <span class="n">_</span><span class="p">,</span>
+        <span class="n">_</span><span class="p">,</span>
+        <span class="n">_</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">=</span> <span class="n">initial_setup_params</span>
+    <span class="n">u_per_source</span><span class="p">,</span> <span class="n">v_per_source</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">zen_a</span><span class="p">,</span> <span class="n">az</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">zenith_angles</span><span class="p">,</span> <span class="n">azimuths</span><span class="p">):</span>
+        <span class="n">ants_u_pierce_points</span><span class="p">,</span> <span class="n">ants_v_pierce_points</span> <span class="o">=</span> <span class="n">single_source_pierce_point</span><span class="p">(</span>
+            <span class="n">du</span><span class="p">,</span>
+            <span class="n">dv</span><span class="p">,</span>
+            <span class="n">zen_a</span><span class="p">,</span>
+            <span class="n">az</span><span class="p">,</span>
+            <span class="n">scaled_u_axis_ants_pos</span><span class="p">,</span>
+            <span class="n">scaled_v_axis_ants_pos</span><span class="p">,</span>
+            <span class="n">h_pix</span><span class="p">,</span>
+            <span class="n">u_coord_shift_factor</span><span class="p">,</span>
+            <span class="n">v_coord_shift_factor</span><span class="p">,</span>
+            <span class="n">get_gradients</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">u_per_source</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ants_u_pierce_points</span><span class="p">)</span>
+        <span class="n">v_per_source</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ants_v_pierce_points</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">((</span><span class="n">u_per_source</span><span class="p">,</span> <span class="n">v_per_source</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="add_phase_offsets"><a class="viewcode-back" href="../../sivio.html#sivio.vis_sim.add_phase_offsets">[docs]</a><span class="nd">@njit</span>
+<span class="k">def</span> <span class="nf">add_phase_offsets</span><span class="p">(</span><span class="n">lmbdas</span><span class="p">,</span> <span class="n">antenna1</span><span class="p">,</span> <span class="n">antenna2</span><span class="p">,</span> <span class="n">uparams</span><span class="p">,</span> <span class="n">vparams</span><span class="p">,</span> <span class="n">spar</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Compute the phase differences for each baseline.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    mset :  Measurement set.\n</span>
+<span class="sd">    params : 1D array of len(no. of antennas.)</span>
+<span class="sd">        The phase offset value for each antenna.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    array.</span>
+<span class="sd">        The phase difference per baseline.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">u_phasediffs</span> <span class="o">=</span> <span class="n">uparams</span><span class="p">[</span><span class="n">antenna1</span><span class="p">]</span> <span class="o">-</span> <span class="n">uparams</span><span class="p">[</span><span class="n">antenna2</span><span class="p">]</span>
+    <span class="n">v_phasediffs</span> <span class="o">=</span> <span class="n">vparams</span><span class="p">[</span><span class="n">antenna1</span><span class="p">]</span> <span class="o">-</span> <span class="n">vparams</span><span class="p">[</span><span class="n">antenna2</span><span class="p">]</span>
+
+    <span class="n">u_phasediffs</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">spar</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">u_phasediffs</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">lmbdas</span>
+    <span class="n">v_phasediffs</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">spar</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">v_phasediffs</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">lmbdas</span>
+
+    <span class="k">return</span> <span class="n">u_phasediffs</span><span class="p">,</span> <span class="n">v_phasediffs</span></div>
+
+
+<div class="viewcode-block" id="get_uv_phase_offsets"><a class="viewcode-back" href="../../sivio.html#sivio.vis_sim.get_uv_phase_offsets">[docs]</a><span class="nd">@njit</span>
+<span class="k">def</span> <span class="nf">get_uv_phase_offsets</span><span class="p">(</span>
+    <span class="n">lmbdas</span><span class="p">,</span> <span class="n">source_zenith_angle</span><span class="p">,</span> <span class="n">source_azimuth_angle</span><span class="p">,</span> <span class="n">initial_setup_params</span>
+<span class="p">):</span>
+    <span class="p">(</span>
+        <span class="n">du</span><span class="p">,</span>
+        <span class="n">dv</span><span class="p">,</span>
+        <span class="n">scaled_u_axis_ants_pos</span><span class="p">,</span>
+        <span class="n">scaled_v_axis_ants_pos</span><span class="p">,</span>
+        <span class="n">u_coord_shift_factor</span><span class="p">,</span>
+        <span class="n">v_coord_shift_factor</span><span class="p">,</span>
+        <span class="n">h_pix</span><span class="p">,</span>
+        <span class="n">ant1</span><span class="p">,</span>
+        <span class="n">ant2</span><span class="p">,</span>
+        <span class="n">spar</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">=</span> <span class="n">initial_setup_params</span>
+
+    <span class="n">ants_u_gradients</span><span class="p">,</span> <span class="n">ants_v_gradients</span> <span class="o">=</span> <span class="n">single_source_pierce_point</span><span class="p">(</span>
+        <span class="n">du</span><span class="p">,</span>
+        <span class="n">dv</span><span class="p">,</span>
+        <span class="n">source_zenith_angle</span><span class="p">,</span>
+        <span class="n">source_azimuth_angle</span><span class="p">,</span>
+        <span class="n">scaled_u_axis_ants_pos</span><span class="p">,</span>
+        <span class="n">scaled_v_axis_ants_pos</span><span class="p">,</span>
+        <span class="n">h_pix</span><span class="p">,</span>
+        <span class="n">u_coord_shift_factor</span><span class="p">,</span>
+        <span class="n">v_coord_shift_factor</span><span class="p">,</span>
+        <span class="n">refant</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">get_gradients</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="c1"># calculate the phase diffs for the source</span>
+    <span class="n">u_phasediffs</span><span class="p">,</span> <span class="n">v_phasediffs</span> <span class="o">=</span> <span class="n">add_phase_offsets</span><span class="p">(</span>
+        <span class="n">lmbdas</span><span class="p">,</span> <span class="n">ant1</span><span class="p">,</span> <span class="n">ant2</span><span class="p">,</span> <span class="n">ants_u_gradients</span><span class="p">,</span> <span class="n">ants_v_gradients</span><span class="p">,</span> <span class="n">spar</span>
+    <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">u_phasediffs</span><span class="p">,</span> <span class="n">v_phasediffs</span></div>
+
+
+<div class="viewcode-block" id="single_source_offset_vis"><a class="viewcode-back" href="../../sivio.html#sivio.vis_sim.single_source_offset_vis">[docs]</a><span class="nd">@njit</span>
+<span class="k">def</span> <span class="nf">single_source_offset_vis</span><span class="p">(</span><span class="n">args</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Compute single source offset visibilities</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    args : [type]</span>
+<span class="sd">        [description]</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    [type]</span>
+<span class="sd">        [description]</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="p">(</span><span class="n">lmbdas</span><span class="p">,</span> <span class="n">uvw_lmbdas</span><span class="p">,</span> <span class="n">zen_a</span><span class="p">,</span> <span class="n">az</span><span class="p">,</span> <span class="n">flux</span><span class="p">,</span> <span class="n">ll</span><span class="p">,</span> <span class="n">mm</span><span class="p">,</span> <span class="n">nn</span><span class="p">,</span> <span class="n">initial_setup_params</span><span class="p">)</span> <span class="o">=</span> <span class="n">args</span>
+
+    <span class="n">u_phasediffs</span><span class="p">,</span> <span class="n">v_phasediffs</span> <span class="o">=</span> <span class="n">get_uv_phase_offsets</span><span class="p">(</span>
+        <span class="n">lmbdas</span><span class="p">,</span> <span class="n">zen_a</span><span class="p">,</span> <span class="n">az</span><span class="p">,</span> <span class="n">initial_setup_params</span>
+    <span class="p">)</span>
+
+    <span class="n">offset_phase</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span>
+        <span class="mi">2</span><span class="n">j</span>
+        <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span>
+        <span class="o">*</span> <span class="p">(</span>
+            <span class="p">(</span><span class="n">uvw_lmbdas</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">ll</span> <span class="o">+</span> <span class="n">u_phasediffs</span><span class="p">)</span>
+            <span class="o">+</span> <span class="p">(</span><span class="n">uvw_lmbdas</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">mm</span> <span class="o">+</span> <span class="n">v_phasediffs</span><span class="p">)</span>
+            <span class="o">+</span> <span class="n">uvw_lmbdas</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">2</span><span class="p">]</span> <span class="o">*</span> <span class="n">nn</span>
+        <span class="p">)</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">flux</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">offset_phase</span><span class="p">,</span> <span class="n">flux</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">offset_phase</span></div>
+
+
+<div class="viewcode-block" id="compute_offset_vis_parallel"><a class="viewcode-back" href="../../sivio.html#sivio.vis_sim.compute_offset_vis_parallel">[docs]</a><span class="nd">@njit</span><span class="p">(</span><span class="n">parallel</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">compute_offset_vis_parallel</span><span class="p">(</span>
+    <span class="n">data</span><span class="p">,</span>
+    <span class="n">initial_setup_params</span><span class="p">,</span>
+    <span class="n">zenith_angles</span><span class="p">,</span>
+    <span class="n">azimuths</span><span class="p">,</span>
+    <span class="n">lmbdas</span><span class="p">,</span>
+    <span class="n">uvw_lmbdas</span><span class="p">,</span>
+    <span class="n">fluxes</span><span class="p">,</span>
+    <span class="n">ls</span><span class="p">,</span>
+    <span class="n">ms</span><span class="p">,</span>
+    <span class="n">ns</span><span class="p">,</span>
+<span class="p">):</span>
+    <span class="n">data</span><span class="p">[:]</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">source_num</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">source</span> <span class="ow">in</span> <span class="n">prange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">fluxes</span><span class="p">)):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;offsetting source:&quot;</span><span class="p">,</span> <span class="n">source_num</span><span class="p">)</span>
+        <span class="n">params</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">lmbdas</span><span class="p">,</span>
+            <span class="n">uvw_lmbdas</span><span class="p">,</span>
+            <span class="n">zenith_angles</span><span class="p">[</span><span class="n">source</span><span class="p">],</span>
+            <span class="n">azimuths</span><span class="p">[</span><span class="n">source</span><span class="p">],</span>
+            <span class="n">fluxes</span><span class="p">[</span><span class="n">source</span><span class="p">],</span>
+            <span class="n">ls</span><span class="p">[</span><span class="n">source</span><span class="p">],</span>
+            <span class="n">ms</span><span class="p">[</span><span class="n">source</span><span class="p">],</span>
+            <span class="n">ns</span><span class="p">[</span><span class="n">source</span><span class="p">],</span>
+            <span class="n">initial_setup_params</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">xx_offset_data</span><span class="p">,</span> <span class="n">yy_offset_data</span> <span class="o">=</span> <span class="n">single_source_offset_vis</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+        <span class="n">source_num</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="n">data</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">+=</span> <span class="n">xx_offset_data</span>  <span class="c1"># feed xx data</span>
+        <span class="n">data</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">3</span><span class="p">]</span> <span class="o">+=</span> <span class="n">yy_offset_data</span>  <span class="c1"># feed yy data</span>
+
+    <span class="k">return</span> <span class="n">data</span></div>
+
+
+<span class="c1"># Adopted from Bella&#39;s code</span>
+<div class="viewcode-block" id="thermal_variance_baseline"><a class="viewcode-back" href="../../sivio.html#sivio.vis_sim.thermal_variance_baseline">[docs]</a><span class="k">def</span> <span class="nf">thermal_variance_baseline</span><span class="p">(</span>
+    <span class="n">dnu</span><span class="o">=</span><span class="mf">40000.0000000298</span><span class="p">,</span> <span class="n">Tsys</span><span class="o">=</span><span class="mi">240</span><span class="p">,</span> <span class="n">timestamps</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">effective_collecting_area</span><span class="o">=</span><span class="mi">21</span>
+<span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    The thermal variance of each baseline (assumed constant across baselines/times/frequencies.</span>
+<span class="sd">    Equation comes from Trott 2016 (from Morales 2005)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># dnu = frequencies[1] - frequencies[0]</span>
+    <span class="n">integration_time</span> <span class="o">=</span> <span class="n">timestamps</span> <span class="o">*</span> <span class="mi">8</span>
+
+    <span class="n">sigma</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="mi">2</span>
+        <span class="o">*</span> <span class="mf">1e26</span>
+        <span class="o">*</span> <span class="n">constants</span><span class="o">.</span><span class="n">k</span>
+        <span class="o">*</span> <span class="n">Tsys</span>
+        <span class="o">/</span> <span class="n">effective_collecting_area</span>
+        <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">dnu</span> <span class="o">*</span> <span class="n">integration_time</span><span class="p">)</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">sigma</span> <span class="o">**</span> <span class="mi">2</span></div>
+
+
+<div class="viewcode-block" id="add_thermal_noise"><a class="viewcode-back" href="../../sivio.html#sivio.vis_sim.add_thermal_noise">[docs]</a><span class="k">def</span> <span class="nf">add_thermal_noise</span><span class="p">(</span><span class="n">visibilities</span><span class="p">,</span> <span class="n">dnu</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Add thermal noise to each visibility.</span>
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    visibilities : (n_baseline, n_freq)-array</span>
+<span class="sd">        The visibilities at each baseline and frequency.</span>
+<span class="sd">    frequencies : (n_freq)-array</span>
+<span class="sd">        The frequencies of the observation.</span>
+<span class="sd">    beam_area : float</span>
+<span class="sd">        The area of the beam (in sr).</span>
+<span class="sd">    delta_t : float, optional</span>
+<span class="sd">        The integration time.</span>
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    visibilities : array</span>
+<span class="sd">        The visibilities at each baseline and frequency with the thermal noise from the sky.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># print(&quot;Adding thermal noise...&quot;)</span>
+    <span class="n">rl_im</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="p">(</span><span class="mi">2</span><span class="p">,)</span> <span class="o">+</span> <span class="n">visibilities</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+
+    <span class="c1"># NOTE: we divide the variance by two here, because the variance of the absolute value of the</span>
+    <span class="c1">#       visibility should be equal to thermal_variance_baseline, which is true if the variance of both</span>
+    <span class="c1">#       the real and imaginary components are divided by two.</span>
+    <span class="k">return</span> <span class="n">visibilities</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">thermal_variance_baseline</span><span class="p">(</span><span class="n">dnu</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span>
+        <span class="n">rl_im</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">:]</span> <span class="o">+</span> <span class="n">rl_im</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="p">:]</span> <span class="o">*</span> <span class="mi">1</span><span class="n">j</span>
+    <span class="p">)</span></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        
+        &copy; Copyright 2020, Kariuki Chege
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

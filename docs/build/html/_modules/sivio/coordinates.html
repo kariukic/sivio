@@ -1,0 +1,252 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>sivio.coordinates &mdash; sivio 0.1.0 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+
+  
+  
+  
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../index.html" class="icon icon-home" alt="Documentation Home"> sivio
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../intro.html">Introduction</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorial.html">Tutorial</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../modules.html">Modules Documentation</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">sivio</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+      <li>sivio.coordinates</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for sivio.coordinates</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">print_function</span><span class="p">,</span> <span class="n">division</span>
+
+<span class="kn">from</span> <span class="nn">astropy.coordinates</span> <span class="kn">import</span> <span class="n">AltAz</span><span class="p">,</span> <span class="n">SkyCoord</span><span class="p">,</span> <span class="n">EarthLocation</span>
+<span class="kn">from</span> <span class="nn">astropy.io.fits</span> <span class="kn">import</span> <span class="n">getheader</span>
+<span class="kn">from</span> <span class="nn">astropy.time</span> <span class="kn">import</span> <span class="n">Time</span>
+<span class="kn">import</span> <span class="nn">astropy.units</span> <span class="k">as</span> <span class="nn">u</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+
+<span class="n">MWAPOS</span> <span class="o">=</span> <span class="n">EarthLocation</span><span class="o">.</span><span class="n">from_geodetic</span><span class="p">(</span>
+    <span class="n">lon</span><span class="o">=</span><span class="s2">&quot;116:40:14.93&quot;</span><span class="p">,</span> <span class="n">lat</span><span class="o">=</span><span class="s2">&quot;-26:42:11.95&quot;</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mf">377.8</span>
+<span class="p">)</span>
+
+
+<div class="viewcode-block" id="get_time"><a class="viewcode-back" href="../../sivio.html#sivio.coordinates.get_time">[docs]</a><span class="k">def</span> <span class="nf">get_time</span><span class="p">(</span><span class="n">metafits</span><span class="p">,</span> <span class="n">pos</span><span class="p">):</span>
+    <span class="n">metafits</span> <span class="o">=</span> <span class="n">getheader</span><span class="p">(</span><span class="n">metafits</span><span class="p">)</span>
+    <span class="n">time</span> <span class="o">=</span> <span class="n">Time</span><span class="p">(</span><span class="n">metafits</span><span class="p">[</span><span class="s2">&quot;DATE-OBS&quot;</span><span class="p">],</span> <span class="n">location</span><span class="o">=</span><span class="n">pos</span><span class="p">)</span>
+    <span class="n">lst</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">sidereal_time</span><span class="p">(</span><span class="s2">&quot;mean&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">time</span><span class="p">,</span> <span class="n">lst</span></div>
+
+
+<div class="viewcode-block" id="radec_to_altaz"><a class="viewcode-back" href="../../sivio.html#sivio.coordinates.radec_to_altaz">[docs]</a><span class="k">def</span> <span class="nf">radec_to_altaz</span><span class="p">(</span><span class="n">ra</span><span class="p">,</span> <span class="n">dec</span><span class="p">,</span> <span class="n">time</span><span class="p">,</span> <span class="n">pos</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Convert RA and Dec to altitude and azimuth (Equatorial to Horizontal coordinates).</span>
+<span class="sd">    ra and dec should be in radians.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># print(&quot;RA: &quot;, ra, &quot;Dec: &quot;, dec)</span>
+    <span class="c1"># ra, dec = np.deg2rad(ra), np.deg2rad(dec)</span>
+    <span class="n">coord</span> <span class="o">=</span> <span class="n">SkyCoord</span><span class="p">(</span><span class="n">ra</span><span class="p">,</span> <span class="n">dec</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">radian</span><span class="p">,</span> <span class="n">u</span><span class="o">.</span><span class="n">radian</span><span class="p">))</span>
+    <span class="n">coord</span><span class="o">.</span><span class="n">time</span> <span class="o">=</span> <span class="n">time</span> <span class="o">+</span> <span class="n">pos</span><span class="o">.</span><span class="n">lon</span><span class="o">.</span><span class="n">hourangle</span>
+    <span class="n">coord</span> <span class="o">=</span> <span class="n">coord</span><span class="o">.</span><span class="n">transform_to</span><span class="p">(</span><span class="n">AltAz</span><span class="p">(</span><span class="n">obstime</span><span class="o">=</span><span class="n">time</span><span class="p">,</span> <span class="n">location</span><span class="o">=</span><span class="n">pos</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">coord</span><span class="o">.</span><span class="n">alt</span><span class="o">.</span><span class="n">rad</span><span class="p">,</span> <span class="n">coord</span><span class="o">.</span><span class="n">az</span><span class="o">.</span><span class="n">rad</span></div>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="n">metafits</span> <span class="o">=</span> <span class="s2">&quot;/home/kariuki/mset_data/1098108248.metafits&quot;</span>
+    <span class="c1"># metafits = &quot;/home/kariuki/scint_sims/1065880128.metafits&quot;</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="n">get_time</span><span class="p">(</span><span class="n">metafits</span><span class="p">,</span> <span class="n">MWAPOS</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+    <span class="n">time</span><span class="p">,</span> <span class="n">lst</span> <span class="o">=</span> <span class="n">x</span>
+    <span class="n">alt</span><span class="p">,</span> <span class="n">az</span> <span class="o">=</span> <span class="n">radec_to_altaz</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">radians</span><span class="p">(</span><span class="mi">60</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">radians</span><span class="p">(</span><span class="o">-</span><span class="mi">30</span><span class="p">),</span> <span class="n">time</span><span class="p">,</span> <span class="n">MWAPOS</span><span class="p">)</span>
+    <span class="n">zen_angle</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mf">2.0</span> <span class="o">-</span> <span class="n">alt</span>
+
+    <span class="n">c</span> <span class="o">=</span> <span class="n">SkyCoord</span><span class="p">(</span><span class="n">ra</span><span class="o">=</span><span class="mi">60</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">degree</span><span class="p">,</span> <span class="n">dec</span><span class="o">=-</span><span class="mi">30</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">degree</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">to_string</span><span class="p">(</span><span class="s2">&quot;hmsdms&quot;</span><span class="p">))</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Time: &quot;</span><span class="p">,</span> <span class="n">time</span><span class="p">,</span> <span class="s2">&quot;LST: &quot;</span><span class="p">,</span> <span class="n">lst</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Alt: &quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">rad2deg</span><span class="p">(</span><span class="n">alt</span><span class="p">),</span> <span class="s2">&quot;Az: &quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">rad2deg</span><span class="p">(</span><span class="n">az</span><span class="p">))</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;zenith angle: &quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">rad2deg</span><span class="p">(</span><span class="n">zen_angle</span><span class="p">))</span>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        
+        &copy; Copyright 2020, Kariuki Chege
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>
