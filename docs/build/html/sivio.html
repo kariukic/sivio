@@ -98,7 +98,7 @@
 <li class="toctree-l3"><a class="reference internal" href="#module-sivio.phase_screen">sivio.phase_screen module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#module-sivio.plotting">sivio.plotting module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#module-sivio.scint_equations">sivio.scint_equations module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#sivio-sivio-module">sivio.sivio module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-sivio.sivio">sivio.sivio module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#module-sivio.sky_models">sivio.sky_models module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#module-sivio.vis_sim">sivio.vis_sim module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#module-sivio">Module contents</a></li>
@@ -180,12 +180,49 @@
 <dl class="py function">
 <dt id="sivio.beam.hyperbeam">
 <code class="sig-prename descclassname">sivio.beam.</code><code class="sig-name descname">hyperbeam</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">za</span></em>, <em class="sig-param"><span class="n">az</span></em>, <em class="sig-param"><span class="n">frequencies</span></em>, <em class="sig-param"><span class="n">fluxes</span></em>, <em class="sig-param"><span class="n">metafits</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/sivio/beam.html#hyperbeam"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#sivio.beam.hyperbeam" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Calculate MWA beam response using Hyperbeam package</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>za</strong> (<em>array-like</em>) – Zenith angles in radians</p></li>
+<li><p><strong>az</strong> (<em>array-like</em>) – Azimuth angles in radians</p></li>
+<li><p><strong>frequencies</strong> (<em>array-like</em>) – frequency channels</p></li>
+<li><p><strong>fluxes</strong> (<em>array-like</em>) – Source flux densities in Jys</p></li>
+<li><p><strong>metafits</strong> (<em>string</em><em>, </em><em>optional</em>) – Path to observation ID metafits file, by default None</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Fluxes attenuated by MWA beam response</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>numpy array</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py function">
 <dt id="sivio.beam.mwapbeam">
 <code class="sig-prename descclassname">sivio.beam.</code><code class="sig-name descname">mwapbeam</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">za</span></em>, <em class="sig-param"><span class="n">az</span></em>, <em class="sig-param"><span class="n">frequencies</span></em>, <em class="sig-param"><span class="n">fluxes</span></em>, <em class="sig-param"><span class="n">metafits</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">jones</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/sivio/beam.html#mwapbeam"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#sivio.beam.mwapbeam" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Calculate MWA beam response using MWAPB package</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>za</strong> (<em>array-like</em>) – Zenith angles in radians</p></li>
+<li><p><strong>az</strong> (<em>array-like</em>) – Azimuth angles in radians</p></li>
+<li><p><strong>frequencies</strong> (<em>array-like</em>) – frequency channels</p></li>
+<li><p><strong>fluxes</strong> (<em>array-like</em>) – Source flux densities in Jys</p></li>
+<li><p><strong>metafits</strong> (<em>string</em><em>, </em><em>optional</em>) – Path to observation ID metafits file, by default None</p></li>
+<li><p><strong>jones</strong> (<em>bool</em><em>, </em><em>optional</em>) – True calculates beam jones else XX and YY attenuaton values directly, by default False</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>[description]</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>[type]</p>
+</dd>
+</dl>
+</dd></dl>
 
 </div>
 <div class="section" id="module-sivio.coordinates">
@@ -488,7 +525,7 @@ plt.imshow(example)</p>
 
 <dl class="py function">
 <dt id="sivio.plotting.cthulhu_plots">
-<code class="sig-prename descclassname">sivio.plotting.</code><code class="sig-name descname">cthulhu_plots</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">o</span></em>, <em class="sig-param"><span class="n">tecscreen</span></em>, <em class="sig-param"><span class="n">ppoints</span></em>, <em class="sig-param"><span class="n">scale</span></em>, <em class="sig-param"><span class="n">plotname</span><span class="o">=</span><span class="default_value">'tec_reconstruction.png'</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/sivio/plotting.html#cthulhu_plots"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#sivio.plotting.cthulhu_plots" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">sivio.plotting.</code><code class="sig-name descname">cthulhu_plots</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">o</span></em>, <em class="sig-param"><span class="n">tecscreen</span></em>, <em class="sig-param"><span class="n">ppoints</span></em>, <em class="sig-param"><span class="n">scale</span><span class="o">=</span><span class="default_value">60</span></em>, <em class="sig-param"><span class="n">plotname</span><span class="o">=</span><span class="default_value">'tec_reconstruction.png'</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/sivio/plotting.html#cthulhu_plots"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#sivio.plotting.cthulhu_plots" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py function">
@@ -570,8 +607,13 @@ b is the baseline length</p>
 <dd></dd></dl>
 
 </div>
-<div class="section" id="sivio-sivio-module">
-<h2>sivio.sivio module<a class="headerlink" href="#sivio-sivio-module" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="module-sivio.sivio">
+<span id="sivio-sivio-module"></span><h2>sivio.sivio module<a class="headerlink" href="#module-sivio.sivio" title="Permalink to this headline">¶</a></h2>
+<dl class="py function">
+<dt id="sivio.sivio.main">
+<code class="sig-prename descclassname">sivio.sivio.</code><code class="sig-name descname">main</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/sivio/sivio.html#main"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#sivio.sivio.main" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
 </div>
 <div class="section" id="module-sivio.sky_models">
 <span id="sivio-sky-models-module"></span><h2>sivio.sky_models module<a class="headerlink" href="#module-sivio.sky_models" title="Permalink to this headline">¶</a></h2>

@@ -2,8 +2,8 @@ import numpy as np
 from numba import njit, prange  # , complex64, float64
 from scipy import constants
 
-import mset_utils as mtls
-from coordinates import radec_to_altaz, MWAPOS
+import sivio.mset_utils as mtls
+from sivio.coordinates import radec_to_altaz, MWAPOS
 
 
 def sim_prep(tbl, ras, decs):

@@ -12,15 +12,15 @@ from casacore.tables import table
 
 from numba import set_num_threads
 
-import mset_utils as mtls
-import plotting
-import sky_models
-import vis_sim as numba_dance
-from beam import hyperbeam
-from coordinates import MWAPOS, get_time, radec_to_altaz
-from cthulhu_analysis import cthulhu_analyse
-from match_catalogs import main_match
-from phase_screen import make_phase_screen
+import sivio.mset_utils as mtls
+import sivio.plotting
+import sivio.sky_models
+import sivio.vis_sim as numba_dance
+from sivio.beam import hyperbeam
+from sivio.coordinates import MWAPOS, get_time, radec_to_altaz
+from sivio.cthulhu_analysis import cthulhu_analyse
+from sivio.match_catalogs import main_match
+from sivio.phase_screen import make_phase_screen
 
 __author__ = "Kariuki Chege"
 __version__ = "0.1.0"

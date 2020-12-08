@@ -1,7 +1,7 @@
 import numpy as np
 from astropy.io import fits
 from mwa_pb import primary_beam
-from coordinates import MWAPOS, get_time, radec_to_altaz
+from sivio.coordinates import MWAPOS, get_time, radec_to_altaz
 
 import time
 
@@ -75,7 +75,7 @@ def mwapbeam(za, az, frequencies, fluxes, metafits=None, jones=False):
     metafits : string, optional
         Path to observation ID metafits file, by default None
     jones : bool, optional
-        True returns beam jones else return XX and YY attenuaton values, by default False
+        True calculates beam jones else XX and YY attenuaton values directly, by default False
 
     Returns
     -------
@@ -127,8 +127,6 @@ def hyperbeam(za, az, frequencies, fluxes, metafits=None):
 
     Parameters
     ----------
-    Parameters
-    ----------
     za : array-like
         Zenith angles in radians
     az : array-like
@@ -141,8 +139,8 @@ def hyperbeam(za, az, frequencies, fluxes, metafits=None):
         Path to observation ID metafits file, by default None
     Returns
     -------
-    [type]
-        [description]
+    numpy array
+        Fluxes attenuated by MWA beam response
     """
     hbeam = mwa_hyperbeam.FEEBeam(
         "/home/kariuki/mwa_pb/mwa_full_embedded_element_pattern.h5"

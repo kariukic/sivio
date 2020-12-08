@@ -1,6 +1,6 @@
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-from mset_utils import get_uvw
+from sivio.mset_utils import get_uvw
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from cthulhu.plot_tools import setup_subplot, plot_vector_arrows
 import numpy as np

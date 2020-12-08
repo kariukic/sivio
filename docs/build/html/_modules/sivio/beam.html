@@ -214,6 +214,28 @@
 
 
 <div class="viewcode-block" id="mwapbeam"><a class="viewcode-back" href="../../sivio.html#sivio.beam.mwapbeam">[docs]</a><span class="k">def</span> <span class="nf">mwapbeam</span><span class="p">(</span><span class="n">za</span><span class="p">,</span> <span class="n">az</span><span class="p">,</span> <span class="n">frequencies</span><span class="p">,</span> <span class="n">fluxes</span><span class="p">,</span> <span class="n">metafits</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">jones</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Calculate MWA beam response using MWAPB package</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    za : array-like</span>
+<span class="sd">        Zenith angles in radians</span>
+<span class="sd">    az : array-like</span>
+<span class="sd">        Azimuth angles in radians</span>
+<span class="sd">    frequencies : array-like</span>
+<span class="sd">        frequency channels</span>
+<span class="sd">    fluxes : array-like</span>
+<span class="sd">        Source flux densities in Jys</span>
+<span class="sd">    metafits : string, optional</span>
+<span class="sd">        Path to observation ID metafits file, by default None</span>
+<span class="sd">    jones : bool, optional</span>
+<span class="sd">        True calculates beam jones else XX and YY attenuaton values directly, by default False</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    [type]</span>
+<span class="sd">        [description]</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">with</span> <span class="n">fits</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">metafits</span><span class="p">)</span> <span class="k">as</span> <span class="n">hdu</span><span class="p">:</span>
         <span class="n">delays</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">hdu</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s2">&quot;DELAYS&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;,&quot;</span><span class="p">)))</span>
         <span class="n">delays</span> <span class="o">=</span> <span class="p">[</span><span class="n">delays</span><span class="p">,</span> <span class="n">delays</span><span class="p">]</span>
@@ -255,6 +277,25 @@
 
 
 <div class="viewcode-block" id="hyperbeam"><a class="viewcode-back" href="../../sivio.html#sivio.beam.hyperbeam">[docs]</a><span class="k">def</span> <span class="nf">hyperbeam</span><span class="p">(</span><span class="n">za</span><span class="p">,</span> <span class="n">az</span><span class="p">,</span> <span class="n">frequencies</span><span class="p">,</span> <span class="n">fluxes</span><span class="p">,</span> <span class="n">metafits</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Calculate MWA beam response using Hyperbeam package</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    za : array-like</span>
+<span class="sd">        Zenith angles in radians</span>
+<span class="sd">    az : array-like</span>
+<span class="sd">        Azimuth angles in radians</span>
+<span class="sd">    frequencies : array-like</span>
+<span class="sd">        frequency channels</span>
+<span class="sd">    fluxes : array-like</span>
+<span class="sd">        Source flux densities in Jys</span>
+<span class="sd">    metafits : string, optional</span>
+<span class="sd">        Path to observation ID metafits file, by default None</span>
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    numpy array</span>
+<span class="sd">        Fluxes attenuated by MWA beam response</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">hbeam</span> <span class="o">=</span> <span class="n">mwa_hyperbeam</span><span class="o">.</span><span class="n">FEEBeam</span><span class="p">(</span>
         <span class="s2">&quot;/home/kariuki/mwa_pb/mwa_full_embedded_element_pattern.h5&quot;</span>
     <span class="p">)</span>
