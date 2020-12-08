@@ -8,7 +8,6 @@ Sivio Documentation
 
 Ionospherically contaminated visibilities simulator; This tool simulates different ionospheric conditions and produces the corrupted sky visibilities.
 
-
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
@@ -38,7 +37,7 @@ or alternatively
 
 Usage
 ------------------------------------------
-Check out the tutorial page for an example of how to run the scripts
+Check out the tutorial page for an example.
 
 .. toctree::
    :maxdepth: 2
@@ -52,6 +51,15 @@ Modules
    :maxdepth: 2
 
    modules
+
+Acknowledgements
+-------------------
+For full funtionality ``Sivio`` makes use of several other astronomy software tools such as Cthulhu_, WSClean_ and Aegean_. 
+
+.. _Cthulhu: https://gitlab.com/chjordan/cthulhu
+.. _WSClean: https://sourceforge.net/p/wsclean/wiki/Installation/
+.. _Aegean: https://ui.adsabs.harvard.edu/abs/2012MNRAS.422.1812H/abstract
+
 
 Indices and tables
 ==================

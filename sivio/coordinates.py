@@ -13,6 +13,20 @@ MWAPOS = EarthLocation.from_geodetic(
 
 
 def get_time(metafits, pos):
+    """Grab time and lst from a metafits file of an observation
+
+    Parameters
+    ----------
+    metafits : [type]
+        [description]
+    pos : Astropy location object
+        Geographic location of the array
+
+    Returns
+    -------
+    tuple(time object, LST)
+        time object and LST of the observation
+    """
     metafits = getheader(metafits)
     time = Time(metafits["DATE-OBS"], location=pos)
     lst = time.sidereal_time("mean")
@@ -20,9 +34,24 @@ def get_time(metafits, pos):
 
 
 def radec_to_altaz(ra, dec, time, pos):
-    """
-    Convert RA and Dec to altitude and azimuth (Equatorial to Horizontal coordinates).
+    """Convert RA and Dec to altitude and azimuth (Equatorial to Horizontal coordinates).
     ra and dec should be in radians.
+
+    Parameters
+    ----------
+    ra : float
+        Right ascension
+    dec : float
+        Declination
+    time : object
+        Astropy time
+    pos : Astropy location object
+        Geographic location of the array
+
+    Returns
+    -------
+   tuple (altitude, azimuth)
+        altitude and azimuth
     """
     # print("RA: ", ra, "Dec: ", dec)
     # ra, dec = np.deg2rad(ra), np.deg2rad(dec)

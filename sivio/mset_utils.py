@@ -6,11 +6,37 @@ c = 299792458
 
 
 def get_data(tbl, col="DATA"):
+    """Grab data from a CASA measurement set (MS)
+
+    Parameters
+    ----------
+    tbl : object
+        Casacore table object
+    col : str, optional
+        The required MS column, by default "DATA"
+
+    Returns
+    -------
+    array
+        required data
+    """
     data = tbl.getcol(col)
     return data
 
 
 def get_uvw(tbl):
+    """Grab the UVW data from a CASA measurement set (MS)
+
+    Parameters
+    ----------
+    tbl : object
+        Casacore table object
+
+    Returns
+    -------
+    array
+        required data
+    """
     uvw = tbl.getcol("UVW")
     return uvw
 
@@ -22,7 +48,7 @@ def get_phase_center(tbl):
     Parameters
     ----------
     tbl : casacore table.
-        The casacore mset table opened with readonly=False.\n
+        The casacore mset table opened with readonly=False.
     Returns
     -------
     float, float.
@@ -33,6 +59,20 @@ def get_phase_center(tbl):
 
 
 def get_channels(tbl, ls=True):
+    """Get frequency or wavelength of an observation
+
+    Parameters
+    ----------
+    tbl : casacore table.
+        The casacore MS table.
+    ls : bool, optional
+        Convert to wavelength, by default True
+
+    Returns
+    -------
+    [type]
+        [description]
+    """
     if ls:
         chans = c / tbl.SPECTRAL_WINDOW.getcell("CHAN_FREQ", 0)
     else:
@@ -41,6 +81,18 @@ def get_channels(tbl, ls=True):
 
 
 def get_ant12(mset):
+    """[summary]
+
+    Parameters
+    ----------
+    mset : string
+        Path to measurement set
+
+    Returns
+    -------
+    tuple(array, array)
+        array antenna ID correlations
+    """
     ms = table(mset, readonly=False, ack=False)
     antenna1 = ms.getcol("ANTENNA1")
     antenna2 = ms.getcol("ANTENNA2")
@@ -72,6 +124,22 @@ def get_lmns(tbl, ra_rad, dec_rad, phase_center_shift=0):
     𝑙 = cos 𝛿 * sin Δ𝛼
     𝑚 = sin 𝛿 * cos 𝛿0 − cos 𝛿 * sin 𝛿0 * cos Δ𝛼
     Δ𝛼 = 𝛼 − 𝛼0
+
+    Parameters
+    ----------
+    tbl : casacore table.
+        The casacore MS table.
+    ra_rad : array
+        Right ascensions in radians
+    dec_rad : [type]
+        Declinations in radians
+    phase_center_shift : int, optional
+        Dont use this!, by default 0
+
+    Returns
+    -------
+    tuple(array, array, array)
+        ls, ms, ns
     """
     ra0, dec0 = get_phase_center(tbl)
 
@@ -95,7 +163,18 @@ def get_lmns(tbl, ra_rad, dec_rad, phase_center_shift=0):
 
 
 def get_bl_lens(mset):
-    """Calculate the baseline length for each DATA row in the measurement set"""
+    """Calculate the baseline length for each DATA row in the measurement set
+
+    Parameters
+    ----------
+    mset : string
+        Path to measurement set
+
+    Returns
+    -------
+    array
+        baseline vectors
+    """
     t = table(mset + "/ANTENNA", ack=False)
     pos = t.getcol("POSITION")
     t.close()
@@ -127,7 +206,8 @@ def get_bl_vectors(mset, refant=0):
 
     Returns
     -------
-    XYZ coordinates of each antenna with respect to the reference antenna.
+    array
+        XYZ coordinates of each antenna with respect to the reference antenna.
     """
     # First get the positions of each antenna recorded in XYZ coordinates from the MS
     t = table(mset + "/ANTENNA", ack=False)

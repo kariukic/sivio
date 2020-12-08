@@ -6,6 +6,20 @@ import sys
 
 
 def extract_sources(true_image, offset_image):
+    """Run source-finder on both a true and offset sky images
+
+    Parameters
+    ----------
+    true_image : string
+        Path to the true sky fits format image
+    offset_image : string
+        path to the offset sky fits format image
+
+    Returns
+    -------
+    tuple(string, string)
+        path to a true and an offset sky catalog in csv format
+    """
     os.system("BANE %s" % (true_image))
     os.system("BANE %s" % (offset_image))
     pref = true_image.split("_")[0] + "_" + true_image.split("_")[1]
@@ -22,6 +36,20 @@ def extract_sources(true_image, offset_image):
 
 
 def load_data(true_catalog, off_catalog):
+    """Reads the catalogues produced by the "extract_sources" function.
+
+    Parameters
+    ----------
+    true_catalog : string
+        path to a truesky catalog in csv format
+    off_catalog : [type]
+        path to an offset sky catalog in csv format
+
+    Returns
+    -------
+    tuple(array, pandas dataframe, pandas dataframe)
+        columns in the catlogues and dataframes for both catalogues
+    """
     # Read both csv files and grab the column names
     true_sky = pd.read_csv(true_catalog)
     offset_sky = pd.read_csv(off_catalog)
@@ -32,7 +60,7 @@ def load_data(true_catalog, off_catalog):
     )
     print(
         len(offset_sky.loc[offset_sky["source"] > 0]),
-        " 'commponents' in offset catalog skipped!",
+        " 'components' in offset catalog skipped!",
     )
     true_sky = true_sky.loc[true_sky["source"] == 0]
     offset_sky = offset_sky.loc[offset_sky["source"] == 0]
@@ -55,6 +83,26 @@ def load_data(true_catalog, off_catalog):
 
 
 def write_csv(true_data, offset_data, true_cat, offset_cat, cols=""):
+    """Save matched catalogues
+
+    Parameters
+    ----------
+    true_data : array
+        Sorted true sky data
+    offset_data : array
+        Sorted offset sky data
+    true_cat : string
+        true sky catalog name
+    offset_cat : string
+        offset sky catalog name
+    cols : str, optional
+        Names of the columns, by default ""
+
+    Returns
+    -------
+    tuple(string, string)
+        Paths to the sorted catalogues
+    """
     s_df_true_sky = pd.DataFrame(true_data, columns=cols)
     s_df_offset_sky = pd.DataFrame(offset_data, columns=cols)
 
@@ -87,7 +135,7 @@ def match_dem(df_true_sky, df_offset_sky, dra, ddec, dflux):
     Returns
     -------
     3 lists.
-        1: list of all matched islans.
+        1: list of all matched islands.
         2: list of the first matched catalogue.
         3: list of the second matched catalogue.
     """
@@ -168,6 +216,33 @@ def match_dem(df_true_sky, df_offset_sky, dra, ddec, dflux):
 def repeat_match(
     unmatched_islands_t, unmatched_islands_o, df_true_sky, df_offset_sky, dr, dd, df
 ):
+    """Repeats the catalogue matchin with a different set of parameters
+
+    Parameters
+    ----------
+    unmatched_islands_t : array
+        Previously unmatched islands in true sky catalog
+    unmatched_islands_o : array
+        Previously unmatched islands in offset sky catalog
+    df_true_sky : pandas dataframe
+        The reference dataframe
+    df_offset_sky : pandas dataframe
+        The second dataframe for matching \n
+    dr : float
+        The maximun RA offset allowed in degrees.\n
+    dd : float
+        The maximun Dec offset allowed in degrees.\n
+    df : float
+        The maximun flux difference allowed in degrees.
+
+    Returns
+    -------
+    4 lists
+        1: list of all unmatched islands in true catalogue.
+        2: list of all unmatched islands in offset catalogue.
+        3: true catalogue.
+        3: offset catalogue.
+    """
     print(df_true_sky.shape)
     print(df_offset_sky.shape)
     df_true_sky = df_true_sky.loc[df_true_sky["island"].isin(unmatched_islands_t)]
@@ -184,6 +259,25 @@ def repeat_match(
 def final_match(
     r_unmatched_islands_t, r_unmatched_islands_o, df_true_sky, df_offset_sky
 ):
+    """One final match sorry. Might look for a better way to do this in future.
+
+    Parameters
+    ----------
+
+    r_unmatched_islands_t : array
+        Previously unmatched islands in true sky catalog
+    r_unmatched_islands_o : array
+        Previously unmatched islands in offset sky catalog
+    df_true_sky : pandas dataframe
+        The reference dataframe
+    df_offset_sky : pandas dataframe
+        The second dataframe for matching
+
+    Returns
+    -------
+    [type]
+        [description]
+    """
     print(df_true_sky.shape)
     print(df_offset_sky.shape)
     f_data_true, f_data_offset = [], []
@@ -202,6 +296,20 @@ def final_match(
 
 
 def main_match(true_file, offset_file):
+    """Performs the full source catalog matching
+
+    Parameters
+    ----------
+    true_file : string
+        path to a true sky catalog/image in csv/fits format
+    offset_file : string
+        path to an offset sky catalog/image in csv/fits format
+
+    Returns
+    -------
+    tuple(string, string)
+        Paths to the sorted catalogues
+    """
     if true_file.split(".")[-1] == "csv":
         true_catalog, off_catalog = true_file, offset_file
     else:
@@ -277,6 +385,8 @@ def main_match(true_file, offset_file):
 
 
 if __name__ == "__main__":
+    """This module takes two images/catalogues and returns two csv file catalogues containing the matching sources from each
+    """
     parser = ArgumentParser(
         "python match_catalogs.py", description="Ionospheric effects simulations"
     )

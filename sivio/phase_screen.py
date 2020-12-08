@@ -102,6 +102,19 @@ def gaussian_random_field(alpha=11, size=128, flag_normalize=False):
 
 
 def convert_to_tecu(frequency, phscreen):
+    """Convert phase screen from degrees to TECU
+
+    Parameters
+    ----------
+    frequency : float
+        observation frequency
+    phscreen : array
+        Phase screen
+    Returns
+    -------
+    array
+        phase screen in TECU
+    """
     frequency *= 1e6
     stec = 1 / constant * phscreen * frequency ** 2
     stec /= 1e16
