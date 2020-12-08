@@ -169,8 +169,8 @@ def cthulhu_plots(o, tecscreen, ppoints, scale=60, plotname="tec_reconstruction.
     plt.subplots_adjust(hspace=0.25, left=0.05, right=0.95, top=0.95, bottom=0.07)
     ax1 = fig.add_subplot(224)
     j = ax1.imshow(
-        np.flipud(o.tec), cmap="plasma"
-    )  # , vmin=0, vmax=0.05)  # , extent=extent)  # ,vmin=0,vmax=1)
+        np.flipud(o.tec), cmap="plasma", vmin=0, vmax=0.5
+    )  # , extent=extent)  # ,vmin=0,vmax=1)
     cbar4 = colorbar(j)
     cbar4.ax.set_ylabel("TEC [TECU]", rotation=270)
     ax1.set_title("Reconstructed TEC field", fontsize=f)

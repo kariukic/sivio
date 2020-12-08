@@ -60,6 +60,28 @@ import mwa_hyperbeam
 
 
 def mwapbeam(za, az, frequencies, fluxes, metafits=None, jones=False):
+    """Calculate MWA beam response using MWAPB package
+
+    Parameters
+    ----------
+    za : array-like
+        Zenith angles in radians
+    az : array-like
+        Azimuth angles in radians
+    frequencies : array-like
+        frequency channels
+    fluxes : array-like
+        Source flux densities in Jys
+    metafits : string, optional
+        Path to observation ID metafits file, by default None
+    jones : bool, optional
+        True returns beam jones else return XX and YY attenuaton values, by default False
+
+    Returns
+    -------
+    [type]
+        [description]
+    """
     with fits.open(metafits) as hdu:
         delays = list(map(int, hdu[0].header["DELAYS"].split(",")))
         delays = [delays, delays]
@@ -101,6 +123,27 @@ def mwapbeam(za, az, frequencies, fluxes, metafits=None, jones=False):
 
 
 def hyperbeam(za, az, frequencies, fluxes, metafits=None):
+    """Calculate MWA beam response using Hyperbeam package
+
+    Parameters
+    ----------
+    Parameters
+    ----------
+    za : array-like
+        Zenith angles in radians
+    az : array-like
+        Azimuth angles in radians
+    frequencies : array-like
+        frequency channels
+    fluxes : array-like
+        Source flux densities in Jys
+    metafits : string, optional
+        Path to observation ID metafits file, by default None
+    Returns
+    -------
+    [type]
+        [description]
+    """
     hbeam = mwa_hyperbeam.FEEBeam(
         "/home/kariuki/mwa_pb/mwa_full_embedded_element_pattern.h5"
     )
