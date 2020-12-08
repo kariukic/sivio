@@ -5,7 +5,7 @@ from sivio.coordinates import MWAPOS, get_time, radec_to_altaz
 
 import time
 
-import mwa_hyperbeam
+# import mwa_hyperbeam
 
 
 # # @njit
