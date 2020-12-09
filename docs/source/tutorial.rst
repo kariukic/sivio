@@ -28,7 +28,7 @@ An example full ``sivio`` run command would look like this.
 
 A breakdown of the command is as follows:
 
-- ``--sim`` - States that we are in simulation mode. Sometimes you might have simulated data already so you might want skip this argument and just do stuff like imaging, source matching and plotting.
+- ``--sim`` - States that we are in simulation mode. Sometimes you might have simulated data already so you might want skip this argument and only do things like imaging, source matching and plotting.
 - ``-topim`` - This is a combination of five arguments. You can just skip the argument for any unrequired functionality.
 
             - ``t`` - simulate true sky visibilities,
@@ -52,24 +52,27 @@ A breakdown of the command is as follows:
 
 Outputs and what to expect
 ############################################################
-The larger your ``n`` is, the longer the simulate will take as well as the memory based on the size of your input measurement set. This however should not discourage you if you have like 64GB of RAM and some time :-). We have tried to make the simulation quick but as you might already know, visibilities simulations are computationally expensive. Or probably just start with a few hundred sources.
+The larger your ``n`` is, the longer the simulate will take as well as the memory based on the size of your input measurement set. 
+We have tried to make the simulations quick based on your computation power, but as you might already know, visibilities simulations are quite computationally expensive. 
+Or probably just start with a few hundred sources.
 
 The above run would be expected to give the following outputs.
 
-- A beautiful plot similar to the one below.
+- A plot similar to the one below.
 
 .. figure:: 5000_sources_1098108248_stec_cthulhu_plots.png
   :alt: sivio output plot
 
-    Top left: The simulated ``s`` phase screen. Top right: The phase screen overlayed with pierce points for GLEAM sources 
-    above 0.3Jy in a 25deg sky radius area centered at RA=0.0deg and Dec=-27.0deg.
-    Bottom left: Vector offsets for each source. Bottom right: Reconstructed TEC from the vector offsets.
+  Top left: The simulated ``s`` phase screen. Top right: The phase screen overlayed with pierce points for GLEAM sources 
+  above 0.3Jy in a 25deg sky radius area centered at RA=0.0deg and Dec=-27.0deg.
+  Bottom left: Vector offsets for each source. The color of an arrow represents the offset direction and its size is the magnitude of the offset. 
+  The values on this plot quantify the level of ionospheric turbulent with a quality assurance metric. Bottom right: Reconstructed TEC from the vector offsets.
 
 - A measurement set with either or both a ``DATA`` and ``OFFSET_DATA`` columns. The columns contain the true and the contaminated visibilities respectively.
 - The sky model source list used for the simulation in the ``RTS-sourcelist`` format.
 - A ``.npz`` file with the phase screen array used for the simulation.
-- A ``.npz`` file with all the piercepoints computed per array towards each direction.
-- Fits images from ``wsclean`` for both the true and offset data with their backgrounds and rms fits files computed using ``aegean`` whish is used to do the source finding in both.
+- A ``.npz`` file with all the pierce-points computed per array towards each direction.
+- Fits images from ``wsclean`` for both the true and offset data with their backgrounds and rms fits files computed using ``aegean`` which is used to do the source finding in both.
 - Both true and offset sky catalogues as produced by ``aegean``.
 - Sorted true and offset catalogues with matching sources.
 
