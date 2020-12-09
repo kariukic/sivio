@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import csv
 import logging
 import multiprocessing
@@ -13,8 +15,8 @@ from casacore.tables import table
 from numba import set_num_threads
 
 import sivio.mset_utils as mtls
-import sivio.plotting
-import sivio.sky_models
+import sivio.plotting as plotting
+import sivio.sky_models as sky_models
 import sivio.vis_sim as numba_dance
 from sivio.beam import hyperbeam
 from sivio.coordinates import MWAPOS, get_time, radec_to_altaz
