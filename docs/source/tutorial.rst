@@ -1,11 +1,13 @@
 Tutorial
 ============
 
-The key input to sivio is a CASA (``https://casa.nrao.edu/casadocs/casa-5.1.0/reference-material/measurement-set``) measurement set.
-
+The key input to sivio is a CASA_ radio visibilities measurement set (MS).
 For the MWA telescope you might need to provide a metafits file path for the observation as we will be grabbing a few parameters from 
 it such as the observation time and the beam delays. However a functionality to download the metafits file directly from the MWA database will be added in coming versions.
 If its an MS from a different telescope maybe soon we will make it easier for you to input those parameters.
+
+.. _CASA: https://casa.nrao.edu/casadocs/casa-5.1.0/reference-material/measurement-set
+
 
 Example
 ############################################################
