@@ -15,18 +15,18 @@ An example full ``sivio`` run command would look like this.
 
 .. code-block:: bash
 
-    python sivio.py \
-                --sim \
-                -toimp \
-                -r 25 \
-                -n 5000 \
-                -c 0.3 \
-                --height 200000 \
-                --tec_type s \
-                --scale 100 \
-                --spar 100 \
-                --ms_template mset.ms \
-                --metafits mset.metafits
+sivio_wrapper.py \
+            --sim \
+            -toimp \
+            -r 25 \
+            -n 5000 \
+            -c 0.3 \
+            --height 200000 \
+            --tec_type s \
+            --scale 100 \
+            --spar 100 \
+            --ms_template mset.ms \
+            --metafits mset.metafits
 
 A breakdown of the command is as follows:
 

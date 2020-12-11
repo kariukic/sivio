@@ -86,7 +86,11 @@
 <li class="toctree-l1"><a class="reference internal" href="intro.html">Introduction</a></li>
 </ul>
 <ul class="current">
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Tutorial</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Tutorial</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#example">Example</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#outputs-and-what-to-expect">Outputs and what to expect</a></li>
+</ul>
+</li>
 </ul>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="modules.html">Modules Documentation</a></li>
@@ -157,9 +161,79 @@
             
   <div class="section" id="tutorial">
 <h1>Tutorial<a class="headerlink" href="#tutorial" title="Permalink to this headline">¶</a></h1>
-<p><code class="docutils literal notranslate"><span class="pre">Sivio</span></code> is a high-level OO Python package which aims to provide an easy and intuitive way of interacting with nearby Bluetooth Low Energy (BLE) devices (GATT servers). In essence, this package is an extension of the <code class="docutils literal notranslate"><span class="pre">bluepy</span></code> package created by Ian Harvey (see <a class="reference external" href="https://github.com/IanHarvey/bluepy/">here</a>)</p>
-<p>The aim here was to define a single object which would allow users to perform the various operations performed by the <code class="docutils literal notranslate"><span class="pre">bluepy.btle.Peripheral</span></code>, <code class="docutils literal notranslate"><span class="pre">bluepy.btle.Scanner</span></code>, <code class="docutils literal notranslate"><span class="pre">bluepy.btle.Service</span></code> and <code class="docutils literal notranslate"><span class="pre">bluepy.btle.Characteristic</span></code> classes of <code class="docutils literal notranslate"><span class="pre">bluepy</span></code>, from one central place. This functionality is facilitated by the <code class="docutils literal notranslate"><span class="pre">simpleble.SimpleBleClient</span></code> and <code class="docutils literal notranslate"><span class="pre">simpleble.SimpleBleDevice</span></code> classes, where the latter is an extention/subclass of <code class="docutils literal notranslate"><span class="pre">bluepy.btle.Peripheral</span></code>, combined with properties of <code class="docutils literal notranslate"><span class="pre">bluepy.btle.ScanEntry</span></code>.</p>
-<p>The current implementation has been developed in Python 3 and tested on a Raspberry Pi Zero W, running Raspbian 9 (stretch), but should work with Python 2.7+ (maybe with minor modifications in terms of printing and error handling) and most Debian based OSs.</p>
+<p>The key input to sivio is a <a class="reference external" href="https://casa.nrao.edu/casadocs/casa-5.1.0/reference-material/measurement-set">CASA</a> radio visibilities measurement set (MS).
+For the MWA telescope you might need to provide a metafits file path for the observation as we will be grabbing a few parameters from
+it such as the observation time and the beam delays. However a functionality to download the metafits file directly from the MWA database will be added in coming versions.
+If its an MS from a different telescope maybe soon we will make it easier for you to input those parameters.</p>
+<div class="section" id="example">
+<h2>Example<a class="headerlink" href="#example" title="Permalink to this headline">¶</a></h2>
+<p>An example full <code class="docutils literal notranslate"><span class="pre">sivio</span></code> run command would look like this.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>
+</pre></div>
+</div>
+<dl class="simple">
+<dt>sivio_wrapper.py </dt><dd><p>–sim -toimp -r 25 -n 5000 -c 0.3 –height 200000 –tec_type s –scale 100 –spar 100 –ms_template mset.ms –metafits mset.metafits</p>
+</dd>
+</dl>
+<p>A breakdown of the command is as follows:</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">--sim</span></code> - States that we are in simulation mode. Sometimes you might have simulated data already so you might want skip this argument and only do things like imaging, source matching and plotting.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">-topim</span></code> - This is a combination of five arguments. You can just skip the argument for any unrequired functionality.</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">t</span></code> - simulate true sky visibilities,</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">o</span></code> - simulate offset visibilities,</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">i</span></code> - image using <code class="docutils literal notranslate"><span class="pre">wsclean</span></code>,</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">m</span></code> - match sources, and,</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">p</span></code> - make plots.</p></li>
+</ul>
+</div></blockquote>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">-r</span></code> - Tells <code class="docutils literal notranslate"><span class="pre">sivio</span></code> to get sources from the GLEAM catalogue from that sky radius in degrees.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">-n</span></code> - Total number of sources to be simulated.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">-c</span></code> - Only simulate sources brighter than this flux density cutoff value.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--height</span></code> - Place the phase screen at this height in metres above the telescope.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--tec_type</span></code> - Type of phase screen to use. Can be <code class="docutils literal notranslate"><span class="pre">s</span></code> or <code class="docutils literal notranslate"><span class="pre">k</span></code>:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">s</span></code> has ductlike structures as seen in the figure above, and,</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">k</span></code> is Kolmogorov-like turbulence.</p></li>
+</ul>
+</div></blockquote>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--scale</span></code> - The pixel scaling for the set up. 100 means each pixel side will represent 100 metres in real space.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--spar</span></code> - Hyperparameter to tune the magnitude of ionospheric turbulence.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--ms_template</span></code> -  Path to the input measurement set.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--metafits</span></code> -  Path to the observation metafits file.</p></li>
+</ul>
+</div>
+<div class="section" id="outputs-and-what-to-expect">
+<h2>Outputs and what to expect<a class="headerlink" href="#outputs-and-what-to-expect" title="Permalink to this headline">¶</a></h2>
+<p>The larger your <code class="docutils literal notranslate"><span class="pre">n</span></code> is, the longer the simulate will take as well as the memory based on the size of your input measurement set.
+We have tried to make the simulations quick based on your computation power, but as you might already know, visibilities simulations are quite computationally expensive.
+Or probably just start with a few hundred sources.</p>
+<p>The above run would be expected to give the following outputs.</p>
+<ul class="simple">
+<li><p>A plot similar to the one below.</p></li>
+</ul>
+<div class="figure align-default" id="id1">
+<img alt="sivio output plot" src="_images/5000_sources_1098108248_stec_cthulhu_plots.png" />
+<p class="caption"><span class="caption-text">Top left: The simulated <code class="docutils literal notranslate"><span class="pre">s</span></code> phase screen. Top right: The phase screen overlayed with pierce points for GLEAM sources
+above 0.3Jy in a 25deg sky radius area centered at RA=0.0deg and Dec=-27.0deg.
+Bottom left: Vector offsets for each source. The color of an arrow represents the offset direction and its size is the magnitude of the offset.
+The values on this plot quantify the level of ionospheric turbulent with a quality assurance metric. Bottom right: Reconstructed TEC from the vector offsets.</span><a class="headerlink" href="#id1" title="Permalink to this image">¶</a></p>
+</div>
+<ul class="simple">
+<li><p>A measurement set with either or both a <code class="docutils literal notranslate"><span class="pre">DATA</span></code> and <code class="docutils literal notranslate"><span class="pre">OFFSET_DATA</span></code> columns. The columns contain the true and the contaminated visibilities respectively.</p></li>
+<li><p>The sky model source list used for the simulation in the <code class="docutils literal notranslate"><span class="pre">RTS-sourcelist</span></code> format.</p></li>
+<li><p>A <code class="docutils literal notranslate"><span class="pre">.npz</span></code> file with the phase screen array used for the simulation.</p></li>
+<li><p>A <code class="docutils literal notranslate"><span class="pre">.npz</span></code> file with all the pierce-points computed per array towards each direction.</p></li>
+<li><p>Fits images from <code class="docutils literal notranslate"><span class="pre">wsclean</span></code> for both the true and offset data with their backgrounds and rms fits files computed using <code class="docutils literal notranslate"><span class="pre">aegean</span></code> which is used to do the source finding in both.</p></li>
+<li><p>Both true and offset sky catalogues as produced by <code class="docutils literal notranslate"><span class="pre">aegean</span></code>.</p></li>
+<li><p>Sorted true and offset catalogues with matching sources.</p></li>
+</ul>
+<p>And there you are! Have fun with the simulated data.</p>
+</div>
 </div>
 
 

@@ -31,7 +31,7 @@ __date__ = "2020-10-30"
 
 def main():
     parser = ArgumentParser(
-        "python run_vis_sim.py", description="Ionospheric effects simulations"
+        "sivio_wrapper.py", description="Ionospheric effects simulations"
     )
     parser.add_argument("--ms_template", required=True, help="Template measurement set")
     parser.add_argument("--metafits", required=True, help="Path to the metafits file")

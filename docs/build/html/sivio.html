@@ -98,7 +98,7 @@
 <li class="toctree-l3"><a class="reference internal" href="#module-sivio.phase_screen">sivio.phase_screen module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#module-sivio.plotting">sivio.plotting module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#module-sivio.scint_equations">sivio.scint_equations module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#module-sivio.sivio">sivio.sivio module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sivio-sivio-module">sivio.sivio module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#module-sivio.sky_models">sivio.sky_models module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#module-sivio.vis_sim">sivio.vis_sim module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#module-sivio">Module contents</a></li>
@@ -230,13 +230,42 @@
 <dl class="py function">
 <dt id="sivio.coordinates.get_time">
 <code class="sig-prename descclassname">sivio.coordinates.</code><code class="sig-name descname">get_time</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">metafits</span></em>, <em class="sig-param"><span class="n">pos</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/sivio/coordinates.html#get_time"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#sivio.coordinates.get_time" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Grab time and lst from a metafits file of an observation</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>metafits</strong> (<em>[</em><em>type</em><em>]</em>) – [description]</p></li>
+<li><p><strong>pos</strong> (<em>Astropy location object</em>) – Geographic location of the array</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>time object and LST of the observation</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>tuple(time object, LST)</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py function">
 <dt id="sivio.coordinates.radec_to_altaz">
 <code class="sig-prename descclassname">sivio.coordinates.</code><code class="sig-name descname">radec_to_altaz</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">ra</span></em>, <em class="sig-param"><span class="n">dec</span></em>, <em class="sig-param"><span class="n">time</span></em>, <em class="sig-param"><span class="n">pos</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/sivio/coordinates.html#radec_to_altaz"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#sivio.coordinates.radec_to_altaz" title="Permalink to this definition">¶</a></dt>
-<dd><p>Convert RA and Dec to altitude and azimuth (Equatorial to Horizontal coordinates).
-ra and dec should be in radians.</p>
+<dd><dl>
+<dt>Convert RA and Dec to altitude and azimuth (Equatorial to Horizontal coordinates).</dt><dd><p>ra and dec should be in radians.</p>
+<dl class="simple">
+<dt>ra<span class="classifier">float</span></dt><dd><p>Right ascension</p>
+</dd>
+<dt>dec<span class="classifier">float</span></dt><dd><p>Declination</p>
+</dd>
+<dt>time<span class="classifier">object</span></dt><dd><p>Astropy time</p>
+</dd>
+<dt>pos<span class="classifier">Astropy location object</span></dt><dd><p>Geographic location of the array</p>
+</dd>
+</dl>
+</dd>
+<dt>tuple (altitude, azimuth)</dt><dd><p>altitude and azimuth</p>
+</dd>
+</dl>
 </dd></dl>
 
 </div>
@@ -245,7 +274,22 @@ ra and dec should be in radians.</p>
 <dl class="py function">
 <dt id="sivio.cthulhu_analysis.cthulhu_analyse">
 <code class="sig-prename descclassname">sivio.cthulhu_analysis.</code><code class="sig-name descname">cthulhu_analyse</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">sorted_true_cat</span></em>, <em class="sig-param"><span class="n">sorted_offset_cat</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/sivio/cthulhu_analysis.html#cthulhu_analyse"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#sivio.cthulhu_analysis.cthulhu_analyse" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Runs the cthulhu package (<cite>https://pypi.org/project/cthulhu/</cite>) on matched catalogues</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>sorted_true_cat</strong> (<em>string</em>) – path to true sky catalog produced by match catalogs module</p></li>
+<li><p><strong>sorted_offset_cat</strong> (<em>string</em>) – path to true sky catalog produced by match catalogs module</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The object carries statistics of the position offsets</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>cthulhu obect</p>
+</dd>
+</dl>
+</dd></dl>
 
 </div>
 <div class="section" id="module-sivio.match_catalogs">
@@ -253,22 +297,84 @@ ra and dec should be in radians.</p>
 <dl class="py function">
 <dt id="sivio.match_catalogs.extract_sources">
 <code class="sig-prename descclassname">sivio.match_catalogs.</code><code class="sig-name descname">extract_sources</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">true_image</span></em>, <em class="sig-param"><span class="n">offset_image</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/sivio/match_catalogs.html#extract_sources"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#sivio.match_catalogs.extract_sources" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Run source-finder on both a true and offset sky images</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>true_image</strong> (<em>string</em>) – Path to the true sky fits format image</p></li>
+<li><p><strong>offset_image</strong> (<em>string</em>) – path to the offset sky fits format image</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>path to a true and an offset sky catalog in csv format</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>tuple(string, string)</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py function">
 <dt id="sivio.match_catalogs.final_match">
 <code class="sig-prename descclassname">sivio.match_catalogs.</code><code class="sig-name descname">final_match</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">r_unmatched_islands_t</span></em>, <em class="sig-param"><span class="n">r_unmatched_islands_o</span></em>, <em class="sig-param"><span class="n">df_true_sky</span></em>, <em class="sig-param"><span class="n">df_offset_sky</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/sivio/match_catalogs.html#final_match"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#sivio.match_catalogs.final_match" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>One final match sorry. Might look for a better way to do this in future.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>r_unmatched_islands_t</strong> (<em>array</em>) – Previously unmatched islands in true sky catalog</p></li>
+<li><p><strong>r_unmatched_islands_o</strong> (<em>array</em>) – Previously unmatched islands in offset sky catalog</p></li>
+<li><p><strong>df_true_sky</strong> (<em>pandas dataframe</em>) – The reference dataframe</p></li>
+<li><p><strong>df_offset_sky</strong> (<em>pandas dataframe</em>) – The second dataframe for matching</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>[description]</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>[type]</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py function">
 <dt id="sivio.match_catalogs.load_data">
 <code class="sig-prename descclassname">sivio.match_catalogs.</code><code class="sig-name descname">load_data</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">true_catalog</span></em>, <em class="sig-param"><span class="n">off_catalog</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/sivio/match_catalogs.html#load_data"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#sivio.match_catalogs.load_data" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Reads the catalogues produced by the “extract_sources” function.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>true_catalog</strong> (<em>string</em>) – path to a truesky catalog in csv format</p></li>
+<li><p><strong>off_catalog</strong> (<em>[</em><em>type</em><em>]</em>) – path to an offset sky catalog in csv format</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>columns in the catlogues and dataframes for both catalogues</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>tuple(array, pandas dataframe, pandas dataframe)</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py function">
 <dt id="sivio.match_catalogs.main_match">
 <code class="sig-prename descclassname">sivio.match_catalogs.</code><code class="sig-name descname">main_match</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">true_file</span></em>, <em class="sig-param"><span class="n">offset_file</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/sivio/match_catalogs.html#main_match"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#sivio.match_catalogs.main_match" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Performs the full source catalog matching</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>true_file</strong> (<em>string</em>) – path to a true sky catalog/image in csv/fits format</p></li>
+<li><p><strong>offset_file</strong> (<em>string</em>) – path to an offset sky catalog/image in csv/fits format</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Paths to the sorted catalogues</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>tuple(string, string)</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py function">
 <dt id="sivio.match_catalogs.match_dem">
@@ -285,7 +391,7 @@ ra and dec should be in radians.</p>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p>1: list of all matched islans.
+<dd class="field-even"><p>1: list of all matched islands.
 2: list of the first matched catalogue.
 3: list of the second matched catalogue.</p>
 </dd>
@@ -298,12 +404,53 @@ ra and dec should be in radians.</p>
 <dl class="py function">
 <dt id="sivio.match_catalogs.repeat_match">
 <code class="sig-prename descclassname">sivio.match_catalogs.</code><code class="sig-name descname">repeat_match</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">unmatched_islands_t</span></em>, <em class="sig-param"><span class="n">unmatched_islands_o</span></em>, <em class="sig-param"><span class="n">df_true_sky</span></em>, <em class="sig-param"><span class="n">df_offset_sky</span></em>, <em class="sig-param"><span class="n">dr</span></em>, <em class="sig-param"><span class="n">dd</span></em>, <em class="sig-param"><span class="n">df</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/sivio/match_catalogs.html#repeat_match"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#sivio.match_catalogs.repeat_match" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Repeats the catalogue matchin with a different set of parameters</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>unmatched_islands_t</strong> (<em>array</em>) – Previously unmatched islands in true sky catalog</p></li>
+<li><p><strong>unmatched_islands_o</strong> (<em>array</em>) – Previously unmatched islands in offset sky catalog</p></li>
+<li><p><strong>df_true_sky</strong> (<em>pandas dataframe</em>) – The reference dataframe</p></li>
+<li><p><strong>df_offset_sky</strong> (<em>pandas dataframe</em>) – The second dataframe for matching</p></li>
+<li><p><strong>dr</strong> (<em>float</em>) – The maximun RA offset allowed in degrees.</p></li>
+<li><p><strong>dd</strong> (<em>float</em>) – The maximun Dec offset allowed in degrees.</p></li>
+<li><p><strong>df</strong> (<em>float</em>) – The maximun flux difference allowed in degrees.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>1: list of all unmatched islands in true catalogue.
+2: list of all unmatched islands in offset catalogue.
+3: true catalogue.
+3: offset catalogue.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>4 lists</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py function">
 <dt id="sivio.match_catalogs.write_csv">
 <code class="sig-prename descclassname">sivio.match_catalogs.</code><code class="sig-name descname">write_csv</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">true_data</span></em>, <em class="sig-param"><span class="n">offset_data</span></em>, <em class="sig-param"><span class="n">true_cat</span></em>, <em class="sig-param"><span class="n">offset_cat</span></em>, <em class="sig-param"><span class="n">cols</span><span class="o">=</span><span class="default_value">''</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/sivio/match_catalogs.html#write_csv"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#sivio.match_catalogs.write_csv" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Save matched catalogues</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>true_data</strong> (<em>array</em>) – Sorted true sky data</p></li>
+<li><p><strong>offset_data</strong> (<em>array</em>) – Sorted offset sky data</p></li>
+<li><p><strong>true_cat</strong> (<em>string</em>) – true sky catalog name</p></li>
+<li><p><strong>offset_cat</strong> (<em>string</em>) – offset sky catalog name</p></li>
+<li><p><strong>cols</strong> (<em>str</em><em>, </em><em>optional</em>) – Names of the columns, by default “”</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Paths to the sorted catalogues</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>tuple(string, string)</p>
+</dd>
+</dl>
+</dd></dl>
 
 </div>
 <div class="section" id="module-sivio.mset_utils">
@@ -317,12 +464,35 @@ ra and dec should be in radians.</p>
 <dl class="py function">
 <dt id="sivio.mset_utils.get_ant12">
 <code class="sig-prename descclassname">sivio.mset_utils.</code><code class="sig-name descname">get_ant12</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">mset</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/sivio/mset_utils.html#get_ant12"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#sivio.mset_utils.get_ant12" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>[summary]</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>mset</strong> (<em>string</em>) – Path to measurement set</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>array antenna ID correlations</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>tuple(array, array)</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py function">
 <dt id="sivio.mset_utils.get_bl_lens">
 <code class="sig-prename descclassname">sivio.mset_utils.</code><code class="sig-name descname">get_bl_lens</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">mset</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/sivio/mset_utils.html#get_bl_lens"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#sivio.mset_utils.get_bl_lens" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculate the baseline length for each DATA row in the measurement set</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>mset</strong> (<em>string</em>) – Path to measurement set</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>baseline vectors</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>array</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py function">
@@ -337,10 +507,10 @@ ra and dec should be in radians.</p>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p></p>
+<dd class="field-even"><p>XYZ coordinates of each antenna with respect to the reference antenna.</p>
 </dd>
 <dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p>XYZ coordinates of each antenna with respect to the reference antenna.</p>
+<dd class="field-odd"><p>array</p>
 </dd>
 </dl>
 </dd></dl>
@@ -348,12 +518,42 @@ ra and dec should be in radians.</p>
 <dl class="py function">
 <dt id="sivio.mset_utils.get_channels">
 <code class="sig-prename descclassname">sivio.mset_utils.</code><code class="sig-name descname">get_channels</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">tbl</span></em>, <em class="sig-param"><span class="n">ls</span><span class="o">=</span><span class="default_value">True</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/sivio/mset_utils.html#get_channels"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#sivio.mset_utils.get_channels" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Get frequency or wavelength of an observation</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>tbl</strong> (<em>casacore table.</em>) – The casacore MS table.</p></li>
+<li><p><strong>ls</strong> (<em>bool</em><em>, </em><em>optional</em>) – Convert to wavelength, by default True</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>[description]</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>[type]</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py function">
 <dt id="sivio.mset_utils.get_data">
 <code class="sig-prename descclassname">sivio.mset_utils.</code><code class="sig-name descname">get_data</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">tbl</span></em>, <em class="sig-param"><span class="n">col</span><span class="o">=</span><span class="default_value">'DATA'</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/sivio/mset_utils.html#get_data"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#sivio.mset_utils.get_data" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Grab data from a CASA measurement set (MS)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>tbl</strong> (<em>object</em>) – Casacore table object</p></li>
+<li><p><strong>col</strong> (<em>str</em><em>, </em><em>optional</em>) – The required MS column, by default “DATA”</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>required data</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>array</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py function">
 <dt id="sivio.mset_utils.get_lmns">
@@ -362,6 +562,22 @@ ra and dec should be in radians.</p>
 𝑙 = cos 𝛿 * sin Δ𝛼
 𝑚 = sin 𝛿 * cos 𝛿0 − cos 𝛿 * sin 𝛿0 * cos Δ𝛼
 Δ𝛼 = 𝛼 − 𝛼0</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>tbl</strong> (<em>casacore table.</em>) – The casacore MS table.</p></li>
+<li><p><strong>ra_rad</strong> (<em>array</em>) – Right ascensions in radians</p></li>
+<li><p><strong>dec_rad</strong> (<em>[</em><em>type</em><em>]</em>) – Declinations in radians</p></li>
+<li><p><strong>phase_center_shift</strong> (<em>int</em><em>, </em><em>optional</em>) – Dont use this!, by default 0</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>ls, ms, ns</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>tuple(array, array, array)</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py function">
@@ -384,7 +600,19 @@ ra and dec should be in radians.</p>
 <dl class="py function">
 <dt id="sivio.mset_utils.get_uvw">
 <code class="sig-prename descclassname">sivio.mset_utils.</code><code class="sig-name descname">get_uvw</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">tbl</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/sivio/mset_utils.html#get_uvw"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#sivio.mset_utils.get_uvw" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Grab the UVW data from a CASA measurement set (MS)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>tbl</strong> (<em>object</em>) – Casacore table object</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>required data</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>array</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py function">
 <dt id="sivio.mset_utils.put_col">
@@ -398,7 +626,22 @@ ra and dec should be in radians.</p>
 <dl class="py function">
 <dt id="sivio.phase_screen.convert_to_tecu">
 <code class="sig-prename descclassname">sivio.phase_screen.</code><code class="sig-name descname">convert_to_tecu</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">frequency</span></em>, <em class="sig-param"><span class="n">phscreen</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/sivio/phase_screen.html#convert_to_tecu"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#sivio.phase_screen.convert_to_tecu" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Convert phase screen from degrees to TECU</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>frequency</strong> (<em>float</em>) – observation frequency</p></li>
+<li><p><strong>phscreen</strong> (<em>array</em>) – Phase screen</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>phase screen in TECU</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>array</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py function">
 <dt id="sivio.phase_screen.fftind">
@@ -607,13 +850,8 @@ b is the baseline length</p>
 <dd></dd></dl>
 
 </div>
-<div class="section" id="module-sivio.sivio">
-<span id="sivio-sivio-module"></span><h2>sivio.sivio module<a class="headerlink" href="#module-sivio.sivio" title="Permalink to this headline">¶</a></h2>
-<dl class="py function">
-<dt id="sivio.sivio.main">
-<code class="sig-prename descclassname">sivio.sivio.</code><code class="sig-name descname">main</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/sivio/sivio.html#main"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#sivio.sivio.main" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
+<div class="section" id="sivio-sivio-module">
+<h2>sivio.sivio module<a class="headerlink" href="#sivio-sivio-module" title="Permalink to this headline">¶</a></h2>
 </div>
 <div class="section" id="module-sivio.sky_models">
 <span id="sivio-sky-models-module"></span><h2>sivio.sky_models module<a class="headerlink" href="#module-sivio.sky_models" title="Permalink to this headline">¶</a></h2>

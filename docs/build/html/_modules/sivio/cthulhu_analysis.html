@@ -158,6 +158,20 @@
 
 
 <div class="viewcode-block" id="cthulhu_analyse"><a class="viewcode-back" href="../../sivio.html#sivio.cthulhu_analysis.cthulhu_analyse">[docs]</a><span class="k">def</span> <span class="nf">cthulhu_analyse</span><span class="p">(</span><span class="n">sorted_true_cat</span><span class="p">,</span> <span class="n">sorted_offset_cat</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Runs the cthulhu package (`https://pypi.org/project/cthulhu/`) on matched catalogues</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    sorted_true_cat : string</span>
+<span class="sd">        path to true sky catalog produced by match catalogs module</span>
+<span class="sd">    sorted_offset_cat : string</span>
+<span class="sd">        path to true sky catalog produced by match catalogs module</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    cthulhu obect</span>
+<span class="sd">        The object carries statistics of the position offsets</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">true_sky</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">sorted_true_cat</span><span class="p">)</span>
     <span class="n">offset_sky</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">sorted_offset_cat</span><span class="p">)</span>
     <span class="n">ra</span> <span class="o">=</span> <span class="n">true_sky</span><span class="o">.</span><span class="n">ra</span>

@@ -256,6 +256,19 @@
 
 
 <div class="viewcode-block" id="convert_to_tecu"><a class="viewcode-back" href="../../sivio.html#sivio.phase_screen.convert_to_tecu">[docs]</a><span class="k">def</span> <span class="nf">convert_to_tecu</span><span class="p">(</span><span class="n">frequency</span><span class="p">,</span> <span class="n">phscreen</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Convert phase screen from degrees to TECU</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    frequency : float</span>
+<span class="sd">        observation frequency</span>
+<span class="sd">    phscreen : array</span>
+<span class="sd">        Phase screen</span>
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    array</span>
+<span class="sd">        phase screen in TECU</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">frequency</span> <span class="o">*=</span> <span class="mf">1e6</span>
     <span class="n">stec</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">constant</span> <span class="o">*</span> <span class="n">phscreen</span> <span class="o">*</span> <span class="n">frequency</span> <span class="o">**</span> <span class="mi">2</span>
     <span class="n">stec</span> <span class="o">/=</span> <span class="mf">1e16</span>

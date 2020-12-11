@@ -160,6 +160,20 @@
 
 
 <div class="viewcode-block" id="extract_sources"><a class="viewcode-back" href="../../sivio.html#sivio.match_catalogs.extract_sources">[docs]</a><span class="k">def</span> <span class="nf">extract_sources</span><span class="p">(</span><span class="n">true_image</span><span class="p">,</span> <span class="n">offset_image</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Run source-finder on both a true and offset sky images</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    true_image : string</span>
+<span class="sd">        Path to the true sky fits format image</span>
+<span class="sd">    offset_image : string</span>
+<span class="sd">        path to the offset sky fits format image</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    tuple(string, string)</span>
+<span class="sd">        path to a true and an offset sky catalog in csv format</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s2">&quot;BANE </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">true_image</span><span class="p">))</span>
     <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s2">&quot;BANE </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">offset_image</span><span class="p">))</span>
     <span class="n">pref</span> <span class="o">=</span> <span class="n">true_image</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;_&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="s2">&quot;_&quot;</span> <span class="o">+</span> <span class="n">true_image</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;_&quot;</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
@@ -176,6 +190,20 @@
 
 
 <div class="viewcode-block" id="load_data"><a class="viewcode-back" href="../../sivio.html#sivio.match_catalogs.load_data">[docs]</a><span class="k">def</span> <span class="nf">load_data</span><span class="p">(</span><span class="n">true_catalog</span><span class="p">,</span> <span class="n">off_catalog</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Reads the catalogues produced by the &quot;extract_sources&quot; function.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    true_catalog : string</span>
+<span class="sd">        path to a truesky catalog in csv format</span>
+<span class="sd">    off_catalog : [type]</span>
+<span class="sd">        path to an offset sky catalog in csv format</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    tuple(array, pandas dataframe, pandas dataframe)</span>
+<span class="sd">        columns in the catlogues and dataframes for both catalogues</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="c1"># Read both csv files and grab the column names</span>
     <span class="n">true_sky</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">true_catalog</span><span class="p">)</span>
     <span class="n">offset_sky</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">off_catalog</span><span class="p">)</span>
@@ -186,7 +214,7 @@
     <span class="p">)</span>
     <span class="nb">print</span><span class="p">(</span>
         <span class="nb">len</span><span class="p">(</span><span class="n">offset_sky</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">offset_sky</span><span class="p">[</span><span class="s2">&quot;source&quot;</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">]),</span>
-        <span class="s2">&quot; &#39;commponents&#39; in offset catalog skipped!&quot;</span><span class="p">,</span>
+        <span class="s2">&quot; &#39;components&#39; in offset catalog skipped!&quot;</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="n">true_sky</span> <span class="o">=</span> <span class="n">true_sky</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">true_sky</span><span class="p">[</span><span class="s2">&quot;source&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">]</span>
     <span class="n">offset_sky</span> <span class="o">=</span> <span class="n">offset_sky</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">offset_sky</span><span class="p">[</span><span class="s2">&quot;source&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">]</span>
@@ -209,6 +237,26 @@
 
 
 <div class="viewcode-block" id="write_csv"><a class="viewcode-back" href="../../sivio.html#sivio.match_catalogs.write_csv">[docs]</a><span class="k">def</span> <span class="nf">write_csv</span><span class="p">(</span><span class="n">true_data</span><span class="p">,</span> <span class="n">offset_data</span><span class="p">,</span> <span class="n">true_cat</span><span class="p">,</span> <span class="n">offset_cat</span><span class="p">,</span> <span class="n">cols</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Save matched catalogues</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    true_data : array</span>
+<span class="sd">        Sorted true sky data</span>
+<span class="sd">    offset_data : array</span>
+<span class="sd">        Sorted offset sky data</span>
+<span class="sd">    true_cat : string</span>
+<span class="sd">        true sky catalog name</span>
+<span class="sd">    offset_cat : string</span>
+<span class="sd">        offset sky catalog name</span>
+<span class="sd">    cols : str, optional</span>
+<span class="sd">        Names of the columns, by default &quot;&quot;</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    tuple(string, string)</span>
+<span class="sd">        Paths to the sorted catalogues</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">s_df_true_sky</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">true_data</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="n">cols</span><span class="p">)</span>
     <span class="n">s_df_offset_sky</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">offset_data</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="n">cols</span><span class="p">)</span>
 
@@ -241,7 +289,7 @@
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
 <span class="sd">    3 lists.</span>
-<span class="sd">        1: list of all matched islans.</span>
+<span class="sd">        1: list of all matched islands.</span>
 <span class="sd">        2: list of the first matched catalogue.</span>
 <span class="sd">        3: list of the second matched catalogue.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -322,6 +370,33 @@
 <div class="viewcode-block" id="repeat_match"><a class="viewcode-back" href="../../sivio.html#sivio.match_catalogs.repeat_match">[docs]</a><span class="k">def</span> <span class="nf">repeat_match</span><span class="p">(</span>
     <span class="n">unmatched_islands_t</span><span class="p">,</span> <span class="n">unmatched_islands_o</span><span class="p">,</span> <span class="n">df_true_sky</span><span class="p">,</span> <span class="n">df_offset_sky</span><span class="p">,</span> <span class="n">dr</span><span class="p">,</span> <span class="n">dd</span><span class="p">,</span> <span class="n">df</span>
 <span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Repeats the catalogue matchin with a different set of parameters</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    unmatched_islands_t : array</span>
+<span class="sd">        Previously unmatched islands in true sky catalog</span>
+<span class="sd">    unmatched_islands_o : array</span>
+<span class="sd">        Previously unmatched islands in offset sky catalog</span>
+<span class="sd">    df_true_sky : pandas dataframe</span>
+<span class="sd">        The reference dataframe</span>
+<span class="sd">    df_offset_sky : pandas dataframe</span>
+<span class="sd">        The second dataframe for matching \n</span>
+<span class="sd">    dr : float</span>
+<span class="sd">        The maximun RA offset allowed in degrees.\n</span>
+<span class="sd">    dd : float</span>
+<span class="sd">        The maximun Dec offset allowed in degrees.\n</span>
+<span class="sd">    df : float</span>
+<span class="sd">        The maximun flux difference allowed in degrees.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    4 lists</span>
+<span class="sd">        1: list of all unmatched islands in true catalogue.</span>
+<span class="sd">        2: list of all unmatched islands in offset catalogue.</span>
+<span class="sd">        3: true catalogue.</span>
+<span class="sd">        3: offset catalogue.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="nb">print</span><span class="p">(</span><span class="n">df_true_sky</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
     <span class="nb">print</span><span class="p">(</span><span class="n">df_offset_sky</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
     <span class="n">df_true_sky</span> <span class="o">=</span> <span class="n">df_true_sky</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">df_true_sky</span><span class="p">[</span><span class="s2">&quot;island&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">unmatched_islands_t</span><span class="p">)]</span>
@@ -338,6 +413,25 @@
 <div class="viewcode-block" id="final_match"><a class="viewcode-back" href="../../sivio.html#sivio.match_catalogs.final_match">[docs]</a><span class="k">def</span> <span class="nf">final_match</span><span class="p">(</span>
     <span class="n">r_unmatched_islands_t</span><span class="p">,</span> <span class="n">r_unmatched_islands_o</span><span class="p">,</span> <span class="n">df_true_sky</span><span class="p">,</span> <span class="n">df_offset_sky</span>
 <span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;One final match sorry. Might look for a better way to do this in future.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+
+<span class="sd">    r_unmatched_islands_t : array</span>
+<span class="sd">        Previously unmatched islands in true sky catalog</span>
+<span class="sd">    r_unmatched_islands_o : array</span>
+<span class="sd">        Previously unmatched islands in offset sky catalog</span>
+<span class="sd">    df_true_sky : pandas dataframe</span>
+<span class="sd">        The reference dataframe</span>
+<span class="sd">    df_offset_sky : pandas dataframe</span>
+<span class="sd">        The second dataframe for matching</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    [type]</span>
+<span class="sd">        [description]</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="nb">print</span><span class="p">(</span><span class="n">df_true_sky</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
     <span class="nb">print</span><span class="p">(</span><span class="n">df_offset_sky</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
     <span class="n">f_data_true</span><span class="p">,</span> <span class="n">f_data_offset</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[]</span>
@@ -356,6 +450,20 @@
 
 
 <div class="viewcode-block" id="main_match"><a class="viewcode-back" href="../../sivio.html#sivio.match_catalogs.main_match">[docs]</a><span class="k">def</span> <span class="nf">main_match</span><span class="p">(</span><span class="n">true_file</span><span class="p">,</span> <span class="n">offset_file</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Performs the full source catalog matching</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    true_file : string</span>
+<span class="sd">        path to a true sky catalog/image in csv/fits format</span>
+<span class="sd">    offset_file : string</span>
+<span class="sd">        path to an offset sky catalog/image in csv/fits format</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    tuple(string, string)</span>
+<span class="sd">        Paths to the sorted catalogues</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="n">true_file</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;csv&quot;</span><span class="p">:</span>
         <span class="n">true_catalog</span><span class="p">,</span> <span class="n">off_catalog</span> <span class="o">=</span> <span class="n">true_file</span><span class="p">,</span> <span class="n">offset_file</span>
     <span class="k">else</span><span class="p">:</span>
@@ -431,6 +539,8 @@
 
 
 <span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;This module takes two images/catalogues and returns two csv file catalogues containing the matching sources from each</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">parser</span> <span class="o">=</span> <span class="n">ArgumentParser</span><span class="p">(</span>
         <span class="s2">&quot;python match_catalogs.py&quot;</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Ionospheric effects simulations&quot;</span>
     <span class="p">)</span>

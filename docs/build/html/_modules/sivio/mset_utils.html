@@ -160,11 +160,37 @@
 
 
 <div class="viewcode-block" id="get_data"><a class="viewcode-back" href="../../sivio.html#sivio.mset_utils.get_data">[docs]</a><span class="k">def</span> <span class="nf">get_data</span><span class="p">(</span><span class="n">tbl</span><span class="p">,</span> <span class="n">col</span><span class="o">=</span><span class="s2">&quot;DATA&quot;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Grab data from a CASA measurement set (MS)</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    tbl : object</span>
+<span class="sd">        Casacore table object</span>
+<span class="sd">    col : str, optional</span>
+<span class="sd">        The required MS column, by default &quot;DATA&quot;</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    array</span>
+<span class="sd">        required data</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">data</span> <span class="o">=</span> <span class="n">tbl</span><span class="o">.</span><span class="n">getcol</span><span class="p">(</span><span class="n">col</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">data</span></div>
 
 
 <div class="viewcode-block" id="get_uvw"><a class="viewcode-back" href="../../sivio.html#sivio.mset_utils.get_uvw">[docs]</a><span class="k">def</span> <span class="nf">get_uvw</span><span class="p">(</span><span class="n">tbl</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Grab the UVW data from a CASA measurement set (MS)</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    tbl : object</span>
+<span class="sd">        Casacore table object</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    array</span>
+<span class="sd">        required data</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">uvw</span> <span class="o">=</span> <span class="n">tbl</span><span class="o">.</span><span class="n">getcol</span><span class="p">(</span><span class="s2">&quot;UVW&quot;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">uvw</span></div>
 
@@ -176,7 +202,7 @@
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
 <span class="sd">    tbl : casacore table.</span>
-<span class="sd">        The casacore mset table opened with readonly=False.\n</span>
+<span class="sd">        The casacore mset table opened with readonly=False.</span>
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
 <span class="sd">    float, float.</span>
@@ -187,6 +213,20 @@
 
 
 <div class="viewcode-block" id="get_channels"><a class="viewcode-back" href="../../sivio.html#sivio.mset_utils.get_channels">[docs]</a><span class="k">def</span> <span class="nf">get_channels</span><span class="p">(</span><span class="n">tbl</span><span class="p">,</span> <span class="n">ls</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Get frequency or wavelength of an observation</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    tbl : casacore table.</span>
+<span class="sd">        The casacore MS table.</span>
+<span class="sd">    ls : bool, optional</span>
+<span class="sd">        Convert to wavelength, by default True</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    [type]</span>
+<span class="sd">        [description]</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="n">ls</span><span class="p">:</span>
         <span class="n">chans</span> <span class="o">=</span> <span class="n">c</span> <span class="o">/</span> <span class="n">tbl</span><span class="o">.</span><span class="n">SPECTRAL_WINDOW</span><span class="o">.</span><span class="n">getcell</span><span class="p">(</span><span class="s2">&quot;CHAN_FREQ&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
@@ -195,6 +235,18 @@
 
 
 <div class="viewcode-block" id="get_ant12"><a class="viewcode-back" href="../../sivio.html#sivio.mset_utils.get_ant12">[docs]</a><span class="k">def</span> <span class="nf">get_ant12</span><span class="p">(</span><span class="n">mset</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;[summary]</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    mset : string</span>
+<span class="sd">        Path to measurement set</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    tuple(array, array)</span>
+<span class="sd">        array antenna ID correlations</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">ms</span> <span class="o">=</span> <span class="n">table</span><span class="p">(</span><span class="n">mset</span><span class="p">,</span> <span class="n">readonly</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">ack</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
     <span class="n">antenna1</span> <span class="o">=</span> <span class="n">ms</span><span class="o">.</span><span class="n">getcol</span><span class="p">(</span><span class="s2">&quot;ANTENNA1&quot;</span><span class="p">)</span>
     <span class="n">antenna2</span> <span class="o">=</span> <span class="n">ms</span><span class="o">.</span><span class="n">getcol</span><span class="p">(</span><span class="s2">&quot;ANTENNA2&quot;</span><span class="p">)</span>
@@ -226,6 +278,22 @@
 <span class="sd">    𝑙 = cos 𝛿 * sin Δ𝛼</span>
 <span class="sd">    𝑚 = sin 𝛿 * cos 𝛿0 − cos 𝛿 * sin 𝛿0 * cos Δ𝛼</span>
 <span class="sd">    Δ𝛼 = 𝛼 − 𝛼0</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    tbl : casacore table.</span>
+<span class="sd">        The casacore MS table.</span>
+<span class="sd">    ra_rad : array</span>
+<span class="sd">        Right ascensions in radians</span>
+<span class="sd">    dec_rad : [type]</span>
+<span class="sd">        Declinations in radians</span>
+<span class="sd">    phase_center_shift : int, optional</span>
+<span class="sd">        Dont use this!, by default 0</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    tuple(array, array, array)</span>
+<span class="sd">        ls, ms, ns</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">ra0</span><span class="p">,</span> <span class="n">dec0</span> <span class="o">=</span> <span class="n">get_phase_center</span><span class="p">(</span><span class="n">tbl</span><span class="p">)</span>
 
@@ -249,7 +317,18 @@
 
 
 <div class="viewcode-block" id="get_bl_lens"><a class="viewcode-back" href="../../sivio.html#sivio.mset_utils.get_bl_lens">[docs]</a><span class="k">def</span> <span class="nf">get_bl_lens</span><span class="p">(</span><span class="n">mset</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Calculate the baseline length for each DATA row in the measurement set&quot;&quot;&quot;</span>
+    <span class="sd">&quot;&quot;&quot;Calculate the baseline length for each DATA row in the measurement set</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    mset : string</span>
+<span class="sd">        Path to measurement set</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    array</span>
+<span class="sd">        baseline vectors</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">t</span> <span class="o">=</span> <span class="n">table</span><span class="p">(</span><span class="n">mset</span> <span class="o">+</span> <span class="s2">&quot;/ANTENNA&quot;</span><span class="p">,</span> <span class="n">ack</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
     <span class="n">pos</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">getcol</span><span class="p">(</span><span class="s2">&quot;POSITION&quot;</span><span class="p">)</span>
     <span class="n">t</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
@@ -281,7 +360,8 @@
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
-<span class="sd">    XYZ coordinates of each antenna with respect to the reference antenna.</span>
+<span class="sd">    array</span>
+<span class="sd">        XYZ coordinates of each antenna with respect to the reference antenna.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="c1"># First get the positions of each antenna recorded in XYZ coordinates from the MS</span>
     <span class="n">t</span> <span class="o">=</span> <span class="n">table</span><span class="p">(</span><span class="n">mset</span> <span class="o">+</span> <span class="s2">&quot;/ANTENNA&quot;</span><span class="p">,</span> <span class="n">ack</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>

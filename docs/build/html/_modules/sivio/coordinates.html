@@ -159,6 +159,7 @@
 <span class="kn">from</span> <span class="nn">astropy.time</span> <span class="kn">import</span> <span class="n">Time</span>
 <span class="kn">import</span> <span class="nn">astropy.units</span> <span class="k">as</span> <span class="nn">u</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">os</span>
 
 
 <span class="n">MWAPOS</span> <span class="o">=</span> <span class="n">EarthLocation</span><span class="o">.</span><span class="n">from_geodetic</span><span class="p">(</span>
@@ -167,6 +168,20 @@
 
 
 <div class="viewcode-block" id="get_time"><a class="viewcode-back" href="../../sivio.html#sivio.coordinates.get_time">[docs]</a><span class="k">def</span> <span class="nf">get_time</span><span class="p">(</span><span class="n">metafits</span><span class="p">,</span> <span class="n">pos</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Grab time and lst from a metafits file of an observation</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    metafits : [type]</span>
+<span class="sd">        [description]</span>
+<span class="sd">    pos : Astropy location object</span>
+<span class="sd">        Geographic location of the array</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    tuple(time object, LST)</span>
+<span class="sd">        time object and LST of the observation</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">metafits</span> <span class="o">=</span> <span class="n">getheader</span><span class="p">(</span><span class="n">metafits</span><span class="p">)</span>
     <span class="n">time</span> <span class="o">=</span> <span class="n">Time</span><span class="p">(</span><span class="n">metafits</span><span class="p">[</span><span class="s2">&quot;DATE-OBS&quot;</span><span class="p">],</span> <span class="n">location</span><span class="o">=</span><span class="n">pos</span><span class="p">)</span>
     <span class="n">lst</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">sidereal_time</span><span class="p">(</span><span class="s2">&quot;mean&quot;</span><span class="p">)</span>
@@ -174,9 +189,24 @@
 
 
 <div class="viewcode-block" id="radec_to_altaz"><a class="viewcode-back" href="../../sivio.html#sivio.coordinates.radec_to_altaz">[docs]</a><span class="k">def</span> <span class="nf">radec_to_altaz</span><span class="p">(</span><span class="n">ra</span><span class="p">,</span> <span class="n">dec</span><span class="p">,</span> <span class="n">time</span><span class="p">,</span> <span class="n">pos</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Convert RA and Dec to altitude and azimuth (Equatorial to Horizontal coordinates).</span>
+    <span class="sd">&quot;&quot;&quot;Convert RA and Dec to altitude and azimuth (Equatorial to Horizontal coordinates).</span>
 <span class="sd">    ra and dec should be in radians.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    ra : float</span>
+<span class="sd">        Right ascension</span>
+<span class="sd">    dec : float</span>
+<span class="sd">        Declination</span>
+<span class="sd">    time : object</span>
+<span class="sd">        Astropy time</span>
+<span class="sd">    pos : Astropy location object</span>
+<span class="sd">        Geographic location of the array</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">   tuple (altitude, azimuth)</span>
+<span class="sd">        altitude and azimuth</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="c1"># print(&quot;RA: &quot;, ra, &quot;Dec: &quot;, dec)</span>
     <span class="c1"># ra, dec = np.deg2rad(ra), np.deg2rad(dec)</span>
@@ -187,20 +217,24 @@
 
 
 <span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
-    <span class="n">metafits</span> <span class="o">=</span> <span class="s2">&quot;/home/kariuki/mset_data/1098108248.metafits&quot;</span>
-    <span class="c1"># metafits = &quot;/home/kariuki/scint_sims/1065880128.metafits&quot;</span>
+    <span class="c1"># metafits = &quot;/home/kariuki/mset_data/1098108248.metafits&quot;</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span>
+        <span class="s1">&#39;wget &quot;http://ws.mwatelescope.org/metadata/fits?obs_id=1174096840&quot; -O 1065880128.metafits&#39;</span>
+    <span class="p">)</span>
+    <span class="n">metafits</span> <span class="o">=</span> <span class="s2">&quot;1065880128.metafits&quot;</span>
     <span class="n">x</span> <span class="o">=</span> <span class="n">get_time</span><span class="p">(</span><span class="n">metafits</span><span class="p">,</span> <span class="n">MWAPOS</span><span class="p">)</span>
     <span class="nb">print</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
     <span class="n">time</span><span class="p">,</span> <span class="n">lst</span> <span class="o">=</span> <span class="n">x</span>
-    <span class="n">alt</span><span class="p">,</span> <span class="n">az</span> <span class="o">=</span> <span class="n">radec_to_altaz</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">radians</span><span class="p">(</span><span class="mi">60</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">radians</span><span class="p">(</span><span class="o">-</span><span class="mi">30</span><span class="p">),</span> <span class="n">time</span><span class="p">,</span> <span class="n">MWAPOS</span><span class="p">)</span>
+    <span class="n">alt</span><span class="p">,</span> <span class="n">az</span> <span class="o">=</span> <span class="n">radec_to_altaz</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">radians</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">radians</span><span class="p">(</span><span class="o">-</span><span class="mi">27</span><span class="p">),</span> <span class="n">time</span><span class="p">,</span> <span class="n">MWAPOS</span><span class="p">)</span>
     <span class="n">zen_angle</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mf">2.0</span> <span class="o">-</span> <span class="n">alt</span>
 
-    <span class="n">c</span> <span class="o">=</span> <span class="n">SkyCoord</span><span class="p">(</span><span class="n">ra</span><span class="o">=</span><span class="mi">60</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">degree</span><span class="p">,</span> <span class="n">dec</span><span class="o">=-</span><span class="mi">30</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">degree</span><span class="p">)</span>
+    <span class="n">c</span> <span class="o">=</span> <span class="n">SkyCoord</span><span class="p">(</span><span class="n">ra</span><span class="o">=</span><span class="mi">0</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">degree</span><span class="p">,</span> <span class="n">dec</span><span class="o">=--</span><span class="mi">27</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">degree</span><span class="p">)</span>
     <span class="nb">print</span><span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">to_string</span><span class="p">(</span><span class="s2">&quot;hmsdms&quot;</span><span class="p">))</span>
 
     <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Time: &quot;</span><span class="p">,</span> <span class="n">time</span><span class="p">,</span> <span class="s2">&quot;LST: &quot;</span><span class="p">,</span> <span class="n">lst</span><span class="p">)</span>
     <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Alt: &quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">rad2deg</span><span class="p">(</span><span class="n">alt</span><span class="p">),</span> <span class="s2">&quot;Az: &quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">rad2deg</span><span class="p">(</span><span class="n">az</span><span class="p">))</span>
     <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;zenith angle: &quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">rad2deg</span><span class="p">(</span><span class="n">zen_angle</span><span class="p">))</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s2">&quot;rm 1065880128.metafits&quot;</span><span class="p">)</span>
 </pre></div>
 
            </div>

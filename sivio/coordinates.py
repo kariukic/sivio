@@ -5,6 +5,7 @@ from astropy.io.fits import getheader
 from astropy.time import Time
 import astropy.units as u
 import numpy as np
+import os
 
 
 MWAPOS = EarthLocation.from_geodetic(
@@ -62,17 +63,21 @@ def radec_to_altaz(ra, dec, time, pos):
 
 
 if __name__ == "__main__":
-    metafits = "/home/kariuki/mset_data/1098108248.metafits"
-    # metafits = "/home/kariuki/scint_sims/1065880128.metafits"
+    # metafits = "/home/kariuki/mset_data/1098108248.metafits"
+    os.system(
+        'wget "http://ws.mwatelescope.org/metadata/fits?obs_id=1174096840" -O 1065880128.metafits'
+    )
+    metafits = "1065880128.metafits"
     x = get_time(metafits, MWAPOS)
     print(x[0].value)
     time, lst = x
-    alt, az = radec_to_altaz(np.radians(60), np.radians(-30), time, MWAPOS)
+    alt, az = radec_to_altaz(np.radians(0), np.radians(-27), time, MWAPOS)
     zen_angle = np.pi / 2.0 - alt
 
-    c = SkyCoord(ra=60 * u.degree, dec=-30 * u.degree)
+    c = SkyCoord(ra=0 * u.degree, dec=--27 * u.degree)
     print(c.to_string("hmsdms"))
 
     print("Time: ", time, "LST: ", lst)
     print("Alt: ", np.rad2deg(alt), "Az: ", np.rad2deg(az))
     print("zenith angle: ", np.rad2deg(zen_angle))
+    os.system("rm 1065880128.metafits")
